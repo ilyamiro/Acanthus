@@ -141,7 +141,7 @@ mod tests {
         let map: HashMap<String, String> = [
             ("HOME".to_owned(), dir.to_string_lossy().into_owned()),
             ("XDG_DATA_HOME".to_owned(), dir.to_string_lossy().into_owned()),
-            ("XDG_DATA_DIRS".to_owned(), String::new()),
+            ("XDG_DATA_DIRS".to_owned(), dir.join("system").to_string_lossy().into_owned()),
             ("XDG_CURRENT_DESKTOP".to_owned(), "Hyprland".to_owned()),
             ("LANG".to_owned(), "de_DE.UTF-8".to_owned()),
         ]
