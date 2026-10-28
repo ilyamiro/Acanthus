@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use acanthus_io::{AppId, Dirs};
 
+/// Directories of an application, with the asset subdirectories the runtime uses.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paths {
     dirs: Dirs,
@@ -49,18 +50,22 @@ impl Paths {
         Paths { dirs }
     }
 
+    /// The underlying directories.
     pub fn dirs(&self) -> Dirs {
         self.dirs.clone()
     }
 
+    /// Translation file of `lang`.
     pub fn language_file(&self, lang: &str) -> PathBuf {
         self.assets.join("languages").join(format!("{lang}.json"))
     }
 
+    /// Directory of the translation files.
     pub fn languages_dir(&self) -> PathBuf {
         self.assets.join("languages")
     }
 
+    /// Directory of the theme presets.
     pub fn themes_dir(&self) -> PathBuf {
         self.assets.join("themes")
     }

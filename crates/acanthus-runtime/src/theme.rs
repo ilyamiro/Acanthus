@@ -15,17 +15,21 @@ const ICON_FONT_FILE: &str = "SymbolsNerdFontMono-Regular.ttf";
 
 macro_rules! palette {
     ($($name:ident = $hex:expr),* $(,)?) => {
+        /// The named colour slots of a theme.
         pub struct Palette {
-            $(pub $name: Signal<Color>,)*
+            $(#[doc = concat!("Colour slot `", stringify!($name), "`.")] pub $name: Signal<Color>,)*
         }
 
         impl Palette {
+            /// Names of the palette slots.
             pub const NAMES: &'static [&'static str] = &[$(stringify!($name)),*];
 
+            /// Palette with the default colours.
             pub fn new() -> Self {
                 Palette { $($name: Signal::new(Color::hex($hex)),)* }
             }
 
+            /// Signal of the slot called `name`.
             pub fn slot(&self, name: &str) -> Option<&Signal<Color>> {
                 match name {
                     $(stringify!($name) => Some(&self.$name),)*
@@ -67,20 +71,35 @@ impl Default for Palette {
     }
 }
 
+/// The visual style of an application: palette, fonts, radius and opacity as signals.
 pub struct Theme {
+    /// Colour palette.
     pub palette: Palette,
+    /// Main text colour.
     pub text: Signal<Color>,
+    /// Secondary text colour.
     pub subtext0: Signal<Color>,
+    /// Tertiary text colour.
     pub subtext1: Signal<Color>,
+    /// Accent colour.
     pub primary: Signal<Color>,
+    /// Font family of the interface.
     pub font_family: Signal<String>,
+    /// Corner radius as configured.
     pub border_radius: Signal<i64>,
+    /// Corner radius softened for large values, see [`clamp_border_radius`].
     pub clamped_border_radius: Signal<i64>,
+    /// Opacity of element backgrounds from 0.0 to 1.0.
     pub element_opacity: Signal<f32>,
+    /// Whether the background is blurred.
     pub blur_background: Signal<bool>,
+    /// Whether the glass effect is on.
     pub glass_active: Signal<bool>,
+    /// Family of the icon font.
     pub icon_font: Signal<String>,
+    /// Family of the loaded icon font file, if any.
     pub icon_family: Signal<Option<String>>,
+    /// Whether the application runs without a compositor background to blur.
     pub standalone: Signal<bool>,
     effects: RefCell<Vec<Effect>>,
     sources: RefCell<Sources>,
@@ -95,10 +114,12 @@ struct Sources {
     loaded_fonts: Vec<String>,
 }
 
+/// Softens radii above 24 so large values stay round.
 pub fn clamp_border_radius(radius: i64) -> i64 {
     if radius <= 24 { radius } else { (24.0 + ((radius - 24) as f64).powf(0.55)).floor() as i64 }
 }
 
+/// Whether a theme object asks for generated colours.
 pub fn is_matugen_theme(theme: &Value) -> bool {
     if let Some(flag) = theme.get("matugen") {
         return flag.as_bool() == Some(true);
@@ -137,6 +158,7 @@ fn unwrap_colors(value: &Value) -> &Value {
     value.get("colors").unwrap_or(value)
 }
 
+/// Names of the presets in `themes_dir`.
 pub fn preset_names(themes_dir: &Path) -> Vec<String> {
     let mut names: Vec<String> = std::fs::read_dir(themes_dir)
         .into_iter()
@@ -148,25 +170,30 @@ pub fn preset_names(themes_dir: &Path) -> Vec<String> {
     names
 }
 
+/// Colours of the preset `name` in `themes_dir`.
 pub fn load_preset(themes_dir: &Path, name: &str) -> Option<Value> {
     let text = std::fs::read_to_string(themes_dir.join(format!("{name}.json"))).ok()?;
     serde_json::from_str::<Value>(&text).ok().map(|v| unwrap_colors(&v).clone())
 }
 
 impl Theme {
+    /// Base colour with the element opacity.
     pub fn base_fill(&self) -> Color {
         self.palette.base.get().with_alpha(self.element_opacity.get())
     }
 
+    /// Surface colour with the element opacity.
     pub fn surface_fill(&self) -> Color {
         self.palette.surface0.get().with_alpha(self.element_opacity.get())
     }
 
+    /// The configured radius, or `fallback` when none is set.
     pub fn radius_or(&self, fallback: f32) -> f32 {
         let configured = self.border_radius.get();
         if configured != 0 { configured as f32 } else { fallback }
     }
 
+    /// Theme with the default palette.
     pub fn new() -> Rc<Theme> {
         let palette = Palette::new();
         let theme = Rc::new(Theme {
@@ -228,10 +255,12 @@ impl Theme {
         *self.effects.borrow_mut() = effects;
     }
 
+    /// `color` with the element opacity.
     pub fn faded(&self, color: Color) -> Color {
         color.with_alpha(self.element_opacity.get())
     }
 
+    /// Applies the colours of a palette object; returns how many slots changed.
     pub fn apply_colors(&self, colors: &Value) -> usize {
         let Some(map) = unwrap_colors(colors).as_object() else { return 0 };
         let mut changed = 0;
@@ -249,6 +278,7 @@ impl Theme {
         changed
     }
 
+    /// Applies a theme settings object: font, radius, opacity and colours.
     pub fn apply_config(&self, theme: &Value) {
         let standalone = self.standalone.get_untracked();
         batch(|| {
@@ -285,25 +315,31 @@ impl Theme {
         load_preset(&self.sources.borrow().themes_dir, preset)
     }
 
+    /// Sets the generated colours used when the theme asks for them.
     pub fn set_matugen_colors(&self, colors: Option<Value>) {
         self.sources.borrow_mut().matugen = colors.map(|c| unwrap_colors(&c).clone());
     }
 
+    /// Sets the font catalog.
     pub fn set_catalog(&self, catalog: FontCatalog) {
         self.sources.borrow_mut().catalog = catalog;
     }
 
+    /// Names of the available font families.
     pub fn font_names(&self) -> Vec<String> {
         self.sources.borrow().catalog.names().to_vec()
     }
 }
 
+/// Keeps a [`Theme`] up to date with the settings and the generated colours.
 pub struct ThemeService {
+    /// The theme.
     pub theme: Rc<Theme>,
     bindings: Vec<Effect>,
 }
 
 impl ThemeService {
+    /// Starts watching the settings and the generated colour file.
     pub fn start<D: 'static>(
         config: &Config,
         paths: &Paths,
@@ -352,6 +388,7 @@ impl ThemeService {
         Ok(ThemeService { theme, bindings })
     }
 
+    /// Number of bindings the service holds.
     pub fn bindings(&self) -> usize {
         self.bindings.len()
     }

@@ -1,5 +1,6 @@
 use serde_json::{Map, Value};
 
+/// Value at the dotted `path`; the empty path is `root`.
 pub fn get_path<'a>(root: &'a Value, path: &str) -> Option<&'a Value> {
     if path.is_empty() {
         return Some(root);
@@ -7,6 +8,7 @@ pub fn get_path<'a>(root: &'a Value, path: &str) -> Option<&'a Value> {
     path.split('.').try_fold(root, |cur, part| cur.as_object()?.get(part))
 }
 
+/// Sets the value at the dotted `path`, creating objects along the way.
 pub fn set_path(root: &mut Value, path: &str, value: Value) {
     let mut parts = path.split('.').peekable();
     let mut cur = root;
@@ -23,6 +25,7 @@ pub fn set_path(root: &mut Value, path: &str, value: Value) {
     }
 }
 
+/// Removes the value at `path`; true when something was removed.
 pub fn remove_path(root: &mut Value, path: &str) -> bool {
     let Some((parent, leaf)) = path.rsplit_once('.').map(|(p, l)| (Some(p), l)).or(Some((None, path))) else {
         return false;
@@ -41,6 +44,7 @@ fn get_path_mut<'a>(root: &'a mut Value, path: &str) -> Option<&'a mut Value> {
     path.split('.').try_fold(root, |cur, part| cur.as_object_mut()?.get_mut(part))
 }
 
+/// Parses `text` as JSON, falling back to a string.
 pub fn parse_scalar(text: &str) -> Value {
     serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.to_owned()))
 }

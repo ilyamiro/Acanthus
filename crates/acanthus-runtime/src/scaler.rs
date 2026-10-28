@@ -5,16 +5,19 @@ use acanthus_core::{Effect, Signal, untrack};
 
 use crate::Config;
 
+/// Interface scale per screen, from the settings.
 pub struct Scaler {
     config: Config,
     scales: RefCell<HashMap<String, (Signal<f32>, Effect)>>,
 }
 
 impl Scaler {
+    /// Scaler reading `config`.
     pub fn new(config: &Config) -> Scaler {
         Scaler { config: config.clone(), scales: RefCell::default() }
     }
 
+    /// Signal of the scale of `screen`: the screen's own setting, else the general one.
     pub fn scale_for(&self, screen: &str) -> Signal<f32> {
         if let Some((signal, _)) = self.scales.borrow().get(screen) {
             return signal.clone();

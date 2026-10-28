@@ -13,12 +13,17 @@ use serde_json::Value;
 
 use crate::json::{get_path, remove_path, set_path};
 
+/// Delay between a change and the write of the settings file.
 pub const WRITE_DEBOUNCE: Duration = Duration::from_millis(150);
 
+/// Why the settings file could not be loaded.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConfigError {
+    /// Description of the problem.
     pub message: String,
+    /// Line of the problem, starting at 1.
     pub line: usize,
+    /// Column of the problem, starting at 1.
     pub column: usize,
 }
 
@@ -45,6 +50,7 @@ struct Inner {
     watch: RefCell<Option<Watch>>,
 }
 
+/// Reactive settings: a JSON file with defaults, watched for changes and written back with a debounce.
 #[derive(Clone)]
 pub struct Config(Rc<Inner>);
 
@@ -67,6 +73,7 @@ fn merge_defaults(defaults: &Value, user: &Value) -> Value {
 }
 
 impl Config {
+    /// Loads the settings at `path` without defaults.
     pub fn load(path: &Path) -> Config {
         Config::load_with_defaults(path, Value::Null)
     }
@@ -76,6 +83,7 @@ impl Config {
         Config::load_with_defaults(path, serde_json::from_str(include_str!("fixtures/demo_settings.json")).unwrap())
     }
 
+    /// Loads the settings at `path`; `defaults` fill what the file does not set.
     pub fn load_with_defaults(path: &Path, defaults: Value) -> Config {
         let config = Config(Rc::new(Inner {
             path: path.to_path_buf(),
@@ -95,26 +103,32 @@ impl Config {
         config
     }
 
+    /// Path of the settings file.
     pub fn path(&self) -> &Path {
         &self.0.path
     }
 
+    /// Counter that grows on every change of the settings.
     pub fn revision(&self) -> Signal<u64> {
         self.0.revision.clone()
     }
 
+    /// The last load error, cleared by the next good load.
     pub fn error(&self) -> Signal<Option<ConfigError>> {
         self.0.error.clone()
     }
 
+    /// The user's settings without defaults.
     pub fn raw(&self) -> Value {
         self.0.raw.borrow().clone()
     }
 
+    /// The user's settings as pretty JSON.
     pub fn dump(&self) -> String {
         serde_json::to_string_pretty(&*self.0.raw.borrow()).unwrap_or_default()
     }
 
+    /// Value at the dotted `path`, with defaults merged in.
     pub fn current(&self, path: &str) -> Value {
         let user = get_path(&self.0.raw.borrow(), path).cloned().unwrap_or(Value::Null);
         match get_path(&self.0.defaults, path) {
@@ -123,10 +137,12 @@ impl Config {
         }
     }
 
+    /// Value at `path` set by the user, `None` when only the default applies.
     pub fn user_value(&self, path: &str) -> Option<Value> {
         get_path(&self.0.raw.borrow(), path).filter(|v| !v.is_null()).cloned()
     }
 
+    /// Signal of the value at `path`, shared between callers.
     pub fn value(&self, path: &str) -> Signal<Value> {
         if let Some(existing) = self.0.leaves.borrow().get(path) {
             return existing.clone();
@@ -136,6 +152,7 @@ impl Config {
         signal
     }
 
+    /// Typed signal of the value at `path`; `default` is used while the value is missing or has another type.
     pub fn get<T>(&self, path: &str, default: T) -> Signal<T>
     where
         T: DeserializeOwned + PartialEq + Clone + 'static,
@@ -157,14 +174,17 @@ impl Config {
         signal
     }
 
+    /// Current value at `path` as `T`, or `default`.
     pub fn get_now<T: DeserializeOwned>(&self, path: &str, default: T) -> T {
         serde_json::from_value(self.current(path)).unwrap_or(default)
     }
 
+    /// Sets the value at `path` and schedules a write.
     pub fn set(&self, path: &str, value: Value) {
         self.set_many(vec![(path.to_owned(), value)]);
     }
 
+    /// Applies several updates as one change.
     pub fn set_many(&self, updates: Vec<(String, Value)>) {
         let mut next = self.raw();
         for (path, value) in updates {
@@ -173,6 +193,7 @@ impl Config {
         self.replace(next, true);
     }
 
+    /// Removes the user's value at `path`, so the default applies again.
     pub fn unset(&self, path: &str) {
         let mut next = self.raw();
         if remove_path(&mut next, path) {
@@ -204,6 +225,7 @@ impl Config {
         });
     }
 
+    /// Re-reads the file; invalid content is reported through [`Config::error`] and the last good settings stay.
     pub fn reload(&self) {
         let text = match std::fs::read(&self.0.path) {
             Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
@@ -232,6 +254,7 @@ impl Config {
         self.0.error.set(Some(error));
     }
 
+    /// Writes pending changes immediately.
     pub fn flush(&self) {
         *self.0.write_timer.borrow_mut() = None;
         if !self.0.dirty.replace(false) {
@@ -263,6 +286,7 @@ impl Config {
         *self.0.write_timer.borrow_mut() = timer;
     }
 
+    /// Watches the file and writes pending changes in `handle`'s event loop.
     pub fn attach<D: 'static>(&self, handle: &LoopHandle<'static, D>) -> Result<(), acanthus_io::IoError> {
         if let Some(dir) = self.0.path.parent() {
             std::fs::create_dir_all(dir)?;

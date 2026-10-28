@@ -9,21 +9,32 @@ use chrono::{Datelike, Local, NaiveDateTime, Timelike};
 
 use crate::qt_format::{format_qt, locale_for};
 
+/// Default Qt pattern of the time (`HH:mm:ss`).
 pub const DEFAULT_TIME_FORMAT: &str = "HH:mm:ss";
+/// Default Qt pattern of the long date.
 pub const DEFAULT_FULL_DATE: &str = "dddd, MMMM dd";
 
+/// A Qt time pattern split into the parts a clock shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimeFormat {
+    /// The whole pattern.
     pub full: String,
+    /// Pattern of the hour.
     pub hour: &'static str,
+    /// Pattern of the minute.
     pub minute: &'static str,
+    /// Pattern of the seconds, empty when the format has none.
     pub second: &'static str,
+    /// Pattern of the AM/PM marker, empty in 24-hour formats.
     pub am_pm: &'static str,
+    /// Whether the format uses a 12-hour clock.
     pub is_12_hour: bool,
+    /// Whether the format shows seconds.
     pub has_seconds: bool,
 }
 
 impl TimeFormat {
+    /// Splits a Qt time `format` into its parts.
     pub fn parse(format: &str) -> TimeFormat {
         let has = |s: &str| format.contains(s);
         let hour = if has("HH") {
@@ -74,10 +85,12 @@ impl TimeFormat {
 
 type Source = Rc<dyn Fn() -> NaiveDateTime>;
 
+/// Current local date and time.
 pub fn local_now() -> NaiveDateTime {
     Local::now().naive_local()
 }
 
+/// Reactive clock: formatted time and date as signals, refreshed on a timer.
 #[derive(Clone)]
 pub struct Clock(Rc<Inner>);
 
@@ -115,7 +128,7 @@ struct Inner {
 
 macro_rules! accessors {
     ($($name:ident: $ty:ty),* $(,)?) => {
-        $(pub fn $name(&self) -> Signal<$ty> {
+        $(#[doc = concat!("Signal of the `", stringify!($name), "` text or flag.")] pub fn $name(&self) -> Signal<$ty> {
             self.0.$name.clone()
         })*
     };
@@ -133,6 +146,7 @@ impl Clock {
         )
     }
 
+    /// Clock fed by `source`, formatted with the Qt pattern in `format`, the names of `language` and the long date pattern in `full_date_pattern`.
     pub fn new(
         source: impl Fn() -> NaiveDateTime + 'static,
         format: Signal<String>,
@@ -191,11 +205,13 @@ impl Clock {
         year: String, has_seconds: bool, is_12_hour: bool,
     }
 
+    /// Formats the current time with a Qt `pattern` in the clock's language.
     pub fn format(&self, pattern: &str) -> String {
         let locale = locale_for(&self.0.language.get_untracked());
         format_qt(&self.0.now.get_untracked(), pattern, locale)
     }
 
+    /// Reads the time source and updates the signals that changed.
     pub fn tick(&self) {
         self.update(false);
     }
@@ -251,6 +267,7 @@ impl Clock {
         });
     }
 
+    /// Time until the next change of the displayed time: the next second, or the next minute when no seconds are shown.
     pub fn next_delay(&self) -> Duration {
         let now = (self.0.source)();
         let sub_ms = u64::from(now.nanosecond() / 1_000_000 % 1000);
@@ -263,6 +280,7 @@ impl Clock {
         Duration::from_millis(ms.max(1))
     }
 
+    /// Updates the clock on a timer in `handle`'s event loop.
     pub fn attach<D: 'static>(&self, handle: &LoopHandle<'static, D>) -> Result<(), acanthus_io::IoError> {
         let clock = self.clone();
         let timer = timer::dynamic(handle, self.next_delay(), move || {

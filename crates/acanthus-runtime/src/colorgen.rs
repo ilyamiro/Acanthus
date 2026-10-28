@@ -11,32 +11,45 @@ use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, ImageReader};
 use serde_json::Value;
 
+/// Errors of colour generation and template rendering.
 #[derive(Debug, thiserror::Error)]
 pub enum ColorGenError {
+    /// The image could not be read or decoded.
     #[error("cannot read image {0}: {1}")]
     Image(PathBuf, String),
+    /// The image has no colour usable as a source colour.
     #[error("image has no usable colours")]
     NoColors,
+    /// The requested source colour index does not exist.
     #[error("source colour index {0} is out of range")]
     Index(usize),
+    /// A colour value could not be parsed.
     #[error("invalid colour {0}")]
     Color(String),
+    /// The template configuration is malformed.
     #[error("template config: {0}")]
     Config(String),
+    /// A file operation failed.
     #[error(transparent)]
     Io(#[from] std::io::Error),
+    /// Writing a rendered file failed.
     #[error(transparent)]
     Write(#[from] acanthus_io::IoError),
 }
 
+/// Whether to generate a dark or a light scheme.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
+    /// Dark scheme.
     Dark,
+    /// Light scheme.
     Light,
+    /// Dark or light depending on the image.
     Smart,
 }
 
 impl Mode {
+    /// Parses `dark`, `light` or `smart`, case-insensitively.
     pub fn parse(text: &str) -> Option<Mode> {
         match text.trim().to_lowercase().as_str() {
             "dark" => Some(Mode::Dark),
@@ -46,6 +59,7 @@ impl Mode {
         }
     }
 
+    /// Lowercase name of the mode.
     pub fn name(self) -> &'static str {
         match self {
             Mode::Dark => "dark",
@@ -61,19 +75,25 @@ pub struct ModeColors {
     pub light: Argb,
 }
 
+/// Colours of every role for both modes, ready for template rendering.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ColorTable {
+    /// Dark and light colour of each role name.
     pub roles: BTreeMap<String, ModeColors>,
+    /// Whether templates use the dark colours by default.
     pub dark_default: bool,
+    /// Path of the image the table was generated from, if any.
     pub image: Option<String>,
 }
 
 impl ColorTable {
+    /// Colour of `role` in the default mode.
     pub fn default_for(&self, role: &str) -> Option<Argb> {
         let colors = self.roles.get(role)?;
         Some(if self.dark_default { colors.dark } else { colors.light })
     }
 
+    /// Table from a dark and a light scheme and their source colour, which is added as `source_color`.
     pub fn from_schemes(
         dark: Vec<(String, Argb)>,
         light: Vec<(String, Argb)>,
@@ -93,6 +113,7 @@ impl ColorTable {
         ColorTable { roles, dark_default, image: None }
     }
 
+    /// Table from a JSON object with a `colors` map of role names to `{dark, light}` or `{default}` colours.
     pub fn from_json(value: &Value, dark_default: bool) -> Result<ColorTable, ColorGenError> {
         let colors = value
             .get("colors")
@@ -142,15 +163,22 @@ pub fn smart_options(image: &DynamicImage) -> (bool, SchemeType) {
     (!light, detect_variant(colorfulness(&rgb)))
 }
 
+/// Request to generate a table from an image.
 #[derive(Debug, Clone)]
 pub struct ImageRequest {
+    /// Image file.
     pub path: PathBuf,
+    /// Dark, light or automatic.
     pub mode: Mode,
+    /// Scheme variant.
     pub scheme: SchemeType,
+    /// Contrast level, `None` for the default.
     pub contrast: Option<f64>,
+    /// Which ranked source colour of the image to use.
     pub source_index: usize,
 }
 
+/// Generates the table of an image.
 pub fn table_from_image(request: &ImageRequest) -> Result<ColorTable, ColorGenError> {
     let image = decode_image(&request.path)?;
     let needs_smart = request.mode == Mode::Smart || request.scheme == SchemeType::Smart;
@@ -171,6 +199,7 @@ pub fn table_from_image(request: &ImageRequest) -> Result<ColorTable, ColorGenEr
     Ok(table)
 }
 
+/// Generates the table of a source colour.
 pub fn table_from_source(source: Argb, kind: SchemeType, contrast: Option<f64>, dark_default: bool) -> ColorTable {
     ColorTable::from_schemes(
         roles(scheme(source, kind, true, contrast)),
@@ -218,6 +247,7 @@ fn resolve(table: &ColorTable, path: &str) -> Option<String> {
     }
 }
 
+/// Replaces `{{ role }}` placeholders in `text` with colours; returns the result and the placeholders that could not be resolved.
 pub fn render_template(text: &str, table: &ColorTable) -> (String, Vec<String>) {
     let mut out = String::with_capacity(text.len());
     let mut unresolved = Vec::new();
@@ -247,11 +277,16 @@ pub fn render_template(text: &str, table: &ColorTable) -> (String, Vec<String>) 
     (out, unresolved)
 }
 
+/// One template to render: an input file, an output file and whether it is enabled.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TemplateSpec {
+    /// Name of the template section.
     pub name: String,
+    /// Template file.
     pub input: PathBuf,
+    /// File the rendered text is written to.
     pub output: PathBuf,
+    /// Whether the template is rendered.
     pub enabled: bool,
 }
 
@@ -263,6 +298,7 @@ pub fn expand_home(path: &str, home: &Path) -> PathBuf {
     }
 }
 
+/// Parses a template configuration; relative paths resolve against `config_dir` and `~` against `home`.
 pub fn parse_template_config(text: &str, config_dir: &Path, home: &Path) -> Result<Vec<TemplateSpec>, ColorGenError> {
     let mut specs: Vec<TemplateSpec> = Vec::new();
     let mut current: Option<usize> = None;
@@ -307,6 +343,7 @@ pub fn parse_template_config(text: &str, config_dir: &Path, home: &Path) -> Resu
     Ok(specs)
 }
 
+/// Renders every enabled template and returns the written files.
 pub fn apply_templates(specs: &[TemplateSpec], table: &ColorTable) -> Result<Vec<PathBuf>, ColorGenError> {
     let mut written = Vec::new();
     for spec in specs.iter().filter(|s| s.enabled) {
@@ -324,6 +361,7 @@ pub fn apply_templates(specs: &[TemplateSpec], table: &ColorTable) -> Result<Vec
     Ok(written)
 }
 
+/// Sends `signal` to every process whose name is in `names`; returns how many received it.
 pub fn signal_processes_named(names: &[&str], signal: rustix::process::Signal) -> usize {
     let Ok(entries) = std::fs::read_dir("/proc") else { return 0 };
     let mut sent = 0;

@@ -1,3 +1,6 @@
+//! Runtime services shared by every application: settings, translations, clock, theme, scaling, paths, colour generation and IPC wiring.
+
+#![deny(missing_docs)]
 mod clock;
 mod colorgen;
 mod config;

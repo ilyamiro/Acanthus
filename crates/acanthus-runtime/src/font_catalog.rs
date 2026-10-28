@@ -3,12 +3,16 @@ use std::path::{Path, PathBuf};
 
 use cosmic_text::fontdb;
 
+/// A font family found on disk.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FontEntry {
+    /// Display name of the family.
     pub name: String,
+    /// File of the family.
     pub path: PathBuf,
 }
 
+/// The font families found in a set of directories.
 #[derive(Debug, Clone, Default)]
 pub struct FontCatalog {
     by_key: HashMap<String, FontEntry>,
@@ -24,6 +28,7 @@ fn is_font_file(path: &Path) -> bool {
 }
 
 impl FontCatalog {
+    /// Scans `dirs` recursively for font files.
     pub fn scan(dirs: &[PathBuf]) -> FontCatalog {
         let mut files: Vec<PathBuf> = Vec::new();
         for dir in dirs {
@@ -60,18 +65,22 @@ impl FontCatalog {
         self.by_key.insert(key, entry);
     }
 
+    /// Family names, sorted.
     pub fn names(&self) -> &[String] {
         &self.names
     }
 
+    /// Entry of `family`, matched case-insensitively.
     pub fn find(&self, family: &str) -> Option<&FontEntry> {
         self.by_key.get(&family.to_lowercase())
     }
 
+    /// Number of families.
     pub fn len(&self) -> usize {
         self.names.len()
     }
 
+    /// Whether the catalog has no family.
     pub fn is_empty(&self) -> bool {
         self.names.is_empty()
     }

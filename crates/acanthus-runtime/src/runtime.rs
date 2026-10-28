@@ -11,15 +11,25 @@ use crate::{
     ThemeService, is_matugen_theme, parse_scalar, system_language,
 };
 
+/// The runtime services of one application, started together.
 pub struct Runtime {
+    /// Directories.
     pub paths: Paths,
+    /// Settings.
     pub config: Config,
+    /// Translations.
     pub i18n: I18n,
+    /// Clock.
     pub clock: Clock,
+    /// Theme.
     pub theme: ThemeService,
+    /// Interface scale per screen.
     pub scaler: Rc<Scaler>,
+    /// Theme generation.
     pub matugen: Rc<Matugen>,
+    /// Commands served over IPC.
     pub ipc: IpcRegistry,
+    /// Fonts.
     pub fonts: Fonts,
     ipc_server: Option<IpcServer>,
     effects: Vec<Effect>,
@@ -30,6 +40,7 @@ fn string_arg(args: &[Value], index: usize) -> Option<String> {
 }
 
 impl Runtime {
+    /// Starts every service in `handle`'s event loop; `defaults` are the default settings and `serve_ipc` starts the IPC server.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         fonts: Fonts,
@@ -205,14 +216,17 @@ impl Runtime {
         ipc.register("config", "path", move |_| Ok(json!(c.path().to_string_lossy())));
     }
 
+    /// Socket path of the IPC server, if one runs.
     pub fn ipc_path(&self) -> Option<&std::path::Path> {
         self.ipc_server.as_ref().map(IpcServer::path)
     }
 
+    /// Writes pending settings immediately.
     pub fn flush(&self) {
         self.config.flush();
     }
 
+    /// Number of reactive effects the runtime holds.
     pub fn effects(&self) -> usize {
         self.effects.len()
     }

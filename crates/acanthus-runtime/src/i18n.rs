@@ -19,9 +19,11 @@ struct Inner {
     watch: RefCell<Option<Watch>>,
 }
 
+/// Translations loaded from per-language JSON files, with English as the fallback, reloaded when the files change.
 #[derive(Clone)]
 pub struct I18n(Rc<Inner>);
 
+/// Language code from the locale environment variables that `env` returns.
 pub fn system_language(env: impl Fn(&str) -> Option<String>) -> String {
     let raw = ["LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"]
         .iter()
@@ -39,6 +41,7 @@ pub fn system_language(env: impl Fn(&str) -> Option<String>) -> String {
     }
 }
 
+/// Whether `lang` is written right to left.
 pub fn is_rtl(lang: &str) -> bool {
     RTL_LANGUAGES.contains(&lang)
 }
@@ -56,6 +59,7 @@ fn resolve<'a>(root: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 impl I18n {
+    /// Loads the translations of `lang` from `dir`.
     pub fn new(dir: &Path, lang: &str) -> I18n {
         let i18n = I18n(Rc::new(Inner {
             dir: dir.to_path_buf(),
@@ -83,18 +87,22 @@ impl I18n {
         });
     }
 
+    /// Signal of the active language code.
     pub fn language(&self) -> Signal<String> {
         self.0.lang.clone()
     }
 
+    /// Signal that is true once the translation files are loaded.
     pub fn ready(&self) -> Signal<bool> {
         self.0.ready.clone()
     }
 
+    /// Counter that grows when the translations change.
     pub fn revision(&self) -> Signal<u64> {
         self.0.revision.clone()
     }
 
+    /// Switches the language and reloads the files.
     pub fn set_language(&self, lang: &str) {
         if self.0.lang.get_untracked() == lang {
             return;
@@ -105,10 +113,12 @@ impl I18n {
         });
     }
 
+    /// Whether the active language is right to left.
     pub fn rtl(&self) -> bool {
         is_rtl(&self.0.lang.get())
     }
 
+    /// Text of the dotted `key` in the active language or English, `None` when missing; reactive.
     pub fn translate(&self, key: &str) -> Option<String> {
         self.0.revision.get();
         let lang = self.0.lang.get();
@@ -119,14 +129,17 @@ impl I18n {
         from_current.or_else(|| resolve(&self.0.fallback.borrow(), key).map(str::to_owned))
     }
 
+    /// Text of `key`, or the key itself when missing.
     pub fn t(&self, key: &str) -> String {
         self.translate(key).unwrap_or_else(|| key.to_owned())
     }
 
+    /// Text of `key`, or `fallback` when missing.
     pub fn tr(&self, key: &str, fallback: &str) -> String {
         self.translate(key).unwrap_or_else(|| fallback.to_owned())
     }
 
+    /// Text of `key` with each `{name}` replaced by its value from `args`.
     pub fn t_args(&self, key: &str, args: &[(&str, &str)]) -> String {
         let mut text = self.t(key);
         for (name, value) in args {
@@ -135,6 +148,7 @@ impl I18n {
         text
     }
 
+    /// Language codes that have a file in the translations directory.
     pub fn available_languages(&self) -> Vec<String> {
         let mut langs: Vec<String> = std::fs::read_dir(&self.0.dir)
             .into_iter()
@@ -146,6 +160,7 @@ impl I18n {
         langs
     }
 
+    /// Reloads the translations when their files change in `handle`'s event loop.
     pub fn attach<D: 'static>(&self, handle: &LoopHandle<'static, D>) -> Result<(), acanthus_io::IoError> {
         let weak: Weak<Inner> = Rc::downgrade(&self.0);
         let watch = Watch::directory(handle, &self.0.dir, move |event| {

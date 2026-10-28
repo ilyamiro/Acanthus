@@ -1,5 +1,6 @@
 use chrono::{Datelike, Locale, NaiveDateTime, Timelike};
 
+/// Chrono locale for a language code.
 pub fn locale_for(lang: &str) -> Locale {
     let name = match lang {
         "en" => "en_US",
@@ -38,6 +39,7 @@ fn run_length(chars: &[char], at: usize) -> usize {
     chars[at..].iter().take_while(|c| **c == chars[at]).count()
 }
 
+/// Formats `dt` with a Qt date and time `pattern` in `locale`.
 pub fn format_qt(dt: &NaiveDateTime, pattern: &str, locale: Locale) -> String {
     let chars: Vec<char> = pattern.chars().collect();
     let twelve_hour = pattern_has_meridiem(&chars);

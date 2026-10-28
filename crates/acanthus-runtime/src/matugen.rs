@@ -17,23 +17,59 @@ use crate::{
 pub const DEFAULT_MODE: &str = "dark";
 pub const DEFAULT_SCHEME: &str = "scheme-tonal-spot";
 
+/// A theme generation request.
 #[derive(Debug, Clone, PartialEq)]
 pub enum MatugenRequest {
-    Image { path: String, mode: String, scheme: String },
-    Static { colors: Value, mode: String },
+    /// Generation from an image.
+    Image {
+        /// Image file.
+        path: String,
+        /// Dark, light or smart.
+        mode: String,
+        /// Scheme variant name.
+        scheme: String,
+    },
+    /// Generation from a ready colour table.
+    Static {
+        /// Colour table as JSON.
+        colors: Value,
+        /// Dark or light.
+        mode: String,
+    },
 }
 
+/// A theme generation job handed to a [`MatugenRunner`].
 #[derive(Debug, Clone, PartialEq)]
 pub enum MatugenJob {
-    Image { path: PathBuf, mode: String, scheme: String, config: PathBuf },
-    Static { colors: Value, config: PathBuf },
+    /// Generation from an image.
+    Image {
+        /// Image file.
+        path: PathBuf,
+        /// Dark, light or smart.
+        mode: String,
+        /// Scheme variant name.
+        scheme: String,
+        /// Template configuration to render.
+        config: PathBuf,
+    },
+    /// Generation from a ready colour table.
+    Static {
+        /// Colour table as JSON.
+        colors: Value,
+        /// Template configuration to render.
+        config: PathBuf,
+    },
 }
 
+/// Executes theme generation jobs, typically off the main thread.
 pub trait MatugenRunner {
+    /// Runs `job` and calls `done` with the outcome.
     fn run(&self, job: MatugenJob, done: Box<dyn FnOnce(bool)>);
 }
 
+/// Reacts to finished theme generation.
 pub trait MatugenHooks {
+    /// Called after `request` succeeded.
     fn after_success(&self, request: &MatugenRequest);
 }
 
@@ -45,6 +81,7 @@ struct State {
     last_wallpaper: String,
 }
 
+/// Theme generation scheduler: runs one job at a time, keeps the latest pending request and skips repeats of the last success.
 pub struct Matugen {
     state: RefCell<State>,
     runner: Rc<dyn MatugenRunner>,
@@ -85,6 +122,7 @@ fn luminance(hex: &str) -> f64 {
     0.2126 * channel(0..2) + 0.7152 * channel(2..4) + 0.0722 * channel(4..6)
 }
 
+/// Converts a Catppuccin-style palette to Material 3 role names.
 pub fn to_md3(colors: &Value) -> Value {
     let get = |name: &str, fallback: &str| -> String {
         colors.get(name).and_then(Value::as_str).unwrap_or(fallback).to_owned()
@@ -144,11 +182,13 @@ pub fn to_md3(colors: &Value) -> Value {
 }
 
 impl Matugen {
+    /// Scheduler using the settings, the paths and `runner`.
     pub fn new(config: &Config, paths: &Paths, runner: Rc<dyn MatugenRunner>) -> Rc<Matugen> {
         let hooks = Rc::new(FileHooks { state_dir: paths.state_dir.clone() });
         Matugen::with_hooks(config, paths, runner, hooks)
     }
 
+    /// Like [`Matugen::new`] with custom `hooks`.
     pub fn with_hooks(
         config: &Config,
         paths: &Paths,
@@ -168,18 +208,22 @@ impl Matugen {
         })
     }
 
+    /// Signal that is true while a job runs.
     pub fn running(&self) -> Signal<bool> {
         self.running.clone()
     }
 
+    /// Counter of finished jobs.
     pub fn finished(&self) -> Signal<u64> {
         self.finished.clone()
     }
 
+    /// Outcome of the last finished job.
     pub fn last_result(&self) -> Signal<Option<bool>> {
         self.last_result.clone()
     }
 
+    /// Image of the last request.
     pub fn last_wallpaper(&self) -> String {
         self.state.borrow().last_wallpaper.clone()
     }
@@ -188,10 +232,12 @@ impl Matugen {
         self.config.current("theme")
     }
 
+    /// Whether the configured theme asks for generated colours.
     pub fn is_matugen_theme(&self) -> bool {
         is_matugen_theme(&self.theme_value())
     }
 
+    /// Requests colours from `image`; `mode` and `scheme` default to the theme settings. False when the request was ignored.
     pub fn generate(self: &Rc<Self>, image: &str, mode: Option<&str>, scheme: Option<&str>) -> bool {
         if image.trim().is_empty() || !self.is_matugen_theme() {
             return false;
@@ -209,6 +255,7 @@ impl Matugen {
         })
     }
 
+    /// Requests a theme from ready `colors`; false when the request was ignored.
     pub fn generate_from_static(self: &Rc<Self>, colors: &Value, mode: Option<&str>) -> bool {
         if colors.is_null() {
             return false;
@@ -292,11 +339,13 @@ impl Matugen {
         }
     }
 
+    /// Directory where generated files are kept.
     pub fn state_dir(&self) -> &Path {
         &self.state_dir
     }
 }
 
+/// Runs `job` in the calling thread.
 pub fn execute_job(job: &MatugenJob, home: &Path) -> Result<(), ColorGenError> {
     match job {
         MatugenJob::Image { path, mode, scheme, config } => {
@@ -321,6 +370,7 @@ fn render_config(config: &Path, table: &ColorTable, home: &Path) -> Result<(), C
 
 type Pending = Rc<RefCell<HashMap<u64, Box<dyn FnOnce(bool)>>>>;
 
+/// Runner that generates themes on a worker thread.
 pub struct NativeRunner {
     sender: calloop::channel::Sender<(u64, bool)>,
     pending: Pending,
@@ -330,6 +380,7 @@ pub struct NativeRunner {
 }
 
 impl NativeRunner {
+    /// Runner that reports to `handle`'s event loop; `home` expands `~` in template paths.
     pub fn new<D: 'static>(
         handle: &calloop::LoopHandle<'static, D>,
         home: PathBuf,
