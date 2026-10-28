@@ -1,2 +1,4 @@
 /target
 .omc/
+/.agents/
+/.claude/
