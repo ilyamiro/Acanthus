@@ -1,6 +1,7 @@
 //! Value slider from 0 to 100, horizontal or vertical: a gradient fill up to the handle, a handle
 //! that grows while dragged, wheel steps and arrow, Home and End keys.
 
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use crate::timing::{BASE, FAST};
 use crate::wheel::{WHEEL_UNITS_PER_ABSOLUTE, Wheel};
 use std::cell::RefCell;
@@ -266,6 +267,61 @@ pub fn build(scene: &mut Scene, parent: NodeId, spec: SliderSpec) -> Slider {
     Slider { node: outer, effective }
 }
 
+/// The slider as a [`Component`] named `Slider`.
+pub struct SliderComponent;
+
+impl Component for SliderComponent {
+    fn name(&self) -> &'static str {
+        "Slider"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::bool("vertical", || Prop::bool(false)),
+            PropSpec::number("x", || Prop::number(0.0)),
+            PropSpec::number("y", || Prop::number(0.0)),
+            PropSpec::number("width", || Prop::number(120.0)),
+            PropSpec::number("height", || Prop::number(16.0)),
+            PropSpec::number("opacity", || Prop::number(1.0)),
+            PropSpec::bool("visible", || Prop::bool(true)),
+            PropSpec::number("value", || Prop::number(0.0)),
+            PropSpec::number("corner_radius", || Prop::number(8.0)),
+            PropSpec::number("handle_size", || Prop::number(16.0)),
+            PropSpec::required("background", Kind::Color),
+            PropSpec::required("accent", Kind::Color),
+            PropSpec::required("handle", Kind::Color),
+            PropSpec::required("handle_drag", Kind::Color),
+            PropSpec::event("on_drag_start"),
+            PropSpec::number_event("on_moved"),
+            PropSpec::event("on_drag_finish"),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        let spec = SliderSpec {
+            vertical: props.bool("vertical").get_untracked(),
+            x: props.number("x"),
+            y: props.number("y"),
+            width: props.number("width"),
+            height: props.number("height"),
+            opacity: props.number("opacity"),
+            visible: props.bool("visible"),
+            value: props.number("value"),
+            corner_radius: props.number("corner_radius").get_untracked(),
+            handle_size: props.number("handle_size").get_untracked(),
+            background: props.color("background"),
+            accent: props.color("accent"),
+            handle: props.color("handle"),
+            handle_drag: props.color("handle_drag"),
+            on_drag_start: props.event("on_drag_start"),
+            on_moved: props.number_event("on_moved"),
+            on_drag_finish: props.event("on_drag_finish"),
+        };
+        build(scene, parent, spec).node
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -290,5 +346,29 @@ mod tests {
         assert_eq!(key_value(Key::Home, 50.0), Some(0.0));
         assert_eq!(key_value(Key::End, 50.0), Some(100.0));
         assert_eq!(key_value(Key::Tab, 50.0), None);
+    }
+
+    #[test]
+    fn the_registry_builds_a_slider_and_rejects_a_misspelt_prop() {
+        use crate::component::{BuildError, Registry};
+        let mut registry = Registry::new();
+        registry.register(SliderComponent);
+        let colors = || {
+            ["background", "accent", "handle", "handle_drag"]
+                .map(|name| (name.to_owned(), Prop::color(Color::hex(0x336699))))
+                .to_vec()
+        };
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let mut given = colors();
+        given.push(("value".to_owned(), Prop::number(40.0)));
+        let node = registry.build("Slider", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        let mut typo = colors();
+        typo.push(("handle_sise".to_owned(), Prop::number(10.0)));
+        let err = registry.build("Slider", &mut scene, root, typo).unwrap_err();
+        assert!(matches!(err, BuildError::UnknownProp { suggestion: Some(ref s), .. } if s == "handle_size"));
+        let err = registry.build("Slider", &mut scene, root, vec![]).unwrap_err();
+        assert_eq!(err, BuildError::Missing { component: "Slider", name: "background" });
     }
 }

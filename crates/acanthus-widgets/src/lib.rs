@@ -1,4 +1,5 @@
 pub mod button;
+pub mod component;
 pub mod dropdown;
 pub mod marquee;
 pub mod scrollbar;
