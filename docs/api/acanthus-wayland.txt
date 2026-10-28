@@ -15,6 +15,7 @@ acanthus_wayland::App::pointer_output: fn pointer_output (& self) -> Signal < Op
 acanthus_wayland::App::popup: fn popup (& mut self , parent : SurfaceId , config : PopupConfig , build : impl FnOnce (& mut Scene) ,) -> Result < SurfaceId , AppError >
 acanthus_wayland::App::run: fn run (mut self) -> Result < () , AppError >
 acanthus_wayland::App::scene_mut: fn scene_mut (& mut self , id : SurfaceId) -> Option < & mut Scene >
+acanthus_wayland::App::window: fn window (& mut self , config : WindowConfig , build : impl FnOnce (& mut Scene) ,) -> Result < (SurfaceId , Signal < WindowState >) , AppError >
 acanthus_wayland::AppError: enum [Debug, thiserror :: Error]
 acanthus_wayland::AppError::Bind: variant (# [from] BindError)
 acanthus_wayland::AppError::Connect: variant (# [from] ConnectError)
@@ -23,11 +24,17 @@ acanthus_wayland::AppError::Globals: variant (# [from] GlobalError)
 acanthus_wayland::AppError::Gpu: variant (# [from] GpuError)
 acanthus_wayland::AppError::Insert: variant (String)
 acanthus_wayland::AppError::NoPopups: variant 
+acanthus_wayland::AppError::NoToplevels: variant 
 acanthus_wayland::AppError::Popup: variant (String)
 acanthus_wayland::AppError::UnknownSurface: variant 
 acanthus_wayland::AppHandle: struct [Clone, Default]
 acanthus_wayland::AppHandle::open_popup: fn open_popup (& self , parent : SurfaceId , config : PopupConfig , build : impl FnOnce (& mut Scene) + 'static)
 acanthus_wayland::AppHandle::set_idle_inhibit: fn set_idle_inhibit (& self , surface : SurfaceId , inhibit : bool)
+acanthus_wayland::AppHandle::window_command: fn window_command (& self , surface : SurfaceId , command : WindowCommand)
+acanthus_wayland::Decorations: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_wayland::Decorations::Client: variant 
+acanthus_wayland::Decorations::None: variant 
+acanthus_wayland::Decorations::Server: variant 
 acanthus_wayland::LayerConfig.anchor: Anchor
 acanthus_wayland::LayerConfig.clear: Color
 acanthus_wayland::LayerConfig.exclusive_zone: i32
@@ -83,7 +90,48 @@ acanthus_wayland::PopupEdge::Right: variant
 acanthus_wayland::PopupEdge::Top: variant 
 acanthus_wayland::PopupEdge::TopLeft: variant 
 acanthus_wayland::PopupEdge::TopRight: variant 
+acanthus_wayland::ResizeEdge: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_wayland::ResizeEdge::Bottom: variant 
+acanthus_wayland::ResizeEdge::BottomLeft: variant 
+acanthus_wayland::ResizeEdge::BottomRight: variant 
+acanthus_wayland::ResizeEdge::Left: variant 
+acanthus_wayland::ResizeEdge::Right: variant 
+acanthus_wayland::ResizeEdge::Top: variant 
+acanthus_wayland::ResizeEdge::TopLeft: variant 
+acanthus_wayland::ResizeEdge::TopRight: variant 
 acanthus_wayland::State: struct
+acanthus_wayland::WindowCommand: enum [Clone, Debug, PartialEq]
+acanthus_wayland::WindowCommand::Close: variant 
+acanthus_wayland::WindowCommand::Fullscreen: variant 
+acanthus_wayland::WindowCommand::Maximize: variant 
+acanthus_wayland::WindowCommand::Minimize: variant 
+acanthus_wayland::WindowCommand::Move: variant 
+acanthus_wayland::WindowCommand::Resize: variant (ResizeEdge)
+acanthus_wayland::WindowCommand::SetTitle: variant (String)
+acanthus_wayland::WindowCommand::Unfullscreen: variant 
+acanthus_wayland::WindowCommand::Unmaximize: variant 
+acanthus_wayland::WindowConfig.app_id: String
+acanthus_wayland::WindowConfig.clear: Color
+acanthus_wayland::WindowConfig.decorations: Decorations
+acanthus_wayland::WindowConfig.max_size: Option < (u32 , u32) >
+acanthus_wayland::WindowConfig.min_size: Option < (u32 , u32) >
+acanthus_wayland::WindowConfig.size: (u32 , u32)
+acanthus_wayland::WindowConfig.title: String
+acanthus_wayland::WindowConfig: struct [Clone]
+acanthus_wayland::WindowConfig::app_id: fn app_id (self , app_id : impl Into < String >) -> Self
+acanthus_wayland::WindowConfig::clear: fn clear (self , clear : Color) -> Self
+acanthus_wayland::WindowConfig::decorations: fn decorations (self , decorations : Decorations) -> Self
+acanthus_wayland::WindowConfig::max_size: fn max_size (self , width : u32 , height : u32) -> Self
+acanthus_wayland::WindowConfig::min_size: fn min_size (self , width : u32 , height : u32) -> Self
+acanthus_wayland::WindowConfig::new: fn new (title : impl Into < String >) -> Self
+acanthus_wayland::WindowConfig::on_close: fn on_close (self , handler : impl FnMut () + 'static) -> Self
+acanthus_wayland::WindowConfig::size: fn size (self , width : u32 , height : u32) -> Self
+acanthus_wayland::WindowState.activated: bool
+acanthus_wayland::WindowState.fullscreen: bool
+acanthus_wayland::WindowState.maximized: bool
+acanthus_wayland::WindowState.resizing: bool
+acanthus_wayland::WindowState.tiled: bool
+acanthus_wayland::WindowState: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
 impl CompositorHandler for acanthus_wayland::State
 impl KeyboardHandler for acanthus_wayland::State
 impl LayerShellHandler for acanthus_wayland::State
@@ -93,3 +141,4 @@ impl PopupHandler for acanthus_wayland::State
 impl ProvidesRegistryState for acanthus_wayland::State
 impl SeatHandler for acanthus_wayland::State
 impl WindowHandler for acanthus_wayland::State
+impl std :: fmt :: Debug for acanthus_wayland::WindowConfig

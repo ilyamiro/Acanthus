@@ -27,7 +27,7 @@ use smithay_client_toolkit::shell::wlr_layer::{
 };
 use smithay_client_toolkit::shell::xdg::popup::{Popup, PopupConfigure, PopupHandler};
 use smithay_client_toolkit::shell::xdg::window::{Window, WindowConfigure, WindowHandler};
-use smithay_client_toolkit::shell::xdg::{XdgPositioner, XdgShell};
+use smithay_client_toolkit::shell::xdg::{XdgPositioner, XdgShell, XdgSurface};
 use smithay_client_toolkit::{delegate_registry, registry_handlers};
 use wayland_client::globals::{BindError, GlobalError, registry_queue_init};
 use wayland_client::protocol::{wl_keyboard, wl_output, wl_pointer, wl_seat, wl_surface};
@@ -40,7 +40,8 @@ use crate::lazy::LazyGate;
 use crate::output::OutputInfo;
 use crate::popup::PopupConfig;
 use crate::scale::{FractionalData, ScaleGlobal, ScaleManagers, ScaleObjects};
-use crate::surface::{LayerConfig, Role, SurfaceWindow};
+use crate::surface::{LayerConfig, Role, SurfaceWindow, Toplevel};
+use crate::window::{WindowCommand, WindowConfig, WindowState, resolve_size};
 
 slotmap::new_key_type! {
     /// Identifies a surface of the application.
@@ -74,6 +75,9 @@ pub enum AppError {
     /// The surface does not exist.
     #[error("the parent surface no longer exists")]
     UnknownSurface,
+    /// The compositor does not support toplevel windows.
+    #[error("the compositor does not offer xdg_wm_base, so toplevel windows are unavailable")]
+    NoToplevels,
     /// Creating a popup failed.
     #[error("cannot create popup: {0}")]
     Popup(String),
@@ -90,6 +94,7 @@ struct PopupRequest {
 pub struct AppHandle {
     popups: std::rc::Rc<std::cell::RefCell<Vec<PopupRequest>>>,
     idle_inhibits: std::rc::Rc<std::cell::RefCell<Vec<(SurfaceId, bool)>>>,
+    window_commands: std::rc::Rc<std::cell::RefCell<Vec<(SurfaceId, WindowCommand)>>>,
 }
 
 impl AppHandle {
@@ -102,6 +107,11 @@ impl AppHandle {
     pub fn set_idle_inhibit(&self, surface: SurfaceId, inhibit: bool) {
         self.idle_inhibits.borrow_mut().push((surface, inhibit));
     }
+
+    /// Queues `command` for the toplevel window `surface`; commands for other surfaces are ignored.
+    pub fn window_command(&self, surface: SurfaceId, command: WindowCommand) {
+        self.window_commands.borrow_mut().push((surface, command));
+    }
 }
 
 type VariantBuild = Box<dyn FnMut(&mut Scene, &OutputInfo)>;
@@ -111,6 +121,7 @@ struct NewWindow {
     wgpu_surface: acanthus_render::wgpu::Surface<'static>,
     scale_objects: Option<ScaleObjects>,
     parent: Option<SurfaceId>,
+    toplevel: Option<Toplevel>,
     clear: acanthus_core::Color,
     size: (u32, u32),
 }
@@ -259,6 +270,15 @@ impl App {
         self.state.create_popup(parent, config, build)
     }
 
+    /// Creates a toplevel window; `build` fills its scene. The returned signal follows the compositor's window state.
+    pub fn window(
+        &mut self,
+        config: WindowConfig,
+        build: impl FnOnce(&mut Scene),
+    ) -> Result<(SurfaceId, Signal<WindowState>), AppError> {
+        self.state.create_window(config, build)
+    }
+
     /// Handle for queueing requests from callbacks.
     pub fn handle(&self) -> AppHandle {
         self.state.handle.clone()
@@ -397,6 +417,10 @@ impl State {
         for (surface, inhibit) in inhibits {
             self.apply_idle_inhibit(surface, inhibit);
         }
+        let commands: Vec<(SurfaceId, WindowCommand)> = self.handle.window_commands.borrow_mut().drain(..).collect();
+        for (surface, command) in commands {
+            self.apply_window_command(surface, command);
+        }
         let requests: Vec<PopupRequest> = self.handle.popups.borrow_mut().drain(..).collect();
         for request in requests {
             if let Err(e) = self.create_popup(request.parent, request.config, request.build) {
@@ -522,7 +546,7 @@ impl State {
     }
 
     fn insert_window(&mut self, window: NewWindow, build: impl FnOnce(&mut Scene)) -> SurfaceId {
-        let NewWindow { role, wgpu_surface, scale_objects, parent, clear, size } = window;
+        let NewWindow { role, wgpu_surface, scale_objects, parent, toplevel, clear, size } = window;
         let mut scene = Scene::with_images(self.fonts.clone(), self.images.clone());
         scene.set_window_focus(false);
         build(&mut scene);
@@ -533,6 +557,7 @@ impl State {
             scale_objects,
             role,
             parent,
+            toplevel,
             entered: Vec::new(),
             scene,
             clear,
@@ -575,10 +600,78 @@ impl State {
             wgpu_surface,
             scale_objects,
             parent: None,
+            toplevel: None,
             clear: config.clear,
             size,
         };
         Ok(self.insert_window(window, build))
+    }
+
+    fn create_window(
+        &mut self,
+        config: WindowConfig,
+        build: impl FnOnce(&mut Scene),
+    ) -> Result<(SurfaceId, Signal<WindowState>), AppError> {
+        let shell = self.xdg_shell.as_ref().ok_or(AppError::NoToplevels)?;
+        let wl = self.compositor.create_surface(&self.qh);
+        let scale_objects = self.attach_scale(&wl);
+        let window = shell.create_window(wl, config.decorations.wire(), &self.qh);
+        window.set_title(config.title.clone());
+        window.set_app_id(config.app_id.clone());
+        window.set_min_size(config.min_size);
+        window.set_max_size(config.max_size);
+        window.commit();
+
+        let wgpu_surface = self.create_wgpu_surface(window.wl_surface())?;
+        let state = Signal::new(WindowState::default());
+        let toplevel = Toplevel {
+            state: state.clone(),
+            on_close: config.on_close.clone(),
+            min_size: config.min_size,
+            max_size: config.max_size,
+        };
+        let new = NewWindow {
+            role: Role::Window(window),
+            wgpu_surface,
+            scale_objects,
+            parent: None,
+            toplevel: Some(toplevel),
+            clear: config.clear,
+            size: config.size,
+        };
+        Ok((self.insert_window(new, build), state))
+    }
+
+    fn apply_window_command(&mut self, id: SurfaceId, command: WindowCommand) {
+        let Some(surface) = self.surfaces.get(id) else { return };
+        let Role::Window(window) = &surface.role else { return };
+        let seat_serial = self.seats.first().zip(self.input_serial);
+        match command {
+            WindowCommand::SetTitle(title) => window.set_title(title),
+            WindowCommand::Move => match seat_serial {
+                Some((seat, serial)) => window.move_(seat, serial),
+                None => tracing::warn!("window move skipped: no seat or input serial yet"),
+            },
+            WindowCommand::Resize(edge) => match seat_serial {
+                Some((seat, serial)) => window.resize(seat, serial, edge.wire()),
+                None => tracing::warn!("window resize skipped: no seat or input serial yet"),
+            },
+            WindowCommand::Maximize => window.set_maximized(),
+            WindowCommand::Unmaximize => window.unset_maximized(),
+            WindowCommand::Fullscreen => window.set_fullscreen(None),
+            WindowCommand::Unfullscreen => window.unset_fullscreen(),
+            WindowCommand::Minimize => window.set_minimized(),
+            WindowCommand::Close => self.request_window_close(id),
+        }
+    }
+
+    fn request_window_close(&mut self, id: SurfaceId) {
+        let handler = self.surfaces.get(id).and_then(|s| s.toplevel.as_ref()).map(|t| t.on_close.clone());
+        match handler {
+            Some(Some(handler)) => (handler.borrow_mut())(),
+            Some(None) => self.remove_surface(id),
+            None => {}
+        }
     }
 
     fn create_popup(
@@ -602,6 +695,7 @@ impl State {
         let scale_objects = self.attach_scale(&wl);
         let parent_xdg = match &parent_window.role {
             Role::Popup(popup) => Some(popup.xdg_surface().clone()),
+            Role::Window(window) => Some(window.xdg_surface().clone()),
             Role::Layer(_) => None,
         };
         let popup = Popup::from_surface(parent_xdg.as_ref(), &positioner, &self.qh, wl, shell)
@@ -624,6 +718,7 @@ impl State {
             wgpu_surface,
             scale_objects,
             parent: Some(parent),
+            toplevel: None,
             clear: config.clear,
             size: config.size,
         };
@@ -1146,9 +1241,34 @@ fn wire_shape(shape: CursorShape) -> Shape {
 }
 
 impl WindowHandler for State {
-    fn request_close(&mut self, _: &Connection, _: &QueueHandle<Self>, _: &Window) {}
+    fn request_close(&mut self, _: &Connection, _: &QueueHandle<Self>, window: &Window) {
+        if let Some(id) = self.surface_by_wl(window.wl_surface()) {
+            self.request_window_close(id);
+        }
+    }
 
-    fn configure(&mut self, _: &Connection, _: &QueueHandle<Self>, _: &Window, _: WindowConfigure, _: u32) {}
+    fn configure(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        window: &Window,
+        configure: WindowConfigure,
+        _: u32,
+    ) {
+        let Some(id) = self.surface_by_wl(window.wl_surface()) else { return };
+        let surface = &mut self.surfaces[id];
+        let Some(toplevel) = surface.toplevel.as_ref() else { return };
+        let suggested = (configure.new_size.0.map(|w| w.get()), configure.new_size.1.map(|h| h.get()));
+        surface.size = resolve_size(suggested, surface.size, toplevel.min_size, toplevel.max_size);
+        let state = WindowState::from_configure(&configure);
+        if toplevel.state.get_untracked() != state {
+            toplevel.state.set(state);
+        }
+        surface.configured = true;
+        if let Some(gpu) = self.gpu.as_ref() {
+            surface.reconfigure(gpu);
+        }
+    }
 }
 
 impl PopupHandler for State {

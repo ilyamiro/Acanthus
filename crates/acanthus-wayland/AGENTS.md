@@ -14,6 +14,7 @@ Platform layer: owns the calloop event loop, sctk Wayland state, layer-shell sur
 | `src/output.rs` | `OutputInfo` (id, name, make, model, position, size, scale, `WlOutput`) |
 | `src/lazy.rs` | `LazyGate`: create-on-open, destroy-after-linger state machine behind `App::per_output_lazy` |
 | `src/popup.rs` | `PopupConfig` / `PopupEdge` for `App::popup` (xdg_positioner values) |
+| `src/window.rs` | `WindowConfig`, `WindowState`, `WindowCommand`, `Decorations`, `ResizeEdge`, `resolve_size` for `App::window` (xdg_toplevel) |
 | `src/idle_inhibit.rs` | `zwp_idle_inhibit_manager_v1` glue behind `AppHandle::set_idle_inhibit` |
 | `src/scale.rs` | `wp_fractional_scale_v1` and `wp_viewporter` glue, `buffer_size` |
 
@@ -23,7 +24,7 @@ Platform layer: owns the calloop event loop, sctk Wayland state, layer-shell sur
 - Do not run binaries that create surfaces unless the user asks.
 - Keyboard and cursor-shape paths have not been run live yet; surfaces need `KeyboardInteractivity::OnDemand` to get keys.
 - Outputs: `App::outputs()` is a `Signal<Vec<OutputInfo>>`; `App::per_output(config, build)` keeps one layer surface per output. Popups: `App::popup(parent, PopupConfig, build)`; a grab needs a prior input serial. Scale: fractional when the compositor offers it (buffer scale 1 plus a viewport destination), else integer.
-- Known gaps: no IME or system clipboard, no `xdg_toplevel` window, input regions or session lock yet (roadmap §3.1, §3.5). Popups, outputs and fractional scale have never run against a compositor.
+- Known gaps: no IME or system clipboard, no session lock yet; toplevel windows (`App::window`) are wired but never run against a compositor (roadmap §3.1, §3.5). Popups, outputs and fractional scale have never run against a compositor.
 - Other crates register calloop sources on this loop; `acanthus-io` is designed to be generic over `LoopHandle`.
 
 ### Testing Requirements

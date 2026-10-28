@@ -5,6 +5,7 @@ use smithay_client_toolkit::compositor::FrameCallbackData;
 use smithay_client_toolkit::shell::WaylandSurface;
 use smithay_client_toolkit::shell::wlr_layer::{Anchor, KeyboardInteractivity, Layer, LayerSurface};
 use smithay_client_toolkit::shell::xdg::popup::Popup;
+use smithay_client_toolkit::shell::xdg::window::Window;
 use wayland_client::QueueHandle;
 use wayland_client::protocol::{wl_output, wl_surface};
 
@@ -97,6 +98,7 @@ impl LayerConfig {
 pub(crate) enum Role {
     Layer(LayerSurface),
     Popup(Popup),
+    Window(Window),
 }
 
 impl Role {
@@ -104,8 +106,16 @@ impl Role {
         match self {
             Role::Layer(layer) => layer.wl_surface(),
             Role::Popup(popup) => popup.wl_surface(),
+            Role::Window(window) => window.wl_surface(),
         }
     }
+}
+
+pub(crate) struct Toplevel {
+    pub state: acanthus_core::Signal<crate::window::WindowState>,
+    pub on_close: Option<crate::window::CloseHandler>,
+    pub min_size: Option<(u32, u32)>,
+    pub max_size: Option<(u32, u32)>,
 }
 
 pub(crate) struct SurfaceWindow {
@@ -115,6 +125,7 @@ pub(crate) struct SurfaceWindow {
     pub scale_objects: Option<ScaleObjects>,
     pub role: Role,
     pub parent: Option<SurfaceId>,
+    pub toplevel: Option<Toplevel>,
     pub entered: Vec<wl_output::WlOutput>,
     pub scene: Scene,
     pub clear: Color,
