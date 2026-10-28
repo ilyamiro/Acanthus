@@ -38,6 +38,10 @@ use wayland_client::{ConnectError, Connection, Proxy, QueueHandle};
 use wayland_protocols::wp::idle_inhibit::zv1::client::zwp_idle_inhibit_manager_v1::ZwpIdleInhibitManagerV1;
 use wayland_protocols::wp::idle_inhibit::zv1::client::zwp_idle_inhibitor_v1::ZwpIdleInhibitorV1;
 
+use crate::clipboard::{
+    MAX_TEXT_BYTES, Pump, ReadJob, Selection, SystemClipboard, decode_text, is_own_offer, pick_text_mime,
+};
+use crate::control::{self, DataControl};
 use crate::idle_inhibit::IdleInhibitGlobal;
 use crate::lazy::LazyGate;
 use crate::lock::{LockConfig, LockMachine, LockPhase, OnLocked, reconcile};
@@ -168,6 +172,8 @@ pub struct State {
     compositor: CompositorState,
     layer_shell: LayerShell,
     xdg_shell: Option<XdgShell>,
+    clipboard: SystemClipboard,
+    data_control: Option<Box<dyn DataControl>>,
     session_lock_state: SessionLockState,
     lock: Option<Lock>,
     scale_managers: Option<ScaleManagers>,
@@ -234,6 +240,8 @@ impl App {
             compositor: CompositorState::bind(&globals, &qh)?,
             layer_shell: LayerShell::bind(&globals, &qh)?,
             xdg_shell: XdgShell::bind(&globals, &qh).ok(),
+            clipboard: SystemClipboard::new(),
+            data_control: control::bind(&globals, &qh),
             session_lock_state: SessionLockState::new(&globals, &qh),
             lock: None,
             scale_managers: bind_scale_managers(&globals, &qh),
@@ -325,6 +333,11 @@ impl App {
     /// Destroys a surface.
     pub fn close_surface(&mut self, id: SurfaceId) {
         self.state.remove_surface(id);
+    }
+
+    /// The desktop clipboard; every scene's text widgets already use it.
+    pub fn clipboard(&self) -> SystemClipboard {
+        self.state.clipboard.clone()
     }
 
     /// Signal of the connected outputs.
@@ -458,6 +471,7 @@ impl State {
             self.apply_idle_inhibit(surface, inhibit);
         }
         self.apply_unlock();
+        self.apply_clipboard();
         let commands: Vec<(SurfaceId, WindowCommand)> = self.handle.window_commands.borrow_mut().drain(..).collect();
         for (surface, command) in commands {
             self.apply_window_command(surface, command);
@@ -590,6 +604,7 @@ impl State {
         let NewWindow { role, wgpu_surface, scale_objects, parent, toplevel, clear, size } = window;
         let mut scene = Scene::with_images(self.fonts.clone(), self.images.clone());
         scene.set_window_focus(false);
+        scene.set_clipboard_backend(std::rc::Rc::new(self.clipboard.clone()));
         build(&mut scene);
         self.surfaces.insert(SurfaceWindow {
             wgpu_surface,
@@ -733,6 +748,80 @@ impl State {
             }
         }
         self.lock = Some(lock);
+    }
+
+    fn apply_clipboard(&mut self) {
+        let Some(control) = self.data_control.as_mut() else { return };
+        if !control.has_device() {
+            let Some(seat) = self.seats.first() else { return };
+            control.ensure_device(seat, &self.qh);
+        }
+        let Some(text) = self.clipboard.shared.pending.borrow_mut().take() else { return };
+        self.clipboard.shared.expect_own.set(true);
+        control.offer(&text, &self.qh);
+    }
+
+    pub(crate) fn on_data_selection(
+        &mut self,
+        mimes: Option<Vec<String>>,
+        receive: &dyn Fn(&str) -> std::io::Result<std::fs::File>,
+    ) {
+        let shared = &self.clipboard.shared;
+        let generation = shared.generation.get() + 1;
+        shared.generation.set(generation);
+        let Some(mimes) = mimes else {
+            shared.expect_own.set(false);
+            shared.text.borrow_mut().clear();
+            shared.selection.set(None);
+            return;
+        };
+        if shared.expect_own.replace(false) && is_own_offer(&mimes) {
+            return;
+        }
+        let mime = pick_text_mime(&mimes);
+        if mime.is_none() {
+            shared.text.borrow_mut().clear();
+        }
+        shared.selection.set(Some(Selection { mime_types: mimes, text: None }));
+        let Some(mime) = mime else { return };
+        let file = match receive(mime) {
+            Ok(file) => file,
+            Err(e) => {
+                tracing::warn!("cannot read the clipboard: {e}");
+                return;
+            }
+        };
+        let shared = self.clipboard.shared.clone();
+        let mut job = ReadJob::default();
+        let source = calloop::generic::Generic::new(file, calloop::Interest::READ, calloop::Mode::Level);
+        let inserted = self.loop_handle.insert_source(source, move |_, file, _: &mut State| {
+            let reader = &mut &**file;
+            match job.pump(reader, MAX_TEXT_BYTES) {
+                Ok(Pump::Pending) => Ok(calloop::PostAction::Continue),
+                Ok(Pump::Done(bytes)) => {
+                    if shared.generation.get() == generation {
+                        let text = decode_text(bytes);
+                        *shared.text.borrow_mut() = text.clone();
+                        if let Some(mut selection) = shared.selection.get_untracked() {
+                            selection.text = Some(text);
+                            shared.selection.set(Some(selection));
+                        }
+                    }
+                    Ok(calloop::PostAction::Remove)
+                }
+                Ok(Pump::TooLarge) => {
+                    tracing::warn!("clipboard text exceeds the size limit; ignored");
+                    Ok(calloop::PostAction::Remove)
+                }
+                Err(e) => {
+                    tracing::warn!("clipboard read failed: {e}");
+                    Ok(calloop::PostAction::Remove)
+                }
+            }
+        });
+        if let Err(e) = inserted {
+            tracing::warn!("cannot watch the clipboard pipe: {}", e.error);
+        }
     }
 
     fn apply_unlock(&mut self) {

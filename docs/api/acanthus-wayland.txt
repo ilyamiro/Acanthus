@@ -1,5 +1,6 @@
 acanthus_wayland::App: struct
 acanthus_wayland::App::after: fn after (& self , delay : Duration , f : impl FnOnce () + 'static) -> Result < () , AppError >
+acanthus_wayland::App::clipboard: fn clipboard (& self) -> SystemClipboard
 acanthus_wayland::App::close_surface: fn close_surface (& mut self , id : SurfaceId)
 acanthus_wayland::App::every: fn every (& self , interval : Duration , mut f : impl FnMut () + 'static) -> Result < () , AppError >
 acanthus_wayland::App::fonts: fn fonts (& self) -> & Fonts
@@ -113,7 +114,14 @@ acanthus_wayland::ResizeEdge::Right: variant
 acanthus_wayland::ResizeEdge::Top: variant 
 acanthus_wayland::ResizeEdge::TopLeft: variant 
 acanthus_wayland::ResizeEdge::TopRight: variant 
+acanthus_wayland::Selection.mime_types: Vec < String >
+acanthus_wayland::Selection.text: Option < String >
+acanthus_wayland::Selection: struct [Clone, Debug, Default, Eq, PartialEq]
 acanthus_wayland::State: struct
+acanthus_wayland::SystemClipboard: struct [Clone]
+acanthus_wayland::SystemClipboard::selection: fn selection (& self) -> Signal < Option < Selection > >
+acanthus_wayland::SystemClipboard::set_text: fn set_text (& self , text : & str)
+acanthus_wayland::SystemClipboard::text: fn text (& self) -> String
 acanthus_wayland::WindowCommand: enum [Clone, Debug, PartialEq]
 acanthus_wayland::WindowCommand::Close: variant 
 acanthus_wayland::WindowCommand::Fullscreen: variant 
@@ -146,6 +154,7 @@ acanthus_wayland::WindowState.maximized: bool
 acanthus_wayland::WindowState.resizing: bool
 acanthus_wayland::WindowState.tiled: bool
 acanthus_wayland::WindowState: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
+impl ClipboardBackend for acanthus_wayland::SystemClipboard
 impl CompositorHandler for acanthus_wayland::State
 impl Default for acanthus_wayland::LockConfig
 impl KeyboardHandler for acanthus_wayland::State

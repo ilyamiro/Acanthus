@@ -157,10 +157,24 @@ pub struct PointerEvent {
     pub time: f32,
 }
 
-/// Plain-text clipboard used by text widgets. Cloning shares the contents.
+/// Source and sink of clipboard text behind a [`Clipboard`], such as the desktop's selection.
+pub trait ClipboardBackend {
+    /// The text currently on the clipboard.
+    fn text(&self) -> String;
+    /// Puts `text` on the clipboard.
+    fn set_text(&self, text: &str);
+}
+
+#[derive(Default)]
+struct ClipboardInner {
+    text: String,
+    backend: Option<Rc<dyn ClipboardBackend>>,
+}
+
+/// Plain-text clipboard used by text widgets. Cloning shares the contents; with a backend the contents are the system clipboard's.
 #[derive(Clone, Default)]
 pub struct Clipboard {
-    text: Rc<RefCell<String>>,
+    inner: Rc<RefCell<ClipboardInner>>,
 }
 
 impl Clipboard {
@@ -169,13 +183,63 @@ impl Clipboard {
         Self::default()
     }
 
+    /// Routes this clipboard and all its clones through `backend`.
+    pub fn set_backend(&self, backend: Rc<dyn ClipboardBackend>) {
+        self.inner.borrow_mut().backend = Some(backend);
+    }
+
     /// The current text.
     pub fn get(&self) -> String {
-        self.text.borrow().clone()
+        let backend = self.inner.borrow().backend.clone();
+        match backend {
+            Some(backend) => backend.text(),
+            None => self.inner.borrow().text.clone(),
+        }
     }
 
     /// Replaces the text.
     pub fn set(&self, text: impl Into<String>) {
-        *self.text.borrow_mut() = text.into();
+        let text = text.into();
+        let backend = self.inner.borrow().backend.clone();
+        if let Some(backend) = backend {
+            backend.set_text(&text);
+        }
+        self.inner.borrow_mut().text = text;
+    }
+}
+
+#[cfg(test)]
+mod clipboard_tests {
+    use super::*;
+
+    #[derive(Default)]
+    struct Fake(RefCell<String>);
+
+    impl ClipboardBackend for Fake {
+        fn text(&self) -> String {
+            self.0.borrow().clone()
+        }
+        fn set_text(&self, text: &str) {
+            *self.0.borrow_mut() = text.to_owned();
+        }
+    }
+
+    #[test]
+    fn without_backend_text_stays_local() {
+        let clipboard = Clipboard::new();
+        clipboard.set("a");
+        assert_eq!(clipboard.get(), "a");
+    }
+
+    #[test]
+    fn backend_is_read_and_written_through_every_clone() {
+        let backend = Rc::new(Fake::default());
+        let clipboard = Clipboard::new();
+        let other = clipboard.clone();
+        clipboard.set_backend(backend.clone());
+        other.set("copied");
+        assert_eq!(backend.text(), "copied");
+        *backend.0.borrow_mut() = "from outside".into();
+        assert_eq!(clipboard.get(), "from outside");
     }
 }

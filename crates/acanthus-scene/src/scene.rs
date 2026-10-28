@@ -603,6 +603,11 @@ impl Scene {
         self.clipboard.clone()
     }
 
+    /// Routes the scene's clipboard through the system clipboard or another backend.
+    pub fn set_clipboard_backend(&self, backend: std::rc::Rc<dyn crate::ClipboardBackend>) {
+        self.clipboard.set_backend(backend);
+    }
+
     /// The node with keyboard focus.
     pub fn focused(&self) -> Option<NodeId> {
         self.focus

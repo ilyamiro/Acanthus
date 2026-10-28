@@ -157,6 +157,7 @@ dependencies = [
  "acanthus-core",
  "acanthus-render",
  "acanthus-scene",
+ "calloop",
  "pollster",
  "raw-window-handle",
  "slotmap",
@@ -165,6 +166,7 @@ dependencies = [
  "tracing",
  "wayland-client",
  "wayland-protocols",
+ "wayland-protocols-wlr",
 ]
 
 [[package]]

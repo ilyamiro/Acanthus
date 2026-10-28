@@ -49,6 +49,10 @@ acanthus_scene::Clipboard: struct [Clone, Default]
 acanthus_scene::Clipboard::get: fn get (& self) -> String
 acanthus_scene::Clipboard::new: fn new () -> Self
 acanthus_scene::Clipboard::set: fn set (& self , text : impl Into < String >)
+acanthus_scene::Clipboard::set_backend: fn set_backend (& self , backend : Rc < dyn ClipboardBackend >)
+acanthus_scene::ClipboardBackend: trait
+acanthus_scene::ClipboardBackend::set_text: required fn set_text (& self , text : & str)
+acanthus_scene::ClipboardBackend::text: required fn text (& self) -> String
 acanthus_scene::Constraints.column_span: usize
 acanthus_scene::Constraints.margins: Margins
 acanthus_scene::Constraints.max_height: f32
@@ -505,6 +509,7 @@ acanthus_scene::Scene::repeater: fn repeater < T , K > (& mut self , parent : No
 acanthus_scene::Scene::root: fn root (& self) -> NodeId
 acanthus_scene::Scene::scale: fn scale (& self) -> f32
 acanthus_scene::Scene::scroll: fn scroll (& mut self , delta : ScrollDelta)
+acanthus_scene::Scene::set_clipboard_backend: fn set_clipboard_backend (& self , backend : std :: rc :: Rc < dyn crate :: ClipboardBackend >)
 acanthus_scene::Scene::set_focus: fn set_focus (& mut self , id : Option < NodeId >)
 acanthus_scene::Scene::set_ui_scale: fn set_ui_scale (& mut self , scale : impl IntoSignal < f32 >)
 acanthus_scene::Scene::set_viewport: fn set_viewport (& mut self , size : Vec2 , scale : f32)

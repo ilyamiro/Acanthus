@@ -2,6 +2,8 @@
 
 #![deny(missing_docs)]
 mod app;
+mod clipboard;
+mod control;
 mod idle_inhibit;
 mod lazy;
 mod lock;
@@ -12,6 +14,7 @@ mod surface;
 mod window;
 
 pub use app::{App, AppError, AppHandle, State, SurfaceId};
+pub use clipboard::{Selection, SystemClipboard};
 pub use lock::{LockConfig, LockPhase};
 pub use output::OutputInfo;
 pub use popup::{PopupConfig, PopupEdge};
