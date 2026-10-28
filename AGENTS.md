@@ -1,6 +1,6 @@
 # Acanthus
 
-**Created:** 2026-10-28 · **Progress:** about 41.1 % toward engine v1 (ROADMAP §3)
+**Created:** 2026-10-28 · **Progress:** about 43.5 % toward engine v1 (ROADMAP §3)
 
 ## Purpose
 Acanthus is a standalone Rust toolkit for building Wayland shells, panels, lock screens, desktop widgets and floating apps: the Rust alternative to Quickshell plus the parts of Qt Quick they rely on (scene graph, layout, text, animation, shaders, input), with native system services as signals, an app framework, a widget library and a markup language (`.serp`) with hot reload. Rust 2024, wgpu on Vulkan, Wayland layer-shell. AGPL-3.0-or-later.
@@ -21,7 +21,7 @@ The master plan, hard rules, milestone table (progress figure), phase order, she
 | `.claude/hooks/next-slice.sh` | Stop hook that restarts the skill in tmux when `.agents/next-slice` exists |
 | `scripts/acanthus-tmux.sh` | Opens (or attaches) the tmux session running Claude Code for this repo |
 
-Code (crates `acanthus-*`, `examples/`, `xtask/`, `docs/`, `scripts/check.sh`) arrives with milestone E0 (the baseline import); until E0.1 is checked the repository holds documents only.
+Code: crates `acanthus-*`, `examples/`, `xtask/`, `docs/`, `assets/` (test fixtures), `scripts/check.sh`. `.agents/` and `.claude/` are local only (gitignored, never pushed).
 
 ## For AI Agents
 - **Comments**: no explanatory comments in code (`//`, `/* */`, WGSL comments). Rustdoc (`///`, `//!`) is allowed and **required** on every public item (describe the item for its user, never narrate the implementation); `#![deny(missing_docs)]` per crate.
