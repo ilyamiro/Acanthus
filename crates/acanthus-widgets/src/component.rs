@@ -28,6 +28,16 @@ pub enum Kind {
     NumberEvent,
     /// A callback receiving a boolean.
     BoolEvent,
+    /// A callback receiving an index.
+    IndexEvent,
+    /// An index signal.
+    Index,
+    /// A list of text values behind one signal.
+    TextList,
+    /// A fixed row of text signals.
+    TextSlots,
+    /// A node of the scene.
+    Node,
 }
 
 impl Kind {
@@ -41,6 +51,11 @@ impl Kind {
             Kind::Event => "event",
             Kind::NumberEvent => "number event",
             Kind::BoolEvent => "bool event",
+            Kind::IndexEvent => "index event",
+            Kind::Index => "index",
+            Kind::TextList => "text list",
+            Kind::TextSlots => "text slots",
+            Kind::Node => "node",
         }
     }
 }
@@ -62,6 +77,16 @@ pub enum Prop {
     NumberEvent(Rc<dyn Fn(f32)>),
     /// A callback receiving a boolean.
     BoolEvent(Rc<dyn Fn(bool)>),
+    /// A callback receiving an index.
+    IndexEvent(Rc<dyn Fn(usize)>),
+    /// An index signal.
+    Index(Signal<usize>),
+    /// A list of text values behind one signal.
+    TextList(Signal<Vec<String>>),
+    /// A fixed row of text signals.
+    TextSlots(Vec<Signal<String>>),
+    /// A node of the scene.
+    Node(NodeId),
 }
 
 impl Prop {
@@ -75,6 +100,11 @@ impl Prop {
             Prop::Event(_) => Kind::Event,
             Prop::NumberEvent(_) => Kind::NumberEvent,
             Prop::BoolEvent(_) => Kind::BoolEvent,
+            Prop::IndexEvent(_) => Kind::IndexEvent,
+            Prop::Index(_) => Kind::Index,
+            Prop::TextList(_) => Kind::TextList,
+            Prop::TextSlots(_) => Kind::TextSlots,
+            Prop::Node(_) => Kind::Node,
         }
     }
 
@@ -138,6 +168,26 @@ impl PropSpec {
     /// An optional callback receiving a number; it does nothing by default.
     pub const fn number_event(name: &'static str) -> PropSpec {
         PropSpec { name, kind: Kind::NumberEvent, default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))) }
+    }
+
+    /// An optional index prop.
+    pub const fn index(name: &'static str, default: fn() -> Prop) -> PropSpec {
+        PropSpec { name, kind: Kind::Index, default: Some(default) }
+    }
+
+    /// An optional list of texts; empty by default.
+    pub const fn text_list(name: &'static str) -> PropSpec {
+        PropSpec { name, kind: Kind::TextList, default: Some(|| Prop::TextList(Signal::new(Vec::new()))) }
+    }
+
+    /// An optional row of text signals; empty by default.
+    pub const fn text_slots(name: &'static str) -> PropSpec {
+        PropSpec { name, kind: Kind::TextSlots, default: Some(|| Prop::TextSlots(Vec::new())) }
+    }
+
+    /// An optional callback receiving an index; it does nothing by default.
+    pub const fn index_event(name: &'static str) -> PropSpec {
+        PropSpec { name, kind: Kind::IndexEvent, default: Some(|| Prop::IndexEvent(Rc::new(|_| {}))) }
     }
 
     /// An optional callback receiving a boolean; it does nothing by default.
@@ -224,6 +274,61 @@ impl Props {
         match self.get(name) {
             Prop::NumberEvent(callback) => callback.clone(),
             other => panic!("prop `{name}` is a {}, not a number event", other.kind().word()),
+        }
+    }
+
+    /// The index prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as an index.
+    pub fn index(&self, name: &str) -> Signal<usize> {
+        match self.get(name) {
+            Prop::Index(signal) => signal.clone(),
+            other => panic!("prop `{name}` is a {}, not an index", other.kind().word()),
+        }
+    }
+
+    /// The text list prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as a text list.
+    pub fn text_list(&self, name: &str) -> Signal<Vec<String>> {
+        match self.get(name) {
+            Prop::TextList(signal) => signal.clone(),
+            other => panic!("prop `{name}` is a {}, not a text list", other.kind().word()),
+        }
+    }
+
+    /// The text slots prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as text slots.
+    pub fn text_slots(&self, name: &str) -> Vec<Signal<String>> {
+        match self.get(name) {
+            Prop::TextSlots(slots) => slots.clone(),
+            other => panic!("prop `{name}` is a {}, not text slots", other.kind().word()),
+        }
+    }
+
+    /// The node prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as a node.
+    pub fn node(&self, name: &str) -> NodeId {
+        match self.get(name) {
+            Prop::Node(node) => *node,
+            other => panic!("prop `{name}` is a {}, not a node", other.kind().word()),
+        }
+    }
+
+    /// The index callback prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as an index event.
+    pub fn index_event(&self, name: &str) -> Rc<dyn Fn(usize)> {
+        match self.get(name) {
+            Prop::IndexEvent(callback) => callback.clone(),
+            other => panic!("prop `{name}` is a {}, not an index event", other.kind().word()),
         }
     }
 

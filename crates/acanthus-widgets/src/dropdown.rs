@@ -14,6 +14,7 @@ use acanthus_scene::{
 };
 
 use crate::button::{Feel, Press, Sound, activate, dress, focusable};
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use crate::scrollbar::{ScrollBar, scroll_bar};
 use crate::timing::{BASE, FAST, SLOW};
 
@@ -731,6 +732,85 @@ impl Row {
     }
 }
 
+/// The dropdown as a [`Component`] named `Dropdown`; clicks make no sound.
+pub struct DropdownComponent;
+
+impl Component for DropdownComponent {
+    fn name(&self) -> &'static str {
+        "Dropdown"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::number("x", || Prop::number(0.0)),
+            PropSpec::number("y", || Prop::number(0.0)),
+            PropSpec::number("menu_x", || Prop::number(0.0)),
+            PropSpec::number("menu_y", || Prop::number(0.0)),
+            PropSpec::number("width", || Prop::number(200.0)),
+            PropSpec::number("height", || Prop::number(36.0)),
+            PropSpec::number("scale", || Prop::number(1.0)),
+            PropSpec::number("radius", || Prop::number(10.0)),
+            PropSpec::number("font_size", || Prop::number(14.0)),
+            PropSpec::number("icon_size", || Prop::number(16.0)),
+            PropSpec::number("overlay_width", || Prop::number(0.0)),
+            PropSpec::number("overlay_height", || Prop::number(0.0)),
+            PropSpec::text("font", || Prop::text("")),
+            PropSpec::text("placeholder", || Prop::text("")),
+            PropSpec::bool("open", || Prop::bool(false)),
+            PropSpec::index("current", || Prop::Index(Signal::new(0))),
+            PropSpec::text_list("options"),
+            PropSpec::required("overlay", Kind::Node),
+            PropSpec::required("accent", Kind::Color),
+            PropSpec::required("base", Kind::Color),
+            PropSpec::required("hover", Kind::Color),
+            PropSpec::required("menu", Kind::Color),
+            PropSpec::required("border", Kind::Color),
+            PropSpec::required("text", Kind::Color),
+            PropSpec::required("active_text", Kind::Color),
+            PropSpec::index_event("on_select"),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        dropdown(
+            scene,
+            parent,
+            Spec {
+                options: props.text_list("options"),
+                current: props.index("current"),
+                placeholder: props.text("placeholder"),
+                open: props.bool("open"),
+                overlay: props.node("overlay"),
+                overlay_size: (
+                    props.number("overlay_width").get_untracked(),
+                    props.number("overlay_height").get_untracked(),
+                ),
+                x: props.number("x"),
+                y: props.number("y"),
+                menu_x: props.number("menu_x"),
+                menu_y: props.number("menu_y"),
+                width: props.number("width").get_untracked(),
+                height: props.number("height").get_untracked(),
+                scale: props.number("scale").get_untracked(),
+                radius: props.number("radius"),
+                font: props.text("font"),
+                font_size: props.number("font_size").get_untracked(),
+                icon_size: props.number("icon_size").get_untracked(),
+                accent: props.color("accent"),
+                base: props.color("base"),
+                hover: props.color("hover"),
+                menu: props.color("menu"),
+                border: props.color("border"),
+                text: props.color("text"),
+                active_text: props.color("active_text"),
+                sound: None,
+                on_select: props.index_event("on_select"),
+            },
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -777,5 +857,25 @@ mod tests {
         assert_eq!(row_radius(10.0), 6.0);
         assert_eq!(row_radius(1.0), 2.0);
         assert_eq!(row_radius(40.0), 16.0);
+    }
+
+    #[test]
+    fn the_registry_builds_a_dropdown_over_its_overlay() {
+        let mut registry = crate::component::Registry::new();
+        registry.register(DropdownComponent);
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let mut given: Vec<(String, Prop)> = ["accent", "base", "hover", "menu", "border", "text", "active_text"]
+            .map(|name| (name.to_owned(), Prop::color(Color::hex(0x336699))))
+            .to_vec();
+        given.push(("overlay".to_owned(), Prop::Node(root)));
+        given.push(("options".to_owned(), Prop::TextList(Signal::new(vec!["one".to_owned(), "two".to_owned()]))));
+        given.push(("overlay_width".to_owned(), Prop::number(400.0)));
+        given.push(("overlay_height".to_owned(), Prop::number(300.0)));
+        let node = registry.build("Dropdown", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        let err =
+            registry.build("Dropdown", &mut scene, root, vec![("overlay".to_owned(), Prop::number(1.0))]).unwrap_err();
+        assert_eq!(err.to_string(), "`Dropdown.overlay` expects a node, got a number");
     }
 }

@@ -13,6 +13,7 @@ use acanthus_core::{Color, Signal, Vec2};
 use acanthus_scene::{Anchors, CursorShape, Key, MouseArea, MouseButton, Node, NodeId, Scene};
 
 use crate::button::{Feel, Press, Sound, flash};
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use acanthus_anim::Animated;
 use acanthus_anim::Keep;
 
@@ -365,6 +366,67 @@ fn option(
     scene.add(item, text_node.font_size(&fitted));
 }
 
+/// The segmented switch as a [`Component`] named `Switch`; presses make no sound.
+pub struct SwitchComponent;
+
+impl Component for SwitchComponent {
+    fn name(&self) -> &'static str {
+        "Switch"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::number("x", || Prop::number(0.0)),
+            PropSpec::number("y", || Prop::number(0.0)),
+            PropSpec::number("width", || Prop::number(0.0)),
+            PropSpec::number("height", || Prop::number(32.0)),
+            PropSpec::number("corner", || Prop::number(8.0)),
+            PropSpec::number("font_size", || Prop::number(14.0)),
+            PropSpec::number("min_font_size", || Prop::number(9.0)),
+            PropSpec::text("family", || Prop::text("")),
+            PropSpec::bool("visible", || Prop::bool(true)),
+            PropSpec::bool("rtl", || Prop::bool(false)),
+            PropSpec::required("labels", Kind::TextSlots),
+            PropSpec::required("count", Kind::Index),
+            PropSpec::required("current", Kind::Index),
+            PropSpec::required("accent", Kind::Color),
+            PropSpec::required("base", Kind::Color),
+            PropSpec::required("text", Kind::Color),
+            PropSpec::required("active_text", Kind::Color),
+            PropSpec::index_event("on_select"),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        switch(
+            scene,
+            parent,
+            SwitchSpec {
+                x: props.number("x"),
+                y: props.number("y"),
+                width: props.number("width"),
+                height: props.number("height").get_untracked(),
+                corner: props.number("corner").get_untracked(),
+                font_size: props.number("font_size"),
+                min_font_size: props.number("min_font_size").get_untracked(),
+                family: props.text("family"),
+                labels: props.text_slots("labels"),
+                count: props.index("count"),
+                current: props.index("current"),
+                rtl: props.bool("rtl"),
+                accent: props.color("accent"),
+                base: props.color("base"),
+                text: props.color("text"),
+                active_text: props.color("active_text"),
+                visible: props.bool("visible"),
+                sound: None,
+                on_select: props.index_event("on_select"),
+            },
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -425,5 +487,26 @@ mod tests {
         assert_eq!(step(2, 3, true), 2);
         assert_eq!(step(0, 3, false), 0);
         assert_eq!(step(2, 3, false), 1);
+    }
+
+    #[test]
+    fn the_registry_builds_a_switch_from_text_slots() {
+        let mut registry = crate::component::Registry::new();
+        registry.register(SwitchComponent);
+        let mut given: Vec<(String, Prop)> = ["accent", "base", "text", "active_text"]
+            .map(|name| (name.to_owned(), Prop::color(Color::hex(0x336699))))
+            .to_vec();
+        given.push((
+            "labels".to_owned(),
+            Prop::TextSlots(vec![Signal::new("a".to_owned()), Signal::new("b".to_owned())]),
+        ));
+        given.push(("count".to_owned(), Prop::Index(Signal::new(2))));
+        given.push(("current".to_owned(), Prop::Index(Signal::new(0))));
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let node = registry.build("Switch", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        let err = registry.build("Switch", &mut scene, root, vec![]).unwrap_err();
+        assert_eq!(err.to_string(), "`Switch` needs the prop `labels`");
     }
 }

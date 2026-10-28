@@ -18,6 +18,8 @@ pub fn standard_registry() -> component::Registry {
     registry.register(toggle::ToggleComponent);
     registry.register(button::IconButtonComponent);
     registry.register(marquee::MarqueeComponent);
+    registry.register(switch::SwitchComponent);
+    registry.register(dropdown::DropdownComponent);
     registry
 }
 
@@ -25,6 +27,9 @@ pub fn standard_registry() -> component::Registry {
 mod tests {
     #[test]
     fn the_standard_registry_lists_its_components_sorted() {
-        assert_eq!(super::standard_registry().names(), vec!["IconButton", "Marquee", "Slider", "Toggle"]);
+        assert_eq!(
+            super::standard_registry().names(),
+            vec!["Dropdown", "IconButton", "Marquee", "Slider", "Switch", "Toggle"]
+        );
     }
 }
