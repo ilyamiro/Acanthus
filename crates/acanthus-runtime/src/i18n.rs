@@ -236,11 +236,11 @@ mod tests {
         let paths = crate::paths::test_paths();
         let i18n = I18n::new(&paths.languages_dir(), "en");
         let langs = i18n.available_languages();
-        assert!(langs.len() >= 20, "{langs:?}");
+        assert!(langs.len() >= 3, "{langs:?}");
         for lang in &langs {
             i18n.set_language(lang);
             assert!(i18n.ready().get_untracked());
-            assert_ne!(i18n.t("guide.tabs.general"), "guide.tabs.general", "{lang}");
+            assert_ne!(i18n.t("fixture.hello"), "fixture.hello", "{lang}");
         }
     }
 

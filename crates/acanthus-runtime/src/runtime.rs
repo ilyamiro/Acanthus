@@ -267,7 +267,7 @@ mod tests {
         assert!(runtime.clock.is_12_hour().get_untracked());
         assert_eq!(runtime.theme.theme.palette.base.get_untracked(), acanthus_core::Color::hex(0x282a36));
         assert_eq!(runtime.theme.theme.border_radius.get_untracked(), 30);
-        assert_ne!(runtime.i18n.t("guide.tabs.general"), "guide.tabs.general");
+        assert_ne!(runtime.i18n.t("fixture.hello"), "fixture.hello");
 
         runtime.config.set("general.language", json!("fr"));
         assert_eq!(runtime.i18n.language().get_untracked(), "fr");
@@ -320,7 +320,7 @@ mod tests {
         await_job(call("config", "set", vec![json!("bar.height"), json!("60")]));
         let fonts = await_job(call("fonts", "rescan", vec![]));
         assert_eq!(height, json!(52));
-        assert!(fonts.as_u64().unwrap() >= 30);
+        assert!(fonts.as_u64().unwrap() >= 2);
         assert_eq!(runtime.config.get_now("bar.height", 0), 60);
     }
 

@@ -710,11 +710,11 @@ mod tests {
     fn loading_a_font_invalidates_the_frame() {
         let mut s = scene(500.0, 100.0);
         let root = s.root();
-        let t = s.add(root, Node::text("Serpantinum").font_size(24.0).font_family("JetBrains Mono"));
+        let t = s.add(root, Node::text("Acanthus").font_size(24.0).font_family("JetBrains Mono"));
         s.frame();
         assert!(!s.needs_frame());
         let font =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../assets/fonts/JetBrainsMono-Regular.ttf");
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fonts/JetBrainsMono-Regular.ttf");
         let families = s.fonts().load_file(&font);
         assert!(!families.is_empty());
         assert!(s.fonts().has_family(&families[0]));
@@ -727,7 +727,7 @@ mod tests {
     fn text_measures_nonzero() {
         let mut s = scene(500.0, 100.0);
         let root = s.root();
-        let t = s.add(root, Node::text("Serpantinum").font_size(16.0));
+        let t = s.add(root, Node::text("Acanthus").font_size(16.0));
         let f = s.frame();
         assert!(f.changed);
         assert!(f.primitives.iter().any(|p| matches!(p, Primitive::Glyph(_))));

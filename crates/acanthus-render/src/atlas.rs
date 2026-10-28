@@ -286,7 +286,7 @@ mod tests {
     fn variation_axes_change_the_rasterised_glyph() {
         use cosmic_text::{Attrs, Buffer, Family, Metrics, Shaping, Weight};
 
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../assets/fonts/GoogleSansFlex.ttf");
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/fonts/GoogleSansFlex.ttf");
         let Ok(data) = std::fs::read(path) else { return };
         let mut fonts = FontSystem::new_with_fonts([cosmic_text::fontdb::Source::Binary(std::sync::Arc::new(data))]);
         let mut buffer = Buffer::new(&mut fonts, Metrics::new(40.0, 48.0));

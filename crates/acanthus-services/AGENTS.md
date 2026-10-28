@@ -25,7 +25,7 @@ Dependency rule: `kit` depends on nothing else in the crate; `platform` depends 
 - Tests: use `kit::testing::TestCtx::new(root)` (deferred `FakeExec`: queue replies with `reply_ok`, then `release`/`release_next`; `ManualScheduler` for timers). `FakeExec::immediate()` hides ordering bugs, use it only for simple request/response tests.
 - Hyprland dispatch: try the Lua form first (`hl.dsp.focus({ window = "address:0x.." })`), fall back to the legacy form. Verified live on Hyprland 0.56.2.
 - Persisted and runtime files use the inherited paths and formats exactly (`.agents/archive/ROADMAP-legacy.md` §5b.0, ROADMAP rule 4); take every path from `kit::Dirs`.
-- The M3R design is frozen in `.agents/archive/ROADMAP-legacy.md` §5b: read it before changing a service. Layering: this crate is engine code only; do not add Serpantinum policy to `platform`.
+- Layering: this crate is engine code only; do not add application policy to `platform`.
 
 ### Testing Requirements
 `cargo test -p acanthus-services`. Needs `dbus-daemon` on PATH (provided by `shell.nix`).

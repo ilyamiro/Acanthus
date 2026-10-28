@@ -32,6 +32,7 @@ pub enum PowerEvent {
 #[derive(Debug, Clone)]
 pub struct ScreensaverOptions {
     pub lock_marker: PathBuf,
+    pub inhibitor_name: String,
     pub activity_hold: Duration,
     pub lock_wait: Duration,
     pub retry_delay: Duration,
@@ -39,9 +40,10 @@ pub struct ScreensaverOptions {
 }
 
 impl ScreensaverOptions {
-    pub fn new(lock_marker: PathBuf) -> Self {
+    pub fn new(lock_marker: PathBuf, inhibitor_name: impl Into<String>) -> Self {
         ScreensaverOptions {
             lock_marker,
+            inhibitor_name: inhibitor_name.into(),
             activity_hold: ACTIVITY_HOLD,
             lock_wait: LOCK_WAIT,
             retry_delay: RETRY_DELAY,
@@ -341,16 +343,16 @@ struct Link {
     inhibitor: Option<OwnedFd>,
 }
 
-async fn take_inhibitor(proxy: &Login1Proxy<'_>) -> zbus::Result<OwnedFd> {
-    proxy.inhibit("sleep", "Serpantinum", "Lock the screen before sleep", "delay").await
+async fn take_inhibitor(proxy: &Login1Proxy<'_>, who: &str) -> zbus::Result<OwnedFd> {
+    proxy.inhibit("sleep", who, "Lock the screen before sleep", "delay").await
 }
 
-async fn connect_link(system: &BusKind) -> zbus::Result<(Link, Login1Proxy<'static>)> {
+async fn connect_link(system: &BusKind, who: &str) -> zbus::Result<(Link, Login1Proxy<'static>)> {
     let connection = system.connect().await?;
     let proxy = Login1Proxy::new(&connection).await?;
     let signals =
         proxy.receive_prepare_for_sleep().await?.map(|signal| signal.args().map(|args| args.start).unwrap_or(false));
-    let inhibitor = take_inhibitor(&proxy).await?;
+    let inhibitor = take_inhibitor(&proxy, who).await?;
     Ok((Link { _connection: connection, signals: Box::pin(signals), inhibitor: Some(inhibitor) }, proxy))
 }
 
@@ -404,7 +406,7 @@ async fn sleep_lock_loop(
                     link = None;
                     proxy = None;
                     if on {
-                        match connect_link(system).await {
+                        match connect_link(system, &options.inhibitor_name).await {
                             Ok((new_link, new_proxy)) => {
                                 link = Some(new_link);
                                 proxy = Some(new_proxy);
@@ -427,7 +429,7 @@ async fn sleep_lock_loop(
                     && active.inhibitor.is_none()
                 {
                     release_at = None;
-                    match take_inhibitor(proxy).await {
+                    match take_inhibitor(proxy, &options.inhibitor_name).await {
                         Ok(fd) => active.inhibitor = Some(fd),
                         Err(_) => failed = true,
                     }
@@ -458,7 +460,7 @@ async fn sleep_lock_loop(
             && enabled
         {
             retry_at = None;
-            match connect_link(system).await {
+            match connect_link(system, &options.inhibitor_name).await {
                 Ok((new_link, new_proxy)) => {
                     link = Some(new_link);
                     proxy = Some(new_proxy);
@@ -581,6 +583,7 @@ mod tests {
     fn test_options(marker: PathBuf) -> ScreensaverOptions {
         ScreensaverOptions {
             lock_marker: marker,
+            inhibitor_name: "demo".to_owned(),
             activity_hold: Duration::from_millis(300),
             lock_wait: Duration::from_millis(400),
             retry_delay: Duration::from_millis(200),

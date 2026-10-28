@@ -1,6 +1,6 @@
 # Versioning, changelog and deprecation
 
-This is the policy for the Acanthus engine crates (`acanthus-*`). The Serpantinum shell crates are an application and follow `version.txt`, not this policy.
+This is the policy for the Acanthus engine crates (`acanthus-*`). Applications built on the engine follow their own version.
 
 ## Versions
 

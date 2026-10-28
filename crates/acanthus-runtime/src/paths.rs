@@ -78,7 +78,7 @@ pub(crate) fn test_paths() -> Paths {
 
 #[cfg(test)]
 fn repo_assets() -> PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../assets")
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets")
 }
 
 fn resolve_assets(app: &AppId, env: &impl Fn(&str) -> Option<PathBuf>, fallbacks: &[PathBuf]) -> PathBuf {

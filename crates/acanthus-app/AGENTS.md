@@ -1,6 +1,6 @@
 # acanthus-app
 
-App framework extracted from the Serpantinum binary (ENGINE.md E3.6).
+App framework for building shells and apps (ENGINE.md E3.6).
 
 - `Module<Cx>`: `name()` and `start(app, cx) -> Running`; `start_all` starts modules in order and reports each stage through a callback.
 - `Provided`: typed map (`provide`, `get`, `require`) modules use to share controllers.
