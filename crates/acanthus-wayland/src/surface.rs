@@ -2,6 +2,7 @@ use acanthus_core::{Color, Rect, Vec2};
 use acanthus_render::{Gpu, Renderer, wgpu};
 use acanthus_scene::Scene;
 use smithay_client_toolkit::compositor::FrameCallbackData;
+use smithay_client_toolkit::session_lock::SessionLockSurface;
 use smithay_client_toolkit::shell::WaylandSurface;
 use smithay_client_toolkit::shell::wlr_layer::{Anchor, KeyboardInteractivity, Layer, LayerSurface};
 use smithay_client_toolkit::shell::xdg::popup::Popup;
@@ -99,6 +100,7 @@ pub(crate) enum Role {
     Layer(LayerSurface),
     Popup(Popup),
     Window(Window),
+    Lock(SessionLockSurface),
 }
 
 impl Role {
@@ -107,6 +109,7 @@ impl Role {
             Role::Layer(layer) => layer.wl_surface(),
             Role::Popup(popup) => popup.wl_surface(),
             Role::Window(window) => window.wl_surface(),
+            Role::Lock(lock) => lock.wl_surface(),
         }
     }
 }

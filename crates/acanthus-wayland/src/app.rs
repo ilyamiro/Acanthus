@@ -21,6 +21,9 @@ use smithay_client_toolkit::seat::keyboard::{
 use smithay_client_toolkit::seat::pointer::cursor_shape::CursorShapeManager;
 use smithay_client_toolkit::seat::pointer::{PointerEvent, PointerEventKind, PointerHandler};
 use smithay_client_toolkit::seat::{Capability, SeatHandler, SeatState};
+use smithay_client_toolkit::session_lock::{
+    SessionLock, SessionLockHandler, SessionLockState, SessionLockSurface, SessionLockSurfaceConfigure,
+};
 use smithay_client_toolkit::shell::WaylandSurface;
 use smithay_client_toolkit::shell::wlr_layer::{
     Anchor, KeyboardInteractivity, Layer, LayerShell, LayerShellHandler, LayerSurface, LayerSurfaceConfigure,
@@ -37,6 +40,7 @@ use wayland_protocols::wp::idle_inhibit::zv1::client::zwp_idle_inhibitor_v1::Zwp
 
 use crate::idle_inhibit::IdleInhibitGlobal;
 use crate::lazy::LazyGate;
+use crate::lock::{LockConfig, LockMachine, LockPhase, OnLocked, reconcile};
 use crate::output::OutputInfo;
 use crate::popup::PopupConfig;
 use crate::scale::{FractionalData, ScaleGlobal, ScaleManagers, ScaleObjects};
@@ -78,6 +82,12 @@ pub enum AppError {
     /// The compositor does not support toplevel windows.
     #[error("the compositor does not offer xdg_wm_base, so toplevel windows are unavailable")]
     NoToplevels,
+    /// The compositor does not support `ext-session-lock-v1`.
+    #[error("the compositor does not offer ext_session_lock_manager_v1, so the session cannot be locked")]
+    NoSessionLock,
+    /// A session lock is already held or being requested.
+    #[error("the session is already locked or being locked by this application")]
+    AlreadyLocked,
     /// Creating a popup failed.
     #[error("cannot create popup: {0}")]
     Popup(String),
@@ -94,6 +104,7 @@ struct PopupRequest {
 pub struct AppHandle {
     popups: std::rc::Rc<std::cell::RefCell<Vec<PopupRequest>>>,
     idle_inhibits: std::rc::Rc<std::cell::RefCell<Vec<(SurfaceId, bool)>>>,
+    unlock: std::rc::Rc<std::cell::Cell<bool>>,
     window_commands: std::rc::Rc<std::cell::RefCell<Vec<(SurfaceId, WindowCommand)>>>,
 }
 
@@ -106,6 +117,11 @@ impl AppHandle {
     /// Queues turning the idle inhibitor of `surface` on or off.
     pub fn set_idle_inhibit(&self, surface: SurfaceId, inhibit: bool) {
         self.idle_inhibits.borrow_mut().push((surface, inhibit));
+    }
+
+    /// Queues releasing the session lock taken with [`App::lock`]; ignored when no lock is held.
+    pub fn unlock(&self) {
+        self.unlock.set(true);
     }
 
     /// Queues `command` for the toplevel window `surface`; commands for other surfaces are ignored.
@@ -126,6 +142,15 @@ struct NewWindow {
     size: (u32, u32),
 }
 
+struct Lock {
+    session: Option<SessionLock>,
+    machine: LockMachine,
+    phase: Signal<LockPhase>,
+    config: LockConfig,
+    build: VariantBuild,
+    surfaces: Vec<(u32, SurfaceId)>,
+}
+
 struct Variants {
     config: Box<dyn Fn(&OutputInfo) -> LayerConfig>,
     build: VariantBuild,
@@ -143,6 +168,8 @@ pub struct State {
     compositor: CompositorState,
     layer_shell: LayerShell,
     xdg_shell: Option<XdgShell>,
+    session_lock_state: SessionLockState,
+    lock: Option<Lock>,
     scale_managers: Option<ScaleManagers>,
     idle_inhibit_manager: Option<ZwpIdleInhibitManagerV1>,
     idle_inhibitors: HashMap<SurfaceId, ZwpIdleInhibitorV1>,
@@ -207,6 +234,8 @@ impl App {
             compositor: CompositorState::bind(&globals, &qh)?,
             layer_shell: LayerShell::bind(&globals, &qh)?,
             xdg_shell: XdgShell::bind(&globals, &qh).ok(),
+            session_lock_state: SessionLockState::new(&globals, &qh),
+            lock: None,
             scale_managers: bind_scale_managers(&globals, &qh),
             idle_inhibit_manager: globals.bind(&qh, 1..=1, IdleInhibitGlobal).ok(),
             idle_inhibitors: HashMap::new(),
@@ -277,6 +306,15 @@ impl App {
         build: impl FnOnce(&mut Scene),
     ) -> Result<(SurfaceId, Signal<WindowState>), AppError> {
         self.state.create_window(config, build)
+    }
+
+    /// Locks the session: asks the compositor for `ext-session-lock-v1` and keeps one lock surface per output, built with `build`, recreated as outputs come and go. The signal follows the lock; release it with [`AppHandle::unlock`]. When the process dies the compositor keeps the session locked.
+    pub fn lock(
+        &mut self,
+        config: LockConfig,
+        build: impl FnMut(&mut Scene, &OutputInfo) + 'static,
+    ) -> Result<Signal<LockPhase>, AppError> {
+        self.state.start_lock(config, Box::new(build))
     }
 
     /// Handle for queueing requests from callbacks.
@@ -375,7 +413,9 @@ impl App {
             };
             self.event_loop.dispatch(timeout, &mut self.state)?;
             self.state.update();
-            if self.state.exit || (self.state.surfaces.is_empty() && self.state.variants.is_empty()) {
+            if self.state.exit
+                || (self.state.surfaces.is_empty() && self.state.variants.is_empty() && self.state.lock.is_none())
+            {
                 return Ok(());
             }
         }
@@ -417,6 +457,7 @@ impl State {
         for (surface, inhibit) in inhibits {
             self.apply_idle_inhibit(surface, inhibit);
         }
+        self.apply_unlock();
         let commands: Vec<(SurfaceId, WindowCommand)> = self.handle.window_commands.borrow_mut().drain(..).collect();
         for (surface, command) in commands {
             self.apply_window_command(surface, command);
@@ -642,6 +683,80 @@ impl State {
         Ok((self.insert_window(new, build), state))
     }
 
+    fn start_lock(&mut self, config: LockConfig, build: VariantBuild) -> Result<Signal<LockPhase>, AppError> {
+        let mut machine = LockMachine::default();
+        if self.lock.is_some() || !machine.request() {
+            return Err(AppError::AlreadyLocked);
+        }
+        let session = self.session_lock_state.lock(&self.qh).map_err(|_| AppError::NoSessionLock)?;
+        let phase = Signal::new(machine.phase());
+        self.lock =
+            Some(Lock { session: Some(session), machine, phase: phase.clone(), config, build, surfaces: Vec::new() });
+        self.sync_lock_surfaces();
+        Ok(phase)
+    }
+
+    fn sync_lock_surfaces(&mut self) {
+        let Some(mut lock) = self.lock.take() else { return };
+        let infos = self.outputs.get_untracked();
+        let live = lock.session.is_some();
+        let wanted: Vec<u32> = if live { infos.iter().map(|o| o.id).collect() } else { Vec::new() };
+        let existing: Vec<u32> = lock.surfaces.iter().map(|(o, _)| *o).collect();
+        let (add, remove) = reconcile(&existing, &wanted);
+        for output in remove {
+            if let Some(pos) = lock.surfaces.iter().position(|(o, _)| *o == output) {
+                let (_, id) = lock.surfaces.remove(pos);
+                self.remove_surface(id);
+            }
+        }
+        for output in add {
+            let Some(info) = infos.iter().find(|o| o.id == output) else { continue };
+            let Some(session) = lock.session.as_ref() else { continue };
+            let wl = self.compositor.create_surface(&self.qh);
+            let scale_objects = self.attach_scale(&wl);
+            let surface = session.create_lock_surface(wl, &info.output, &self.qh);
+            let created = self.create_wgpu_surface(surface.wl_surface()).map(|wgpu_surface| {
+                let window = NewWindow {
+                    role: Role::Lock(surface),
+                    wgpu_surface,
+                    scale_objects,
+                    parent: None,
+                    toplevel: None,
+                    clear: lock.config.clear,
+                    size: (info.size.0.max(0) as u32, info.size.1.max(0) as u32),
+                };
+                self.insert_window(window, |scene| (lock.build)(scene, info))
+            });
+            match created {
+                Ok(id) => lock.surfaces.push((output, id)),
+                Err(e) => tracing::warn!(output, "cannot create lock surface: {e}"),
+            }
+        }
+        self.lock = Some(lock);
+    }
+
+    fn apply_unlock(&mut self) {
+        if !self.handle.unlock.replace(false) {
+            return;
+        }
+        let Some(lock) = self.lock.as_mut() else { return };
+        if !lock.machine.unlock() {
+            return;
+        }
+        if let Some(session) = lock.session.take() {
+            session.unlock();
+        }
+        lock.phase.set(LockPhase::Unlocked);
+        self.release_lock();
+    }
+
+    fn release_lock(&mut self) {
+        let Some(lock) = self.lock.take() else { return };
+        for (_, id) in lock.surfaces {
+            self.remove_surface(id);
+        }
+    }
+
     fn apply_window_command(&mut self, id: SurfaceId, command: WindowCommand) {
         let Some(surface) = self.surfaces.get(id) else { return };
         let Role::Window(window) = &surface.role else { return };
@@ -697,6 +812,7 @@ impl State {
             Role::Popup(popup) => Some(popup.xdg_surface().clone()),
             Role::Window(window) => Some(window.xdg_surface().clone()),
             Role::Layer(_) => None,
+            Role::Lock(_) => return Err(AppError::Popup("lock surfaces cannot have popups".into())),
         };
         let popup = Popup::from_surface(parent_xdg.as_ref(), &positioner, &self.qh, wl, shell)
             .map_err(|e| AppError::Popup(e.to_string()))?;
@@ -768,6 +884,7 @@ impl State {
             .collect();
         self.outputs.set(infos);
         self.sync_variants();
+        self.sync_lock_surfaces();
     }
 
     fn lazy_deadline(&self) -> Option<Instant> {
@@ -954,6 +1071,47 @@ impl LayerShellHandler for State {
         let surface = &mut self.surfaces[id];
         let (w, h) = configure.new_size;
         surface.size = (if w == 0 { surface.requested.0 } else { w }, if h == 0 { surface.requested.1 } else { h });
+        surface.configured = true;
+        if let Some(gpu) = self.gpu.as_ref() {
+            surface.reconfigure(gpu);
+        }
+    }
+}
+
+impl SessionLockHandler for State {
+    fn locked(&mut self, _: &Connection, _: &QueueHandle<Self>, _: SessionLock) {
+        let Some(lock) = self.lock.as_mut() else { return };
+        let action = lock.machine.locked();
+        lock.phase.set(lock.machine.phase());
+        if action == OnLocked::UnlockNow {
+            self.handle.unlock.set(true);
+        }
+    }
+
+    fn finished(&mut self, _: &Connection, _: &QueueHandle<Self>, _: SessionLock) {
+        let Some(lock) = self.lock.as_mut() else { return };
+        lock.machine.finished();
+        lock.session = None;
+        lock.phase.set(lock.machine.phase());
+        for (_, id) in std::mem::take(&mut lock.surfaces) {
+            self.remove_surface(id);
+        }
+    }
+
+    fn configure(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        lock_surface: SessionLockSurface,
+        configure: SessionLockSurfaceConfigure,
+        _: u32,
+    ) {
+        let Some(id) = self.surface_by_wl(lock_surface.wl_surface()) else { return };
+        let surface = &mut self.surfaces[id];
+        let (w, h) = configure.new_size;
+        if w > 0 && h > 0 {
+            surface.size = (w, h);
+        }
         surface.configured = true;
         if let Some(gpu) = self.gpu.as_ref() {
             surface.reconfigure(gpu);

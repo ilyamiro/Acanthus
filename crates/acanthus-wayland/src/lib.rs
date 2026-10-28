@@ -4,6 +4,7 @@
 mod app;
 mod idle_inhibit;
 mod lazy;
+mod lock;
 mod output;
 mod popup;
 mod scale;
@@ -11,6 +12,7 @@ mod surface;
 mod window;
 
 pub use app::{App, AppError, AppHandle, State, SurfaceId};
+pub use lock::{LockConfig, LockPhase};
 pub use output::OutputInfo;
 pub use popup::{PopupConfig, PopupEdge};
 pub use smithay_client_toolkit::reexports::protocols::xdg::shell::client::xdg_positioner::ConstraintAdjustment;

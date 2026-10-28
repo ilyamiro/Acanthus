@@ -6,6 +6,7 @@ acanthus_wayland::App::fonts: fn fonts (& self) -> & Fonts
 acanthus_wayland::App::handle: fn handle (& self) -> AppHandle
 acanthus_wayland::App::images: fn images (& self) -> & ImageStore
 acanthus_wayland::App::layer_surface: fn layer_surface (& mut self , config : LayerConfig , build : impl FnOnce (& mut Scene) ,) -> Result < SurfaceId , AppError >
+acanthus_wayland::App::lock: fn lock (& mut self , config : LockConfig , build : impl FnMut (& mut Scene , & OutputInfo) + 'static ,) -> Result < Signal < LockPhase > , AppError >
 acanthus_wayland::App::loop_handle: fn loop_handle (& self) -> calloop :: LoopHandle < 'static , State >
 acanthus_wayland::App::new: fn new () -> Result < Self , AppError >
 acanthus_wayland::App::outputs: fn outputs (& self) -> Signal < Vec < OutputInfo > >
@@ -17,6 +18,7 @@ acanthus_wayland::App::run: fn run (mut self) -> Result < () , AppError >
 acanthus_wayland::App::scene_mut: fn scene_mut (& mut self , id : SurfaceId) -> Option < & mut Scene >
 acanthus_wayland::App::window: fn window (& mut self , config : WindowConfig , build : impl FnOnce (& mut Scene) ,) -> Result < (SurfaceId , Signal < WindowState >) , AppError >
 acanthus_wayland::AppError: enum [Debug, thiserror :: Error]
+acanthus_wayland::AppError::AlreadyLocked: variant 
 acanthus_wayland::AppError::Bind: variant (# [from] BindError)
 acanthus_wayland::AppError::Connect: variant (# [from] ConnectError)
 acanthus_wayland::AppError::EventLoop: variant (# [from] calloop :: Error)
@@ -24,12 +26,14 @@ acanthus_wayland::AppError::Globals: variant (# [from] GlobalError)
 acanthus_wayland::AppError::Gpu: variant (# [from] GpuError)
 acanthus_wayland::AppError::Insert: variant (String)
 acanthus_wayland::AppError::NoPopups: variant 
+acanthus_wayland::AppError::NoSessionLock: variant 
 acanthus_wayland::AppError::NoToplevels: variant 
 acanthus_wayland::AppError::Popup: variant (String)
 acanthus_wayland::AppError::UnknownSurface: variant 
 acanthus_wayland::AppHandle: struct [Clone, Default]
 acanthus_wayland::AppHandle::open_popup: fn open_popup (& self , parent : SurfaceId , config : PopupConfig , build : impl FnOnce (& mut Scene) + 'static)
 acanthus_wayland::AppHandle::set_idle_inhibit: fn set_idle_inhibit (& self , surface : SurfaceId , inhibit : bool)
+acanthus_wayland::AppHandle::unlock: fn unlock (& self)
 acanthus_wayland::AppHandle::window_command: fn window_command (& self , surface : SurfaceId , command : WindowCommand)
 acanthus_wayland::Decorations: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
 acanthus_wayland::Decorations::Client: variant 
@@ -55,6 +59,16 @@ acanthus_wayland::LayerConfig::margin: fn margin (self , top : i32 , right : i32
 acanthus_wayland::LayerConfig::new: fn new (namespace : impl Into < String >) -> Self
 acanthus_wayland::LayerConfig::output: fn output (self , output : wl_output :: WlOutput) -> Self
 acanthus_wayland::LayerConfig::size: fn size (self , width : u32 , height : u32) -> Self
+acanthus_wayland::LockConfig.clear: Color
+acanthus_wayland::LockConfig: struct [Clone, Copy, Debug, PartialEq]
+acanthus_wayland::LockConfig::clear: fn clear (self , clear : Color) -> Self
+acanthus_wayland::LockConfig::new: fn new () -> Self
+acanthus_wayland::LockPhase: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_wayland::LockPhase::Denied: variant 
+acanthus_wayland::LockPhase::Locked: variant 
+acanthus_wayland::LockPhase::Locking: variant 
+acanthus_wayland::LockPhase::Lost: variant 
+acanthus_wayland::LockPhase::Unlocked: variant 
 acanthus_wayland::OutputInfo.id: u32
 acanthus_wayland::OutputInfo.make: String
 acanthus_wayland::OutputInfo.model: String
@@ -133,6 +147,7 @@ acanthus_wayland::WindowState.resizing: bool
 acanthus_wayland::WindowState.tiled: bool
 acanthus_wayland::WindowState: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
 impl CompositorHandler for acanthus_wayland::State
+impl Default for acanthus_wayland::LockConfig
 impl KeyboardHandler for acanthus_wayland::State
 impl LayerShellHandler for acanthus_wayland::State
 impl OutputHandler for acanthus_wayland::State
@@ -140,5 +155,6 @@ impl PointerHandler for acanthus_wayland::State
 impl PopupHandler for acanthus_wayland::State
 impl ProvidesRegistryState for acanthus_wayland::State
 impl SeatHandler for acanthus_wayland::State
+impl SessionLockHandler for acanthus_wayland::State
 impl WindowHandler for acanthus_wayland::State
 impl std :: fmt :: Debug for acanthus_wayland::WindowConfig
