@@ -15,29 +15,46 @@ pub const DEFAULT_CACHE_BUFFER: f32 = 320.0;
 const MEASURE_EPSILON: f32 = 0.01;
 const UNMEASURED_EXTENT: f32 = 1.0;
 
+/// Where [`ListView::position_view_at_index`] places an item, as in Qt's `positionViewAtIndex`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewPosition {
+    /// The item's start at the viewport start.
     Beginning,
+    /// The item centred in the viewport.
     Center,
+    /// The item's end at the viewport end.
     End,
+    /// Scrolls the minimum needed to make the item at least partly visible.
     Visible,
+    /// Scrolls the minimum needed to show the item entirely.
     Contain,
 }
 
+/// Animation of items entering and leaving a list view.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ListTransitions {
+    /// Initial scale of an entering item.
     pub add_scale_from: f32,
+    /// Duration of the entering scale in milliseconds.
     pub add_scale_ms: u32,
+    /// Duration of the entering fade in milliseconds.
     pub add_opacity_ms: u32,
+    /// Duration of the leaving fade in milliseconds.
     pub remove_opacity_ms: u32,
+    /// Easing shared by all transitions.
     pub easing: Easing,
 }
 
+/// Static options of a list view.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ListViewConfig {
+    /// Direction items are laid out along.
     pub orientation: Orientation,
+    /// Gap between items.
     pub spacing: f32,
+    /// Extent outside the viewport in which items stay instantiated.
     pub cache_buffer: f32,
+    /// Item add and remove animation, or `None` for none.
     pub transitions: Option<ListTransitions>,
 }
 
@@ -53,20 +70,24 @@ impl Default for ListViewConfig {
 }
 
 impl ListViewConfig {
+    /// A default configuration laid out horizontally.
     pub fn horizontal() -> Self {
         ListViewConfig { orientation: Orientation::Horizontal, ..Default::default() }
     }
 
+    /// Sets the gap between items.
     pub fn spacing(mut self, spacing: f32) -> Self {
         self.spacing = spacing;
         self
     }
 
+    /// Sets the extent kept instantiated outside the viewport.
     pub fn cache_buffer(mut self, cache_buffer: f32) -> Self {
         self.cache_buffer = cache_buffer;
         self
     }
 
+    /// Enables item add and remove animation.
     pub fn transitions(mut self, transitions: ListTransitions) -> Self {
         self.transitions = Some(transitions);
         self
@@ -79,23 +100,31 @@ struct Metrics {
     extents: Vec<f32>,
 }
 
+/// Handle to a virtualised list created by [`Scene::list_view`].
 #[derive(Clone)]
 pub struct ListView {
+    /// The viewport and content nodes.
     pub nodes: FlickableNodes,
+    /// The scrolling state.
     pub flickable: Flickable,
+    /// The number of items in the model.
     pub count: Signal<usize>,
+    /// The number of items currently instantiated.
     pub instantiated: Signal<usize>,
+    /// The size of the viewport.
     pub view_size: Signal<Vec2>,
     orientation: Orientation,
     metrics: Rc<RefCell<Metrics>>,
 }
 
 impl ListView {
+    /// Start and extent of the item at `index` along the layout axis, or `None` when it is out of range.
     pub fn item_range(&self, index: usize) -> Option<(f32, f32)> {
         let metrics = self.metrics.borrow();
         Some((*metrics.starts.get(index)?, *metrics.extents.get(index)?))
     }
 
+    /// Scrolls so that the item at `index` sits as `mode` describes; does nothing for an out-of-range index.
     pub fn position_view_at_index(&self, index: usize, mode: ViewPosition) {
         let Some((start, extent)) = self.item_range(index) else { return };
         let view = self.view_size.get_untracked();
@@ -371,6 +400,7 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
 }
 
 impl Scene {
+    /// Creates a virtualised list under `parent` inside `viewport`, instantiating `delegate` only for items near the visible range of `model`.
     pub fn list_view<T, K>(
         &mut self,
         parent: NodeId,

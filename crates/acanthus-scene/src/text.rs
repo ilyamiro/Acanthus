@@ -7,6 +7,7 @@ use cosmic_text::{
     Attrs, Buffer, Ellipsize, EllipsizeHeightLimit, Family, FontSystem, Metrics, Shaping, Style, Weight, Wrap,
 };
 
+/// Shared font database. Cloning shares it; loading a font bumps [`Fonts::generation`] so text re-shapes.
 #[derive(Clone)]
 pub struct Fonts {
     system: Rc<RefCell<FontSystem>>,
@@ -14,18 +15,22 @@ pub struct Fonts {
 }
 
 impl Fonts {
+    /// Creates a database with the system fonts.
     pub fn new() -> Self {
         Fonts { system: Rc::new(RefCell::new(FontSystem::new())), generation: Signal::new(0) }
     }
 
+    /// Mutable access to the underlying font system.
     pub fn system(&self) -> RefMut<'_, FontSystem> {
         self.system.borrow_mut()
     }
 
+    /// A signal that changes whenever the set of fonts changes.
     pub fn generation(&self) -> Signal<u64> {
         self.generation.clone()
     }
 
+    /// Loads a font file and returns the family names it added; empty on failure.
     pub fn load_file(&self, path: &Path) -> Vec<String> {
         let families = {
             let mut system = self.system();
@@ -49,6 +54,7 @@ impl Fonts {
         families
     }
 
+    /// True when a family with this name (ASCII case-insensitive) is installed.
     pub fn has_family(&self, name: &str) -> bool {
         let system = self.system();
         system.db().faces().any(|face| face.families.iter().any(|(family, _)| family.eq_ignore_ascii_case(name)))
@@ -61,11 +67,15 @@ impl Default for Fonts {
     }
 }
 
+/// Horizontal text alignment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HAlign {
+    /// Flush left.
     #[default]
     Left,
+    /// Centred.
     Center,
+    /// Flush right.
     Right,
 }
 
@@ -79,11 +89,15 @@ impl HAlign {
     }
 }
 
+/// Vertical text alignment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum VAlign {
+    /// At the top.
     #[default]
     Top,
+    /// Centred.
     Center,
+    /// At the bottom.
     Bottom,
 }
 
@@ -97,21 +111,31 @@ impl VAlign {
     }
 }
 
+/// Where truncated text gets its ellipsis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Elide {
+    /// No eliding.
     #[default]
     None,
+    /// At the start.
     Left,
+    /// In the middle.
     Middle,
+    /// At the end.
     Right,
 }
 
+/// How lines break when text exceeds its width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WrapMode {
+    /// No wrapping.
     #[default]
     NoWrap,
+    /// At word boundaries.
     Word,
+    /// At any character.
     Anywhere,
+    /// At word boundaries, falling back to any character for overlong words.
     WordOrAnywhere,
 }
 

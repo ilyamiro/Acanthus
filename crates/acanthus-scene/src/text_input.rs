@@ -38,6 +38,7 @@ struct Inner {
     last_click: Cell<Option<(f32, u32)>>,
 }
 
+/// Editing state of a single-line text field: text, cursor, selection, scroll offset and callbacks. Indices count characters, not bytes. Cloning shares the state.
 #[derive(Clone)]
 pub struct TextInput {
     inner: Rc<Inner>,
@@ -50,6 +51,7 @@ impl Default for TextInput {
 }
 
 impl TextInput {
+    /// Creates a field holding `text` with the cursor at the end.
     pub fn new(text: impl Into<String>) -> Self {
         let text: String = text.into();
         let end = text.chars().count();
@@ -73,84 +75,102 @@ impl TextInput {
         }
     }
 
+    /// Sets whether the text is shown masked.
     pub fn password(self, v: bool) -> Self {
         self.inner.password.set(v);
         self
     }
 
+    /// Sets whether edits are refused.
     pub fn read_only(self, v: bool) -> Self {
         self.inner.read_only.set(v);
         self
     }
 
+    /// Sets the largest number of characters, zero for unlimited.
     pub fn max_length(self, v: usize) -> Self {
         self.inner.max_length.set(v);
         self
     }
 
+    /// Sets the callback run with the text when Enter is pressed.
     pub fn on_accepted(self, f: impl FnMut(&str) + 'static) -> Self {
         *self.inner.on_accepted.borrow_mut() = Some(Box::new(f));
         self
     }
 
+    /// Sets a filter that sees key events first and returns true to consume them.
     pub fn before_key(self, f: impl FnMut(&KeyEvent) -> bool + 'static) -> Self {
         *self.inner.before_key.borrow_mut() = Some(Box::new(f));
         self
     }
 
+    /// Sets the callback run with the new text after every accepted edit.
     pub fn on_edited(self, f: impl FnMut(&str) + 'static) -> Self {
         *self.inner.on_edited.borrow_mut() = Some(Box::new(f));
         self
     }
 
+    /// Sets a validator; edits whose result it rejects are refused.
     pub fn validator(self, f: impl Fn(&str) -> bool + 'static) -> Self {
         *self.inner.validator.borrow_mut() = Some(Box::new(f));
         self
     }
 
+    /// The text signal.
     pub fn text(&self) -> Signal<String> {
         self.inner.text.clone()
     }
 
+    /// The cursor position signal, in characters.
     pub fn cursor(&self) -> Signal<usize> {
         self.inner.cursor.clone()
     }
 
+    /// The selection anchor signal; equal to the cursor when nothing is selected.
     pub fn anchor(&self) -> Signal<usize> {
         self.inner.anchor.clone()
     }
 
+    /// The signal telling whether the text is masked.
     pub fn password_signal(&self) -> Signal<bool> {
         self.inner.password.clone()
     }
 
+    /// The horizontal scroll offset signal, in logical pixels.
     pub fn scroll(&self) -> Signal<f32> {
         self.inner.scroll.clone()
     }
 
+    /// The number of characters.
     pub fn len(&self) -> usize {
         self.inner.text.with(|t| t.chars().count())
     }
 
+    /// True when the text is empty.
     pub fn is_empty(&self) -> bool {
         self.inner.text.with(|t| t.is_empty())
     }
 
+    /// The selection as an ordered `(start, end)` pair.
     pub fn selection(&self) -> (usize, usize) {
         let (c, a) = (self.inner.cursor.get_untracked(), self.inner.anchor.get_untracked());
         (c.min(a), c.max(a))
     }
 
+    /// True when at least one character is selected.
     pub fn has_selection(&self) -> bool {
         let (s, e) = self.selection();
         s != e
     }
 
+    /// The selected text.
     pub fn selected_text(&self) -> String {
         let (s, e) = self.selection();
         self.inner.text.with(|t| t.chars().skip(s).take(e - s).collect())
     }
 
+    /// Replaces the text without validation or callbacks and puts the cursor at the end.
     pub fn set_text(&self, text: impl Into<String>) {
         let text: String = text.into();
         let end = text.chars().count();
@@ -159,21 +179,25 @@ impl TextInput {
         self.inner.anchor.set(end);
     }
 
+    /// Clears the text.
     pub fn clear(&self) {
         self.set_text("");
     }
 
+    /// Selects everything.
     pub fn select_all(&self) {
         self.inner.anchor.set(0);
         self.inner.cursor.set(self.len());
     }
 
+    /// Selects from `anchor` to `cursor`, clamped to the text.
     pub fn select(&self, anchor: usize, cursor: usize) {
         let len = self.len();
         self.inner.anchor.set(anchor.min(len));
         self.inner.cursor.set(cursor.min(len));
     }
 
+    /// Moves the cursor to `index`, keeping the anchor when `extend` is true so the selection grows.
     pub fn set_cursor(&self, index: usize, extend: bool) {
         let index = index.min(self.len());
         self.inner.cursor.set(index);
@@ -202,6 +226,7 @@ impl TextInput {
         true
     }
 
+    /// Inserts `text` over the selection, dropping control characters and respecting the maximum length and validator. Returns true when the text changed.
     pub fn insert(&self, text: &str) -> bool {
         if self.inner.read_only.get_untracked() {
             return false;
@@ -223,6 +248,7 @@ impl TextInput {
         self.commit(&chars, caret)
     }
 
+    /// Deletes the selection. Returns true when the text changed.
     pub fn delete_selection(&self) -> bool {
         if self.inner.read_only.get_untracked() || !self.has_selection() {
             return false;
@@ -295,6 +321,7 @@ impl TextInput {
         true
     }
 
+    /// Handles an editing key (characters, arrows, Home, End, Backspace, Delete, Enter and the clipboard shortcuts). Returns true when the key was consumed.
     pub fn handle_key(&self, event: &KeyEvent, clipboard: &Clipboard) -> bool {
         if let Some(f) = self.inner.before_key.borrow_mut().as_mut()
             && f(event)
@@ -362,6 +389,7 @@ impl TextInput {
         }
     }
 
+    /// The character index closest to the horizontal position `x` within the field.
     pub fn index_at(&self, x: f32) -> usize {
         let positions = self.inner.positions.borrow();
         let x = x + self.inner.scroll.get_untracked();
@@ -443,14 +471,23 @@ fn word_range(chars: &[char], at: usize) -> (usize, usize) {
     (start, end)
 }
 
+/// Appearance of a text field.
 pub struct TextInputStyle {
+    /// Font size.
     pub font_size: Signal<f32>,
+    /// Font weight.
     pub font_weight: Signal<u16>,
+    /// Font family, empty for the default.
     pub font_family: Signal<String>,
+    /// Text colour.
     pub color: Signal<Color>,
+    /// Selection highlight colour.
     pub selection_color: Signal<Color>,
+    /// Caret colour.
     pub caret_color: Signal<Color>,
+    /// Text shown while the field is empty.
     pub placeholder: Signal<String>,
+    /// Colour of the placeholder.
     pub placeholder_color: Signal<Color>,
 }
 
@@ -469,12 +506,18 @@ impl Default for TextInputStyle {
     }
 }
 
+/// The nodes making up a text field created by [`Scene::text_input`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TextInputNodes {
+    /// The clipping field node.
     pub field: NodeId,
+    /// The text node.
     pub text: NodeId,
+    /// The caret node.
     pub caret: NodeId,
+    /// The selection highlight node.
     pub selection: NodeId,
+    /// The placeholder node.
     pub placeholder: NodeId,
 }
 
@@ -650,10 +693,12 @@ impl Host for FocusWhen {
 }
 
 impl Scene {
+    /// Focuses `node` whenever `trigger` turns true.
     pub fn focus_when(&mut self, node: NodeId, trigger: Signal<bool>) {
         self.push_host(Box::new(FocusWhen { node, trigger, last: false }));
     }
 
+    /// Builds a text field under `parent`: the `field` node is made focusable and wired to `input`, with text, selection, caret and placeholder nodes inside styled by `style`.
     pub fn text_input(
         &mut self,
         parent: NodeId,

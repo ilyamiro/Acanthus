@@ -15,28 +15,43 @@ use acanthus_image::ImageStore;
 
 const SETTLE_PASSES: usize = 4;
 
+/// The result of [`Scene::frame`].
 pub struct Frame<'a> {
+    /// True when the display list differs from the previous frame.
     pub changed: bool,
+    /// The display list in paint order.
     pub primitives: &'a [Primitive],
 }
 
+/// Layer-surface placement derived from the scene's layer settings: anchored edges, size, margin as left, top, right, bottom and exclusive zone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LayerGeometry {
+    /// Anchored to the top edge.
     pub top: bool,
+    /// Anchored to the bottom edge.
     pub bottom: bool,
+    /// Anchored to the left edge.
     pub left: bool,
+    /// Anchored to the right edge.
     pub right: bool,
+    /// Requested size in logical pixels, zero meaning stretch.
     pub size: (u32, u32),
+    /// Margins as left, top, right, bottom.
     pub margin: [i32; 4],
+    /// Exclusive zone in logical pixels.
     pub exclusive_zone: i32,
 }
 
+/// The output a surface is shown on.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SurfaceOutput {
+    /// The output name.
     pub name: String,
+    /// The output size in logical pixels.
     pub size: Vec2,
 }
 
+/// A retained scene: a tree of nodes with reactive properties, layout, hit testing, focus, scrolling and display-list generation. The renderer consumes [`Scene::frame`]; the platform layer feeds pointer, scroll and key events.
 pub struct Scene {
     pub(crate) nodes: SlotMap<NodeId, Node>,
     root: NodeId,
@@ -68,10 +83,12 @@ pub struct Scene {
 }
 
 impl Scene {
+    /// Creates a scene with its own image store and the given fonts.
     pub fn new(fonts: Fonts) -> Self {
         Scene::with_images(fonts, ImageStore::new())
     }
 
+    /// Creates a scene sharing an existing image store.
     pub fn with_images(fonts: Fonts, images: ImageStore) -> Self {
         let mut nodes = SlotMap::with_key();
         let root = nodes.insert(Node::item());
@@ -106,18 +123,22 @@ impl Scene {
         }
     }
 
+    /// The root node, which always exists and fills the viewport.
     pub fn root(&self) -> NodeId {
         self.root
     }
 
+    /// The font database.
     pub fn fonts(&self) -> &Fonts {
         &self.fonts
     }
 
+    /// The image store.
     pub fn images(&self) -> &ImageStore {
         &self.images
     }
 
+    /// Adds `node` as the last child of `parent` and returns its id.
     pub fn add(&mut self, parent: NodeId, mut node: Node) -> NodeId {
         node.parent = Some(parent);
         let id = self.nodes.insert(node);
@@ -126,6 +147,7 @@ impl Scene {
         id
     }
 
+    /// Removes a node and its subtree; unknown ids are ignored.
     pub fn remove(&mut self, id: NodeId) {
         if id == self.root {
             return;
@@ -189,27 +211,33 @@ impl Scene {
         });
     }
 
+    /// The node with this id, if it still exists.
     pub fn get(&self, id: NodeId) -> Option<&Node> {
         self.nodes.get(id)
     }
 
+    /// Mutable access to the node with this id.
     pub fn get_mut(&mut self, id: NodeId) -> Option<&mut Node> {
         self.tracker.mark_dirty();
         self.nodes.get_mut(id)
     }
 
+    /// The rectangle layout gave the node, or `None` before the first layout or for unknown ids.
     pub fn geometry(&self, id: NodeId) -> Option<Rect> {
         self.geometry.get(id).copied()
     }
 
+    /// The number of nodes including the root.
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
+    /// True when only the root exists.
     pub fn is_empty(&self) -> bool {
         self.nodes.len() <= 1
     }
 
+    /// Sets the viewport size in logical pixels and the output scale factor, marking the scene dirty on change.
     pub fn set_viewport(&mut self, size: Vec2, scale: f32) {
         if self.viewport != size || self.scale != scale {
             self.viewport = size;
@@ -219,38 +247,47 @@ impl Scene {
         }
     }
 
+    /// The viewport size signal.
     pub fn viewport(&self) -> Signal<Vec2> {
         self.viewport_signal.clone()
     }
 
+    /// The input region the surface should advertise, or `None` for the whole surface.
     pub fn input_region(&self) -> Signal<Option<Vec<Rect>>> {
         self.input_region.clone()
     }
 
+    /// The layer-surface placement requested by the scene, if any.
     pub fn layer_geometry(&self) -> Signal<Option<LayerGeometry>> {
         self.layer_geometry.clone()
     }
 
+    /// The output the scene is shown on, if known.
     pub fn surface_output(&self) -> Signal<Option<SurfaceOutput>> {
         self.surface_output.clone()
     }
 
+    /// Whether the surface wants keyboard focus on demand, `None` when not requested.
     pub fn keyboard_on_demand(&self) -> Signal<Option<bool>> {
         self.keyboard_on_demand.clone()
     }
 
+    /// Whether the layer surface should be raised above others, `None` when not requested.
     pub fn layer_raised(&self) -> Signal<Option<bool>> {
         self.layer_raised.clone()
     }
 
+    /// The output scale factor.
     pub fn scale(&self) -> f32 {
         self.scale
     }
 
+    /// True when something changed since the last [`Scene::frame`].
     pub fn needs_frame(&self) -> bool {
         self.tracker.is_dirty()
     }
 
+    /// Updates layout and returns the display list; cheap and unchanged when nothing is dirty.
     pub fn frame(&mut self) -> Frame<'_> {
         if !self.needs_frame() {
             return Frame { changed: false, primitives: &self.primitives };
@@ -402,11 +439,13 @@ impl Scene {
         }
     }
 
+    /// Moves the pointer to `pos`, timestamped from the scene's own clock.
     pub fn pointer_motion(&mut self, pos: Vec2) {
         let time = self.now();
         self.pointer_motion_at(pos, time);
     }
 
+    /// Moves the pointer to `pos` at `time` seconds, updating hover and running drags.
     pub fn pointer_motion_at(&mut self, pos: Vec2, time: f32) {
         self.pointer = Some(pos);
         if let Some(id) = self.flick_drag {
@@ -441,6 +480,7 @@ impl Scene {
         self.hovered = now;
     }
 
+    /// Reports that the pointer left the surface, ending hover and releasing drags.
     pub fn pointer_leave(&mut self) {
         let time = self.now();
         self.release_flick(time);
@@ -460,11 +500,13 @@ impl Scene {
         }
     }
 
+    /// Presses or releases a button, timestamped from the scene's own clock.
     pub fn pointer_button(&mut self, button: MouseButton, down: bool) {
         let time = self.now();
         self.pointer_button_at(button, down, time);
     }
 
+    /// Presses or releases a button at `time` seconds; a release over the node that took the press counts as a click.
     pub fn pointer_button_at(&mut self, button: MouseButton, down: bool, time: f32) {
         let Some(pos) = self.pointer else { return };
         if down {
@@ -525,6 +567,7 @@ impl Scene {
         }
     }
 
+    /// Delivers a scroll step to the topmost scrollable node under the pointer.
     pub fn scroll(&mut self, delta: ScrollDelta) {
         let Some(pos) = self.pointer else { return };
         let hits = self.hits(pos);
@@ -543,14 +586,17 @@ impl Scene {
         }
     }
 
+    /// The shared clipboard.
     pub fn clipboard(&self) -> Clipboard {
         self.clipboard.clone()
     }
 
+    /// The node with keyboard focus.
     pub fn focused(&self) -> Option<NodeId> {
         self.focus
     }
 
+    /// Moves keyboard focus to `id`; nodes that are not focusable clear it.
     pub fn set_focus(&mut self, id: Option<NodeId>) {
         let id = id.filter(|i| self.nodes.get(*i).is_some_and(|n| n.focusable));
         if id == self.focus {
@@ -567,6 +613,7 @@ impl Scene {
         }
     }
 
+    /// Sets whether the window has focus, which controls the active-focus signals.
     pub fn set_window_focus(&mut self, focused: bool) {
         if self.window_focus == focused {
             return;
@@ -577,10 +624,12 @@ impl Scene {
         }
     }
 
+    /// True when the window has focus.
     pub fn window_focus(&self) -> bool {
         self.window_focus
     }
 
+    /// Moves focus to the next (or, with `backwards`, previous) focusable visible node, wrapping around.
     pub fn focus_next(&mut self, backwards: bool) {
         let mut order = Vec::new();
         self.collect_focusable(self.root, &mut order);
@@ -610,6 +659,7 @@ impl Scene {
         }
     }
 
+    /// Delivers a key event to the focused node and its ancestors; Tab moves focus when nobody handles it. Returns true when the event was consumed.
     pub fn key_event(&mut self, event: &KeyEvent) -> bool {
         let mut current = Some(self.focus.unwrap_or(self.root));
         while let Some(id) = current {
@@ -628,10 +678,12 @@ impl Scene {
         false
     }
 
+    /// The cursor shape of the topmost hovered node that requests one.
     pub fn cursor_shape(&self) -> CursorShape {
         self.hovered.iter().rev().find_map(|id| self.nodes.get(*id).and_then(|n| n.cursor)).unwrap_or_default()
     }
 
+    /// Adds a clipping `viewport` under `parent` with a scrolling content node driven by `flickable`.
     pub fn flickable(&mut self, parent: NodeId, viewport: Node, flickable: &Flickable) -> FlickableNodes {
         let mut viewport = viewport.clip(true);
         viewport.flick = Some(flickable.clone());
@@ -645,9 +697,12 @@ impl Scene {
     }
 }
 
+/// The nodes created by [`Scene::flickable`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FlickableNodes {
+    /// The clipping viewport.
     pub viewport: NodeId,
+    /// The content node that moves as the flickable scrolls.
     pub content: NodeId,
 }
 

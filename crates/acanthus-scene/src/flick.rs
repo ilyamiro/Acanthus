@@ -15,29 +15,41 @@ pub const OVERSHOOT_DISTANCE: f32 = 200.0;
 pub const VELOCITY_WINDOW: f32 = 0.1;
 const SETTLED_VELOCITY: f32 = 1e-3;
 
+/// Which axes a flickable lets the user drag along.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlickDirection {
+    /// Axes whose content exceeds the viewport.
     #[default]
     Auto,
+    /// Horizontal only.
     Horizontal,
+    /// Vertical only.
     Vertical,
+    /// Both axes.
     Both,
 }
 
+/// What happens when dragging or flicking reaches the content edge, as in Qt's `boundsBehavior`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BoundsBehavior {
+    /// Motion stops at the edge.
     StopAtBounds,
+    /// Dragging may pull past the edge; flicks stop there.
     DragOverBounds,
+    /// Flicks may overshoot the edge; dragging stops there.
     OvershootBounds,
+    /// Both dragging and flicks may go past the edge.
     #[default]
     DragAndOvershootBounds,
 }
 
 impl BoundsBehavior {
+    /// True when dragging may pull the content past the edge.
     pub fn drag_over(self) -> bool {
         matches!(self, BoundsBehavior::DragOverBounds | BoundsBehavior::DragAndOvershootBounds)
     }
 
+    /// True when a flick may carry the content past the edge.
     pub fn overshoot(self) -> bool {
         matches!(self, BoundsBehavior::OvershootBounds | BoundsBehavior::DragAndOvershootBounds)
     }
@@ -202,17 +214,28 @@ struct State {
     drag: Option<Drag>,
 }
 
+/// Scrolling state of a viewport: content position and size, direction and bounds policy, and the moving, dragging and flicking flags. Cloning shares the state.
 #[derive(Clone)]
 pub struct Flickable {
+    /// Horizontal content offset.
     pub content_x: Signal<f32>,
+    /// Vertical content offset.
     pub content_y: Signal<f32>,
+    /// Width of the content.
     pub content_width: Signal<f32>,
+    /// Height of the content.
     pub content_height: Signal<f32>,
+    /// Axes the user may drag along.
     pub direction: Signal<FlickDirection>,
+    /// Edge behaviour.
     pub bounds: Signal<BoundsBehavior>,
+    /// When false, pointer input does not move the content.
     pub interactive: Signal<bool>,
+    /// True while the content moves for any reason.
     pub moving: Signal<bool>,
+    /// True while a pointer drag is in progress.
     pub dragging: Signal<bool>,
+    /// True while a flick animation runs.
     pub flicking: Signal<bool>,
     state: Rc<RefCell<State>>,
 }
@@ -224,6 +247,7 @@ impl Default for Flickable {
 }
 
 impl Flickable {
+    /// Creates a flickable at the origin with empty content, automatic direction and default bounds.
     pub fn new() -> Self {
         Flickable {
             content_x: Signal::new(0.0),
@@ -240,26 +264,31 @@ impl Flickable {
         }
     }
 
+    /// Sets the drag direction.
     pub fn direction(self, v: FlickDirection) -> Self {
         self.direction.set(v);
         self
     }
 
+    /// Sets the bounds behaviour.
     pub fn bounds(self, v: BoundsBehavior) -> Self {
         self.bounds.set(v);
         self
     }
 
+    /// Sets the content size.
     pub fn content_size(self, w: f32, h: f32) -> Self {
         self.content_width.set(w);
         self.content_height.set(h);
         self
     }
 
+    /// The current content offset.
     pub fn position(&self) -> Vec2 {
         Vec2::new(self.content_x.get_untracked(), self.content_y.get_untracked())
     }
 
+    /// The largest content offset for a viewport of the given size; zero on axes where the content fits.
     pub fn max_position(&self, viewport: Vec2) -> Vec2 {
         Vec2::new(
             (self.content_width.get_untracked() - viewport.x).max(0.0),
@@ -281,10 +310,12 @@ impl Flickable {
         }
     }
 
+    /// True when the flickable is interactive and at least one axis can move within `viewport`.
     pub fn can_flick(&self, viewport: Vec2) -> bool {
         self.interactive.get_untracked() && (self.axis_allowed(0, viewport) || self.axis_allowed(1, viewport))
     }
 
+    /// Stops any running flick or animation and clears the flicking flag.
     pub fn stop(&self) {
         let handles = {
             let mut state = self.state.borrow_mut();
@@ -301,6 +332,7 @@ impl Flickable {
         });
     }
 
+    /// Stops motion and jumps to `(x, y)`, clamped to the scrollable range for `viewport`.
     pub fn scroll_to(&self, x: f32, y: f32, viewport: Vec2) {
         self.stop();
         let max = self.max_position(viewport);
@@ -310,6 +342,7 @@ impl Flickable {
         });
     }
 
+    /// True while a pointer drag is in progress.
     pub fn is_dragging(&self) -> bool {
         self.dragging.get_untracked()
     }

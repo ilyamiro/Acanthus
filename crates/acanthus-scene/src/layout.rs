@@ -9,33 +9,54 @@ use crate::node::{ImageStyle, TextStyle};
 use crate::node::{Kind, Node, NodeId};
 use crate::text::{Elide, ShapedText, TextParams, WrapMode};
 
+/// A reference edge of a node for anchoring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Edge {
+    /// The left edge.
     Left,
+    /// The right edge.
     Right,
+    /// The top edge.
     Top,
+    /// The bottom edge.
     Bottom,
+    /// The horizontal centre line.
     HCenter,
+    /// The vertical centre line.
     VCenter,
 }
 
+/// Anchoring of a node to its parent or to sibling edges, as in Qt's `anchors`.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Anchors {
+    /// Margin from the left reference, when anchored.
     pub left: Option<f32>,
+    /// Margin from the right reference, when anchored.
     pub right: Option<f32>,
+    /// Margin from the top reference, when anchored.
     pub top: Option<f32>,
+    /// Margin from the bottom reference, when anchored.
     pub bottom: Option<f32>,
+    /// Centre horizontally in the parent.
     pub h_center: bool,
+    /// Centre vertically in the parent.
     pub v_center: bool,
+    /// Offset applied to horizontal centring.
     pub h_offset: f32,
+    /// Offset applied to vertical centring.
     pub v_offset: f32,
+    /// Sibling edge the left side is anchored to instead of the parent's.
     pub left_ref: Option<(NodeId, Edge)>,
+    /// Sibling edge the right side is anchored to instead of the parent's.
     pub right_ref: Option<(NodeId, Edge)>,
+    /// Sibling edge the top side is anchored to instead of the parent's.
     pub top_ref: Option<(NodeId, Edge)>,
+    /// Sibling edge the bottom side is anchored to instead of the parent's.
     pub bottom_ref: Option<(NodeId, Edge)>,
 }
 
 impl Anchors {
+    /// Anchors all four sides to the parent with `margin`.
     pub fn fill(margin: f32) -> Self {
         Anchors {
             left: Some(margin),
@@ -46,54 +67,67 @@ impl Anchors {
         }
     }
 
+    /// Centres the node in the parent on both axes.
     pub fn center() -> Self {
         Anchors { h_center: true, v_center: true, ..Default::default() }
     }
 
+    /// Anchors the left side to the parent with `margin`.
     pub fn left(self, margin: f32) -> Self {
         Anchors { left: Some(margin), ..self }
     }
 
+    /// Anchors the right side to the parent with `margin`.
     pub fn right(self, margin: f32) -> Self {
         Anchors { right: Some(margin), ..self }
     }
 
+    /// Anchors the top side to the parent with `margin`.
     pub fn top(self, margin: f32) -> Self {
         Anchors { top: Some(margin), ..self }
     }
 
+    /// Anchors the bottom side to the parent with `margin`.
     pub fn bottom(self, margin: f32) -> Self {
         Anchors { bottom: Some(margin), ..self }
     }
 
+    /// Centres horizontally in the parent.
     pub fn h_center(self) -> Self {
         Anchors { h_center: true, ..self }
     }
 
+    /// Centres vertically in the parent.
     pub fn v_center(self) -> Self {
         Anchors { v_center: true, ..self }
     }
 
+    /// Centres horizontally with an offset.
     pub fn h_center_offset(self, offset: f32) -> Self {
         Anchors { h_center: true, h_offset: offset, ..self }
     }
 
+    /// Centres vertically with an offset.
     pub fn v_center_offset(self, offset: f32) -> Self {
         Anchors { v_center: true, v_offset: offset, ..self }
     }
 
+    /// Anchors the left side to `edge` of `node` with `margin`.
     pub fn left_to(self, node: NodeId, edge: Edge, margin: f32) -> Self {
         Anchors { left: Some(margin), left_ref: Some((node, edge)), ..self }
     }
 
+    /// Anchors the right side to `edge` of `node` with `margin`.
     pub fn right_to(self, node: NodeId, edge: Edge, margin: f32) -> Self {
         Anchors { right: Some(margin), right_ref: Some((node, edge)), ..self }
     }
 
+    /// Anchors the top side to `edge` of `node` with `margin`.
     pub fn top_to(self, node: NodeId, edge: Edge, margin: f32) -> Self {
         Anchors { top: Some(margin), top_ref: Some((node, edge)), ..self }
     }
 
+    /// Anchors the bottom side to `edge` of `node` with `margin`.
     pub fn bottom_to(self, node: NodeId, edge: Edge, margin: f32) -> Self {
         Anchors { bottom: Some(margin), bottom_ref: Some((node, edge)), ..self }
     }
@@ -103,19 +137,26 @@ impl Anchors {
     }
 }
 
+/// Space around a node inside its layout cell.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Margins {
+    /// Left margin.
     pub left: f32,
+    /// Top margin.
     pub top: f32,
+    /// Right margin.
     pub right: f32,
+    /// Bottom margin.
     pub bottom: f32,
 }
 
 impl Margins {
+    /// The same margin on all four sides.
     pub fn all(v: f32) -> Self {
         Margins { left: v, top: v, right: v, bottom: v }
     }
 
+    /// `x` on the left and right, `y` on the top and bottom.
     pub fn symmetric(x: f32, y: f32) -> Self {
         Margins { left: x, top: y, right: x, bottom: y }
     }
@@ -129,16 +170,26 @@ impl Margins {
     }
 }
 
+/// Size hints a node gives its parent's layout.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Constraints {
+    /// Preferred width; `None` uses the content size.
     pub preferred_width: Option<f32>,
+    /// Preferred height; `None` uses the content size.
     pub preferred_height: Option<f32>,
+    /// Smallest width.
     pub min_width: f32,
+    /// Smallest height.
     pub min_height: f32,
+    /// Largest width.
     pub max_width: f32,
+    /// Largest height.
     pub max_height: f32,
+    /// Margins around the node.
     pub margins: Margins,
+    /// Columns spanned in a grid.
     pub column_span: usize,
+    /// Rows spanned in a grid.
     pub row_span: usize,
 }
 
@@ -168,53 +219,76 @@ impl Constraints {
     }
 }
 
+/// How a node arranges its children.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Layout {
+    /// Children position themselves (anchors or explicit rectangles).
     #[default]
     Free,
+    /// Children in a horizontal row.
     Row {
+        /// Gap between children.
         spacing: f32,
+        /// Inset from the container's edges.
         padding: Vec2,
     },
+    /// Children in a vertical column.
     Column {
+        /// Gap between children.
         spacing: f32,
+        /// Inset from the container's edges.
         padding: Vec2,
     },
+    /// Children in a grid filled row by row.
     Grid {
+        /// Number of columns.
         columns: usize,
+        /// Column gap in `x`, row gap in `y`.
         spacing: Vec2,
+        /// Inset from the container's edges.
         padding: Vec2,
     },
+    /// Children in rows that wrap when the width is exhausted.
     Flow {
+        /// Gap between children in `x`, between lines in `y`.
         spacing: Vec2,
+        /// Inset from the container's edges.
         padding: Vec2,
     },
+    /// Children stacked on top of each other, each filling the container.
     Stack {
+        /// Inset from the container's edges.
         padding: Vec2,
     },
 }
 
 impl Layout {
+    /// A row with `spacing` between children.
     pub fn row(spacing: f32) -> Self {
         Layout::Row { spacing, padding: Vec2::ZERO }
     }
 
+    /// A column with `spacing` between children.
     pub fn column(spacing: f32) -> Self {
         Layout::Column { spacing, padding: Vec2::ZERO }
     }
 
+    /// A grid with `columns` columns and the given gaps.
     pub fn grid(columns: usize, column_spacing: f32, row_spacing: f32) -> Self {
         Layout::Grid { columns: columns.max(1), spacing: Vec2::new(column_spacing, row_spacing), padding: Vec2::ZERO }
     }
 
+    /// A wrapping flow with the given gap between items and between lines.
     pub fn flow(spacing: f32, line_spacing: f32) -> Self {
         Layout::Flow { spacing: Vec2::new(spacing, line_spacing), padding: Vec2::ZERO }
     }
 
+    /// A stack of overlapping children.
     pub fn stack() -> Self {
         Layout::Stack { padding: Vec2::ZERO }
     }
 
+    /// Sets the inset; has no effect on `Free`.
     pub fn padding(self, x: f32, y: f32) -> Self {
         let padding = Vec2::new(x, y);
         match self {
@@ -243,11 +317,15 @@ fn inset(r: Rect, p: Vec2) -> Rect {
     Rect::new(r.x + p.x, r.y + p.y, (r.w - 2.0 * p.x).max(0.0), (r.h - 2.0 * p.y).max(0.0))
 }
 
+/// Alignment of a child inside the free space of its cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Align {
+    /// At the start of the axis.
     Start,
+    /// In the middle (the default).
     #[default]
     Center,
+    /// At the end of the axis.
     End,
 }
 

@@ -8,96 +8,157 @@ use crate::shader::{ShaderData, ShaderEffect, ShaderParams};
 use crate::text::ShapedText;
 use acanthus_image::{ImageId, place};
 
+/// A rounded-rectangle clip applied on top of a rectangular one.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ShapeClip {
+    /// The clipping rectangle in the node's own space.
     pub rect: Rect,
+    /// Corner radius.
     pub radius: f32,
+    /// Maps device-space points back into the rectangle's space.
     pub inverse: Affine2,
 }
 
+/// The clip of a primitive: a device-space rectangle and an optional rounded shape.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Clip {
+    /// The clipping rectangle.
     pub rect: Rect,
+    /// A rounded shape that further restricts the visible area.
     pub shape: Option<ShapeClip>,
 }
 
 impl Clip {
+    /// A clip of a plain rectangle.
     pub fn rect(rect: Rect) -> Self {
         Clip { rect, shape: None }
     }
 
+    /// True when nothing can be visible.
     pub fn is_empty(&self) -> bool {
         self.rect.is_empty()
     }
 }
 
+/// A filled rectangle, optionally gradient, rounded and bordered.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Quad {
+    /// The rectangle in node space.
     pub rect: Rect,
+    /// Fill colour, or the gradient start.
     pub start: Color,
+    /// The gradient end colour.
     pub end: Color,
+    /// Gradient direction, or `None` for a solid fill.
     pub orientation: Option<Orientation>,
+    /// Uniform corner radius.
     pub radius: f32,
+    /// Per-corner radii (top left, top right, bottom right, bottom left); used when `radius` is zero.
     pub radii: [f32; 4],
+    /// Border width, zero for none.
     pub border_width: f32,
+    /// Border colour.
     pub border_color: Color,
+    /// Clip to apply.
     pub clip: Clip,
+    /// Transform from node space to device space.
     pub transform: Affine2,
 }
 
+/// A positioned glyph from the glyph atlas.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Glyph {
+    /// Glyph identity in the font cache.
     pub key: CacheKey,
+    /// Horizontal pixel position of the glyph origin.
     pub x: i32,
+    /// Vertical pixel position of the glyph origin.
     pub y: i32,
+    /// Text colour.
     pub color: Color,
+    /// Clip to apply.
     pub clip: Clip,
+    /// Transform from node space to device space.
     pub transform: Affine2,
 }
 
+/// A textured rectangle showing a frame of a stored image.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ImageDraw {
+    /// The image.
     pub id: ImageId,
+    /// Frame index for animated images.
     pub frame: u32,
+    /// Destination rectangle in node space.
     pub rect: Rect,
+    /// Source rectangle in texture coordinates as left, top, right, bottom.
     pub uv: [f32; 4],
+    /// True when the texture tiles over the rectangle.
     pub repeat: bool,
+    /// Opacity from 0 to 1.
     pub opacity: f32,
+    /// Clip to apply.
     pub clip: Clip,
+    /// Transform from node space to device space.
     pub transform: Affine2,
 }
 
+/// A rectangle painted by a shader effect.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ShaderDraw {
+    /// The effect.
     pub effect: ShaderEffect,
+    /// Its parameter slots.
     pub params: ShaderParams,
+    /// Its array data.
     pub data: ShaderData,
+    /// Destination rectangle in node space.
     pub rect: Rect,
+    /// Size of the node the effect belongs to, which can differ from `rect`.
     pub item_size: Vec2,
+    /// Which of the two source layers the effect samples.
     pub sources: [bool; 2],
+    /// Opacity from 0 to 1.
     pub opacity: f32,
+    /// Clip to apply.
     pub clip: Clip,
+    /// Transform from node space to device space.
     pub transform: Affine2,
 }
 
+/// A drop shadow applied to a layer.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LayerShadowFx {
+    /// Shadow colour.
     pub color: Color,
+    /// Blur radius.
     pub blur: f32,
+    /// Offset from the layer.
     pub offset: Vec2,
 }
 
+/// Post-processing applied to a rendered layer: blur, shadow, mask and colour adjustments.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LayerFx {
+    /// Gaussian blur radius, zero for none.
     pub blur: f32,
+    /// Drop shadow.
     pub shadow: Option<LayerShadowFx>,
+    /// True when the layer is thresholded into a mask.
     pub masked: bool,
+    /// Alpha threshold of the mask.
     pub mask_threshold: f32,
+    /// Softness of the mask edge.
     pub mask_spread: f32,
+    /// Brightness adjustment, zero for none.
     pub brightness: f32,
+    /// Contrast adjustment, zero for none.
     pub contrast: f32,
+    /// Saturation adjustment, zero for none.
     pub saturation: f32,
+    /// Strength of the colour overlay, zero for none.
     pub colorization: f32,
+    /// Colour of the overlay.
     pub colorization_color: Color,
 }
 
@@ -119,10 +180,12 @@ impl Default for LayerFx {
 }
 
 impl LayerFx {
+    /// True when any colour adjustment is active.
     pub fn adjusts(&self) -> bool {
         self.brightness != 0.0 || self.contrast != 0.0 || self.saturation != 0.0 || self.colorization > 0.0
     }
 
+    /// True when the layer needs no post-processing.
     pub fn is_none(&self) -> bool {
         self.blur <= 0.0 && self.shadow.is_none() && !self.masked && !self.adjusts()
     }
@@ -133,23 +196,37 @@ impl LayerFx {
     }
 }
 
+/// Start of an offscreen layer; everything up to the matching `LayerEnd` is rendered into it and composited.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LayerBegin {
+    /// Bounds of the layer in device space.
     pub bounds: Rect,
+    /// Opacity used when compositing.
     pub opacity: f32,
+    /// Clip used when compositing.
     pub clip: Clip,
+    /// Post-processing.
     pub fx: LayerFx,
+    /// True when the layer is used as a mask for a source layer.
     pub is_mask: bool,
+    /// Index of the source slot the layer fills, or `None` for a plain composite.
     pub source: Option<u8>,
 }
 
+/// One draw command of a display list, in paint order.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Primitive {
+    /// A rectangle.
     Quad(Quad),
+    /// A glyph.
     Glyph(Glyph),
+    /// An image.
     Image(ImageDraw),
+    /// A shader effect.
     Shader(ShaderDraw),
+    /// Starts an offscreen layer.
     LayerBegin(LayerBegin),
+    /// Ends the innermost layer.
     LayerEnd,
 }
 

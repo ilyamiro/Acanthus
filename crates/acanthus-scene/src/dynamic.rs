@@ -18,8 +18,11 @@ pub(crate) trait Host {
     }
 }
 
+/// One instance created by a repeater: the model value and its position in the model.
 pub struct Item<T> {
+    /// The model value this instance shows.
     pub value: Signal<T>,
+    /// The position of this instance in the model.
     pub index: Signal<usize>,
 }
 
@@ -29,14 +32,19 @@ impl<T> Clone for Item<T> {
     }
 }
 
+/// Handle to a repeater created by [`Scene::repeater`]; keeps the instances in sync with a model signal.
 #[derive(Clone)]
 pub struct Repeater {
+    /// The node that parents the generated instances.
     pub anchor: NodeId,
+    /// The number of instances currently alive.
     pub count: Signal<usize>,
 }
 
+/// Handle to a loader created by [`Scene::loader`]; shows one lazily built item at a time.
 #[derive(Clone)]
 pub struct Loader {
+    /// The node of the currently loaded item, or `None` while nothing is loaded.
     pub item: Signal<Option<NodeId>>,
 }
 
@@ -137,6 +145,7 @@ impl Host for LoaderHost {
 }
 
 impl Scene {
+    /// Creates a repeater under `parent` that builds one delegate node per element of `model`, keyed by `key` so that reordering keeps instances alive.
     pub fn repeater<T, K>(
         &mut self,
         parent: NodeId,
@@ -166,6 +175,7 @@ impl Scene {
         Repeater { anchor, count }
     }
 
+    /// Creates a loader inside `container` that runs `build` while `active` is true and removes the built node when it turns false.
     pub fn loader(
         &mut self,
         container: NodeId,

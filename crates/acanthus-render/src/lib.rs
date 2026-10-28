@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 mod atlas;
 mod gpu;
 mod images;

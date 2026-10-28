@@ -1,3 +1,7 @@
+//! Retained scene graph: nodes with reactive properties, layout, text, images, shaders, input, focus, scrolling and display-list generation.
+
+#![deny(missing_docs)]
+
 mod axes;
 mod display;
 mod dynamic;
