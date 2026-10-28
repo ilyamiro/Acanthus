@@ -78,6 +78,54 @@ acanthus_scene::CursorShape::ResizeHorizontal: variant
 acanthus_scene::CursorShape::ResizeVertical: variant 
 acanthus_scene::CursorShape::Text: variant 
 acanthus_scene::CursorShape::Wait: variant 
+acanthus_scene::DragData: struct [Clone, Debug, Default, Eq, PartialEq]
+acanthus_scene::DragData::as_text: fn as_text (& self) -> Option < String >
+acanthus_scene::DragData::get: fn get (& self , mime : & str) -> Option < & [u8] >
+acanthus_scene::DragData::is_empty: fn is_empty (& self) -> bool
+acanthus_scene::DragData::mime_types: fn mime_types (& self) -> Vec < String >
+acanthus_scene::DragData::new: fn new () -> DragData
+acanthus_scene::DragData::text: fn text (text : & str) -> DragData
+acanthus_scene::DragData::uri_list: fn uri_list < S : AsRef < str > > (uris : & [S]) -> DragData
+acanthus_scene::DragData::uris: fn uris (& self) -> Vec < String >
+acanthus_scene::DragData::with: fn with (mut self , mime : & str , bytes : impl Into < Rc < [u8] > >) -> DragData
+acanthus_scene::DragOffer.actions: DropActions
+acanthus_scene::DragOffer.mime_types: Vec < String >
+acanthus_scene::DragOffer.source: Option < NodeId >
+acanthus_scene::DragOffer: struct [Clone, Debug, Eq, PartialEq]
+acanthus_scene::DragSource.active: Signal < bool >
+acanthus_scene::DragSource: struct
+acanthus_scene::DragSource::actions: fn actions (mut self , actions : DropActions) -> DragSource
+acanthus_scene::DragSource::new: fn new (data : impl FnMut () -> DragData + 'static) -> DragSource
+acanthus_scene::DragSource::on_finished: fn on_finished (mut self , f : impl FnMut (Option < DropAction >) + 'static) -> DragSource
+acanthus_scene::DragSource::threshold: fn threshold (mut self , threshold : f32) -> DragSource
+acanthus_scene::DropAction: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::DropAction::Copy: variant 
+acanthus_scene::DropAction::Link: variant 
+acanthus_scene::DropAction::Move: variant 
+acanthus_scene::DropActions.copy: bool
+acanthus_scene::DropActions.link: bool
+acanthus_scene::DropActions.move_: bool
+acanthus_scene::DropActions: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::DropActions::ALL: const DropActions
+acanthus_scene::DropActions::COPY: const DropActions
+acanthus_scene::DropActions::MOVE: const DropActions
+acanthus_scene::DropActions::contains: fn contains (self , action : DropAction) -> bool
+acanthus_scene::DropActions::negotiate: fn negotiate (self , accepted : DropActions) -> Option < DropAction >
+acanthus_scene::DropArea.contains_drag: Signal < bool >
+acanthus_scene::DropArea.drag_position: Signal < Vec2 >
+acanthus_scene::DropArea: struct
+acanthus_scene::DropArea::actions: fn actions (mut self , actions : DropActions) -> DropArea
+acanthus_scene::DropArea::keys: fn keys < S : AsRef < str > > (mut self , keys : & [S]) -> DropArea
+acanthus_scene::DropArea::new: fn new () -> DropArea
+acanthus_scene::DropArea::on_dropped: fn on_dropped (mut self , f : impl FnMut (DropEvent) + 'static) -> DropArea
+acanthus_scene::DropArea::on_entered: fn on_entered (mut self , f : impl FnMut (& DragOffer) + 'static) -> DropArea
+acanthus_scene::DropArea::on_exited: fn on_exited (mut self , f : impl FnMut () + 'static) -> DropArea
+acanthus_scene::DropArea::on_position_changed: fn on_position_changed (mut self , f : impl FnMut (Vec2) + 'static) -> DropArea
+acanthus_scene::DropEvent.action: DropAction
+acanthus_scene::DropEvent.data: Rc < DragData >
+acanthus_scene::DropEvent.position: Vec2
+acanthus_scene::DropEvent.source: Option < NodeId >
+acanthus_scene::DropEvent: struct [Clone, Debug]
 acanthus_scene::Edge: enum [Clone, Copy, Debug, Eq, PartialEq]
 acanthus_scene::Edge::Bottom: variant 
 acanthus_scene::Edge::HCenter: variant 
@@ -363,6 +411,8 @@ acanthus_scene::Node::column: fn column (spacing : f32) -> Self
 acanthus_scene::Node::constraints: fn constraints (mut self , v : impl IntoSignal < Constraints >) -> Self
 acanthus_scene::Node::corner_radii: fn corner_radii (mut self , v : impl IntoSignal < Option < [f32 ; 4] > >) -> Self
 acanthus_scene::Node::cursor: fn cursor (mut self , shape : CursorShape) -> Self
+acanthus_scene::Node::drag_source: fn drag_source (mut self , source : crate :: drag :: DragSource) -> Self
+acanthus_scene::Node::drop_area: fn drop_area (mut self , area : crate :: drag :: DropArea) -> Self
 acanthus_scene::Node::elide: fn elide (mut self , v : impl IntoSignal < Elide >) -> Self
 acanthus_scene::Node::fill_height: fn fill_height (mut self) -> Self
 acanthus_scene::Node::fill_mode: fn fill_mode (mut self , v : impl IntoSignal < FillMode >) -> Self
@@ -478,6 +528,12 @@ acanthus_scene::Scene: struct
 acanthus_scene::Scene::add: fn add (& mut self , parent : NodeId , mut node : Node) -> NodeId
 acanthus_scene::Scene::clipboard: fn clipboard (& self) -> Clipboard
 acanthus_scene::Scene::cursor_shape: fn cursor_shape (& self) -> CursorShape
+acanthus_scene::Scene::drag_active: fn drag_active (& self) -> bool
+acanthus_scene::Scene::drag_cancel: fn drag_cancel (& mut self)
+acanthus_scene::Scene::drag_drop: fn drag_drop (& mut self , data : DragData) -> Option < DropAction >
+acanthus_scene::Scene::drag_enter: fn drag_enter (& mut self , offer : DragOffer , pos : Vec2) -> bool
+acanthus_scene::Scene::drag_leave: fn drag_leave (& mut self)
+acanthus_scene::Scene::drag_motion: fn drag_motion (& mut self , pos : Vec2) -> Option < DropAction >
 acanthus_scene::Scene::flickable: fn flickable (& mut self , parent : NodeId , viewport : Node , flickable : & Flickable) -> FlickableNodes
 acanthus_scene::Scene::focus_next: fn focus_next (& mut self , backwards : bool)
 acanthus_scene::Scene::focus_when: fn focus_when (& mut self , node : NodeId , trigger : Signal < bool >)
@@ -687,6 +743,8 @@ acanthus_scene::lookup: fn lookup (flags : CacheKeyFlags) -> Option < Vec < Axis
 acanthus_scene::register_app_effects: fn register_app_effects (effects : & 'static [AppEffect])
 impl Clone for acanthus_scene::Item
 impl Default for acanthus_scene::Constraints
+impl Default for acanthus_scene::DropActions
+impl Default for acanthus_scene::DropArea
 impl Default for acanthus_scene::Flickable
 impl Default for acanthus_scene::Fonts
 impl Default for acanthus_scene::LayerEffect

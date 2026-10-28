@@ -3,6 +3,8 @@ use slotmap::{SecondaryMap, SlotMap};
 use std::rc::Rc;
 use std::time::Instant;
 
+mod drag;
+
 use crate::display::{DisplayCx, Primitive};
 use crate::dynamic::Host;
 use crate::flick::Flickable;
@@ -79,6 +81,9 @@ pub struct Scene {
     pressed: Option<(NodeId, MouseButton)>,
     flick_drag: Option<NodeId>,
     pointer_capture: Option<NodeId>,
+    drag: Option<drag::DragSession>,
+    drag_pending: Option<(NodeId, Vec2)>,
+    drag_position: Vec2,
     focus: Option<NodeId>,
     window_focus: bool,
     clipboard: Clipboard,
@@ -123,6 +128,9 @@ impl Scene {
             pressed: None,
             flick_drag: None,
             pointer_capture: None,
+            drag: None,
+            drag_pending: None,
+            drag_position: Vec2::ZERO,
             focus: None,
             window_focus: true,
             clipboard: Clipboard::new(),
@@ -391,7 +399,9 @@ impl Scene {
             || node.flick.is_some()
             || node.cursor.is_some()
             || node.focusable
-            || node.pointer.is_some();
+            || node.pointer.is_some()
+            || node.drop.is_some()
+            || node.drag_source.is_some();
         if interactive && inside {
             out.push(id);
         }
@@ -459,6 +469,18 @@ impl Scene {
     pub fn pointer_motion_at(&mut self, pos: Vec2, time: f32) {
         let pos = pos / self.units;
         self.pointer = Some(pos);
+        if self.drag_pointer_moved(pos) {
+            let now = self.hits(pos);
+            for id in &self.hovered {
+                if !now.contains(id)
+                    && let Some(m) = self.nodes.get(*id).and_then(|n| n.mouse.as_ref())
+                {
+                    m.hovered.set(false);
+                }
+            }
+            self.hovered = now;
+            return;
+        }
         if let Some(id) = self.flick_drag {
             let viewport = self.viewport_size(id);
             let flick = self.nodes.get(id).and_then(|n| n.flick.clone());
@@ -499,6 +521,7 @@ impl Scene {
             self.release_capture(pos, time);
         }
         self.pointer = None;
+        self.drag_pending = None;
         for id in self.hovered.drain(..) {
             if let Some(m) = self.nodes.get(id).and_then(|n| n.mouse.as_ref()) {
                 m.hovered.set(false);
@@ -523,6 +546,7 @@ impl Scene {
         if down {
             let hits = self.hits(pos);
             if button == MouseButton::Left {
+                self.drag_candidate(&hits, pos);
                 let flick = hits.iter().rev().copied().find(|id| {
                     let viewport = self.viewport_size(*id);
                     self.nodes[*id].flick.as_ref().is_some_and(|f| f.can_flick(viewport))
@@ -556,6 +580,9 @@ impl Scene {
         if button == MouseButton::Left {
             self.release_flick(time);
             self.release_capture(pos, time);
+            if self.drag_pointer_released(pos) {
+                return;
+            }
         }
         let Some((target, pressed_button)) = self.pressed.take() else { return };
         let inside = self.contains_point(target, pos);
@@ -678,6 +705,10 @@ impl Scene {
 
     /// Delivers a key event to the focused node and its ancestors; Tab moves focus when nobody handles it. Returns true when the event was consumed.
     pub fn key_event(&mut self, event: &KeyEvent) -> bool {
+        if self.drag.as_ref().is_some_and(|d| d.is_internal()) && event.is(crate::keyboard::Key::Escape) {
+            self.drag_cancel();
+            return true;
+        }
         let mut current = Some(self.focus.unwrap_or(self.root));
         while let Some(id) = current {
             let Some(node) = self.nodes.get_mut(id) else { return false };

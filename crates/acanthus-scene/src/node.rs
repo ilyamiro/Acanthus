@@ -430,6 +430,8 @@ pub struct Node {
     pub active_focus: Signal<bool>,
     pub(crate) key: Option<KeyHandler>,
     pub(crate) pointer: Option<PointerHandler>,
+    pub(crate) drop: Option<crate::drag::DropArea>,
+    pub(crate) drag_source: Option<crate::drag::DragSource>,
     pub(crate) owned: Vec<Box<dyn Any>>,
 }
 
@@ -469,6 +471,8 @@ impl Node {
             active_focus: Signal::new(false),
             key: None,
             pointer: None,
+            drop: None,
+            drag_source: None,
             owned: Vec::new(),
         }
     }
@@ -770,6 +774,18 @@ impl Node {
     /// Attaches pointer handling.
     pub fn mouse(mut self, area: MouseArea) -> Self {
         self.mouse = Some(area);
+        self
+    }
+
+    /// Makes the node receive drags, inside the scene and from other applications.
+    pub fn drop_area(mut self, area: crate::drag::DropArea) -> Self {
+        self.drop = Some(area);
+        self
+    }
+
+    /// Makes the node the start of drags inside the scene.
+    pub fn drag_source(mut self, source: crate::drag::DragSource) -> Self {
+        self.drag_source = Some(source);
         self
     }
 

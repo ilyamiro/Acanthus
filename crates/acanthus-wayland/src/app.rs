@@ -2,9 +2,12 @@ use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::time::{Duration, Instant};
 
+use crate::dnd::DragOutcome;
 use acanthus_core::{Signal, Vec2};
 use acanthus_render::{Gpu, GpuError};
-use acanthus_scene::{CursorShape, Fonts, ImageStore, Key, KeyEvent, Modifiers, MouseButton, Scene, ScrollDelta};
+use acanthus_scene::{
+    CursorShape, DragData, DropActions, Fonts, ImageStore, Key, KeyEvent, Modifiers, MouseButton, Scene, ScrollDelta,
+};
 use raw_window_handle::{RawDisplayHandle, RawWindowHandle, WaylandDisplayHandle, WaylandWindowHandle};
 use smithay_client_toolkit::compositor::{CompositorHandler, CompositorState};
 use smithay_client_toolkit::output::{OutputHandler, OutputState};
@@ -111,6 +114,7 @@ pub struct AppHandle {
     idle_inhibits: std::rc::Rc<std::cell::RefCell<Vec<(SurfaceId, bool)>>>,
     unlock: std::rc::Rc<std::cell::Cell<bool>>,
     window_commands: std::rc::Rc<std::cell::RefCell<Vec<(SurfaceId, WindowCommand)>>>,
+    drags: std::rc::Rc<std::cell::RefCell<Vec<crate::dnd::DragRequest>>>,
 }
 
 impl AppHandle {
@@ -127,6 +131,13 @@ impl AppHandle {
     /// Queues releasing the session lock taken with [`App::lock`]; ignored when no lock is held.
     pub fn unlock(&self) {
         self.unlock.set(true);
+    }
+
+    /// Queues a drag out of `surface` carrying `data`, started by the pointer press that has the input focus. The signal reports the outcome; a drag the compositor cannot start (no seat, no data device) is cancelled at once.
+    pub fn start_drag(&self, surface: SurfaceId, data: DragData, actions: DropActions) -> Signal<DragOutcome> {
+        let outcome = Signal::new(DragOutcome::Cancelled);
+        self.drags.borrow_mut().push(crate::dnd::DragRequest { surface, data, actions, outcome: outcome.clone() });
+        outcome
     }
 
     /// Queues `command` for the toplevel window `surface`; commands for other surfaces are ignored.
@@ -180,8 +191,8 @@ pub struct State {
     scale_managers: Option<ScaleManagers>,
     idle_inhibit_manager: Option<ZwpIdleInhibitManagerV1>,
     idle_inhibitors: HashMap<SurfaceId, ZwpIdleInhibitorV1>,
-    seats: Vec<wl_seat::WlSeat>,
-    input_serial: Option<u32>,
+    pub(crate) seats: Vec<wl_seat::WlSeat>,
+    pub(crate) input_serial: Option<u32>,
     outputs: Signal<Vec<OutputInfo>>,
     pointer_output: Signal<Option<u32>>,
     variants: Vec<Variants>,
@@ -196,7 +207,8 @@ pub struct State {
     pub(crate) loop_handle: calloop::LoopHandle<'static, State>,
     pub(crate) shm: Shm,
     pub(crate) captures: crate::capture::Captures,
-    surfaces: slotmap::SlotMap<SurfaceId, SurfaceWindow>,
+    pub(crate) dnd: crate::dnd::Dnd,
+    pub(crate) surfaces: slotmap::SlotMap<SurfaceId, SurfaceWindow>,
     gpu: Option<Gpu>,
     fonts: Fonts,
     images: ImageStore,
@@ -266,6 +278,7 @@ impl App {
             loop_handle: event_loop.handle(),
             shm: Shm::bind(&globals, &qh)?,
             captures: crate::capture::Captures::bind(&globals, &qh),
+            dnd: crate::dnd::Dnd::bind(&globals, &qh),
             surfaces: slotmap::SlotMap::with_key(),
             gpu: None,
             fonts: Fonts::new(),
@@ -495,6 +508,14 @@ impl State {
         self.apply_unlock();
         self.apply_clipboard();
         crate::capture::sweep(self);
+        if let Some(seat) = self.seats.first().cloned() {
+            let qh = self.qh.clone();
+            self.dnd.ensure_device(&seat, &qh);
+        }
+        let drags: Vec<crate::dnd::DragRequest> = self.handle.drags.borrow_mut().drain(..).collect();
+        for request in drags {
+            crate::dnd::start_drag(self, request);
+        }
         let commands: Vec<(SurfaceId, WindowCommand)> = self.handle.window_commands.borrow_mut().drain(..).collect();
         for (surface, command) in commands {
             self.apply_window_command(surface, command);
@@ -612,7 +633,7 @@ impl State {
         }
     }
 
-    fn surface_by_wl(&mut self, wl: &wl_surface::WlSurface) -> Option<SurfaceId> {
+    pub(crate) fn surface_by_wl(&mut self, wl: &wl_surface::WlSurface) -> Option<SurfaceId> {
         self.surfaces.iter().find(|(_, s)| s.wl_surface() == wl).map(|(id, _)| id)
     }
 

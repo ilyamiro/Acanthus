@@ -36,6 +36,7 @@ acanthus_wayland::AppError::UnknownSurface: variant
 acanthus_wayland::AppHandle: struct [Clone, Default]
 acanthus_wayland::AppHandle::open_popup: fn open_popup (& self , parent : SurfaceId , config : PopupConfig , build : impl FnOnce (& mut Scene) + 'static)
 acanthus_wayland::AppHandle::set_idle_inhibit: fn set_idle_inhibit (& self , surface : SurfaceId , inhibit : bool)
+acanthus_wayland::AppHandle::start_drag: fn start_drag (& self , surface : SurfaceId , data : DragData , actions : DropActions) -> Signal < DragOutcome >
 acanthus_wayland::AppHandle::unlock: fn unlock (& self)
 acanthus_wayland::AppHandle::window_command: fn window_command (& self , surface : SurfaceId , command : WindowCommand)
 acanthus_wayland::Capture.frame: Signal < Option < Arc < Decoded > > >
@@ -56,6 +57,10 @@ acanthus_wayland::Decorations: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
 acanthus_wayland::Decorations::Client: variant 
 acanthus_wayland::Decorations::None: variant 
 acanthus_wayland::Decorations::Server: variant 
+acanthus_wayland::DragOutcome: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_wayland::DragOutcome::Cancelled: variant 
+acanthus_wayland::DragOutcome::Dropped: variant (DropAction)
+acanthus_wayland::DragOutcome::Running: variant 
 acanthus_wayland::LayerConfig.anchor: Anchor
 acanthus_wayland::LayerConfig.clear: Color
 acanthus_wayland::LayerConfig.exclusive_zone: i32

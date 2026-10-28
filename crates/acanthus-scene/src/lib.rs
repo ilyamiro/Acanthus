@@ -5,6 +5,7 @@
 mod animate;
 mod axes;
 mod display;
+mod drag;
 mod dynamic;
 mod flick;
 mod input;
@@ -25,6 +26,7 @@ pub use animate::Prop;
 pub use axes::{Axis, flags_for as axes_flags, lookup as axes_lookup};
 pub use cosmic_text::CacheKey;
 pub use display::{Clip, Glyph, ImageDraw, LayerBegin, LayerFx, LayerShadowFx, Primitive, Quad, ShaderDraw, ShapeClip};
+pub use drag::{DragData, DragOffer, DragSource, DropAction, DropActions, DropArea, DropEvent};
 pub use dynamic::{Item, Loader, Repeater};
 pub use flick::{BoundsBehavior, FlickDirection, Flickable};
 pub use input::{MouseArea, MouseButton, ScrollDelta};
