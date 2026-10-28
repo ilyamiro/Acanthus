@@ -1,0 +1,17 @@
+Acanthus and Serpantinum
+Licensed under AGPL-3.0-or-later (see LICENSE.md).
+
+Third-party work this repository is derived from or checked against:
+
+material-colors (MIT OR Apache-2.0)
+  crates/engine/acanthus-color is a mechanical port of the algorithm files of the
+  material-colors crate, itself a Rust port of Google's material-color-utilities.
+  The upstream licence terms apply to those files in addition to AGPL-3.0-or-later.
+
+matugen
+  Used as the behavioural reference for the colour generation glue (scheme types,
+  source colour ranking, template handling) and as an external oracle that produced
+  the golden test data in crates/engine/acanthus-color/tests. Its code is not included.
+
+Fonts, sounds and images under assets/ are third-party material that keeps the licences
+of its authors; the per-asset attribution list is still to be collected before release.
