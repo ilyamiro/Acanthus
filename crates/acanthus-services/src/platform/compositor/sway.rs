@@ -338,7 +338,11 @@ pub mod tests {
                             GET_TREE => sample_tree(),
                             GET_INPUTS => json!([]),
                             SUBSCRIBE => json!({"success": true}),
-                            RUN_COMMAND => json!([{"success": String::from_utf8_lossy(&payload).contains("focus")}]),
+                            RUN_COMMAND => {
+                                let command = String::from_utf8_lossy(&payload);
+                                let success = command.contains("focus") || command.contains("bindsym");
+                                json!([{"success": success}])
+                            }
                             _ => json!({}),
                         };
                         let _ = stream.write_all(&encode_frame(kind, reply.to_string().as_bytes()));

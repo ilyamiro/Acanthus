@@ -28,6 +28,12 @@ impl BusKind {
     }
 }
 
+/// The object path the XDG desktop portal uses for the request of a caller with this unique bus name and handle token.
+pub fn portal_request_path(unique_name: &str, token: &str) -> String {
+    let sender = unique_name.trim_start_matches(':').replace('.', "_");
+    format!("/org/freedesktop/portal/desktop/request/{sender}/{token}")
+}
+
 static SHARED_SYSTEM: Mutex<Option<Connection>> = Mutex::new(None);
 static SHARED_SESSION: Mutex<Option<Connection>> = Mutex::new(None);
 

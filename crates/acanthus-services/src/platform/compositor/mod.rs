@@ -18,10 +18,14 @@ use serde_json::Value;
 
 use crate::platform::bridge::{EventSink, StopFlag, ThreadHandle, spawn_thread};
 use hyprland::HyprlandPaths;
+#[cfg(all(test, feature = "shortcuts"))]
+pub(crate) use hyprland::tests::FakeHyprland;
 use lines::LineReader;
 use mango::MangoModel;
 use niri::NiriModel;
 use sway::SwayConnection;
+#[cfg(all(test, feature = "shortcuts"))]
+pub(crate) use sway::tests::serve as serve_fake_sway;
 pub use types::{CompositorKind, Snapshot, Window, Workspace};
 
 const POLL: Duration = Duration::from_millis(40);
@@ -102,6 +106,26 @@ fn endpoint_for(kind: CompositorKind, env: &impl Fn(&str) -> Option<String>) -> 
         CompositorKind::Mango => Endpoint::Mango,
         CompositorKind::Unknown => Endpoint::None,
     }
+}
+
+#[cfg(feature = "shortcuts")]
+pub(crate) fn hyprland_socket(env: impl Fn(&str) -> Option<String>) -> Option<PathBuf> {
+    HyprlandPaths::from_env(env).map(|paths| paths.requests)
+}
+
+#[cfg(feature = "shortcuts")]
+pub(crate) fn sway_socket(env: impl Fn(&str) -> Option<String>) -> Option<PathBuf> {
+    env("SWAYSOCK").filter(|s| !s.is_empty()).map(PathBuf::from)
+}
+
+#[cfg(feature = "shortcuts")]
+pub(crate) fn hyprland_command(socket: &std::path::Path, command: &str) -> std::io::Result<bool> {
+    Ok(hyprland::request(socket, command)?.trim() == "ok")
+}
+
+#[cfg(feature = "shortcuts")]
+pub(crate) fn sway_run(socket: &std::path::Path, command: &str) -> std::io::Result<bool> {
+    SwayConnection::connect(socket, POLL)?.run(command)
 }
 
 impl Compositor {

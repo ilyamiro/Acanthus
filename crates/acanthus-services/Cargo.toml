@@ -43,6 +43,7 @@ default = [
     "portal-settings",
     "power-profiles",
     "screensaver",
+    "shortcuts",
     "toplevels",
     "tray",
     "upower",
@@ -61,6 +62,7 @@ notifications = []
 portal-settings = []
 power-profiles = []
 screensaver = []
+shortcuts = []
 toplevels = ["wayland", "dep:wayland-protocols-wlr"]
 tray = []
 upower = []

@@ -119,8 +119,7 @@ pub enum Outcome {
 
 /// The object path the portal uses for the request of a caller with this unique bus name and handle token.
 pub fn request_path(unique_name: &str, token: &str) -> String {
-    let sender = unique_name.trim_start_matches(':').replace('.', "_");
-    format!("/org/freedesktop/portal/desktop/request/{sender}/{token}")
+    crate::platform::dbus::portal_request_path(unique_name, token)
 }
 
 /// Decodes percent escapes in `text`.

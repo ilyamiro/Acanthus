@@ -324,7 +324,11 @@ pub mod tests {
                         other if other.starts_with("dispatch hl.dsp") && *reject2.lock().unwrap() => {
                             "error: not lua".to_owned()
                         }
-                        other if other.starts_with("dispatch") || other.starts_with("switchxkblayout") => {
+                        other
+                            if other.starts_with("dispatch")
+                                || other.starts_with("switchxkblayout")
+                                || other.starts_with("keyword") =>
+                        {
                             "ok".to_owned()
                         }
                         _ => "unknown request".to_owned(),

@@ -58,6 +58,9 @@ pub mod power_profiles;
 /// Screen saver and idle inhibition over D-Bus.
 #[cfg(feature = "screensaver")]
 pub mod screensaver;
+/// Global keyboard shortcuts through compositor bindings or the XDG GlobalShortcuts portal.
+#[cfg(feature = "shortcuts")]
+pub mod shortcuts;
 /// Foreign toplevel windows from the compositor.
 #[cfg(feature = "toplevels")]
 pub mod toplevels;

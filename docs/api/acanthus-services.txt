@@ -408,6 +408,7 @@ acanthus_services::platform::dbus::BusKind::connect: async fn connect (& self) -
 acanthus_services::platform::dbus::BusKind::connect_shared: async fn connect_shared (& self) -> zbus :: Result < Connection >
 acanthus_services::platform::dbus::BusKind::forget_shared: fn forget_shared (& self)
 acanthus_services::platform::dbus::forget_all_shared: fn forget_all_shared ()
+acanthus_services::platform::dbus::portal_request_path: fn portal_request_path (unique_name : & str , token : & str) -> String
 acanthus_services::platform::dbus::variant_to_json: fn variant_to_json (value : & Variant < '_ >) -> Json
 acanthus_services::platform::dbus::wait_for_owner: fn async fn wait_for_owner (connection : & Connection , names : & [& str]) -> zbus :: Result < () >
 acanthus_services::platform::dbus::while_owned: fn async fn while_owned < T > (connection : & Connection , name : & str , body : impl Future < Output = zbus :: Result < T > > ,) -> zbus :: Result < T >
@@ -1064,6 +1065,60 @@ acanthus_services::platform::screensaver::ScreensaverState.inhibited: Signal < b
 acanthus_services::platform::screensaver::ScreensaverState.sleep_lock_held: Signal < bool >
 acanthus_services::platform::screensaver::ScreensaverState.sleeping: Signal < bool >
 acanthus_services::platform::screensaver::ScreensaverState: struct [Clone]
+acanthus_services::platform::shortcuts::Chord.key: String
+acanthus_services::platform::shortcuts::Chord.modifiers: Modifiers
+acanthus_services::platform::shortcuts::Chord: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Chord::hyprland: fn hyprland (& self) -> String
+acanthus_services::platform::shortcuts::Chord::mango: fn mango (& self) -> String
+acanthus_services::platform::shortcuts::Chord::niri: fn niri (& self) -> String
+acanthus_services::platform::shortcuts::Chord::parse: fn parse (text : & str) -> Result < Chord , ChordError >
+acanthus_services::platform::shortcuts::Chord::portal: fn portal (& self) -> String
+acanthus_services::platform::shortcuts::Chord::sway: fn sway (& self) -> String
+acanthus_services::platform::shortcuts::ChordError: enum [Clone, Debug, Eq, PartialEq, thiserror :: Error]
+acanthus_services::platform::shortcuts::ChordError::Empty: variant 
+acanthus_services::platform::shortcuts::ChordError::NoKey: variant (String)
+acanthus_services::platform::shortcuts::ChordError::UnknownModifier: variant (String)
+acanthus_services::platform::shortcuts::Launcher: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Launcher::argv: fn argv (& self , id : & str) -> Vec < String >
+acanthus_services::platform::shortcuts::Launcher::new: fn new < S : Into < String > > (argv : impl IntoIterator < Item = S >) -> Launcher
+acanthus_services::platform::shortcuts::Launcher::shell: fn shell (& self , id : & str) -> String
+acanthus_services::platform::shortcuts::Method: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Method::Hyprland: variant 
+acanthus_services::platform::shortcuts::Method::Portal: variant 
+acanthus_services::platform::shortcuts::Method::Sway: variant 
+acanthus_services::platform::shortcuts::Modifiers.alt: bool
+acanthus_services::platform::shortcuts::Modifiers.ctrl: bool
+acanthus_services::platform::shortcuts::Modifiers.logo: bool
+acanthus_services::platform::shortcuts::Modifiers.shift: bool
+acanthus_services::platform::shortcuts::Modifiers: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Registration: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Registration::Bound: variant (Method)
+acanthus_services::platform::shortcuts::Registration::Failed: variant (String)
+acanthus_services::platform::shortcuts::Registration::Manual: variant 
+acanthus_services::platform::shortcuts::Registration::Pending: variant 
+acanthus_services::platform::shortcuts::Shortcut.chord: Chord
+acanthus_services::platform::shortcuts::Shortcut.description: String
+acanthus_services::platform::shortcuts::Shortcut.id: String
+acanthus_services::platform::shortcuts::Shortcut: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Shortcut::new: fn new (id : & str , description : & str , chord : & str) -> Result < Shortcut , ChordError >
+acanthus_services::platform::shortcuts::Shortcuts.state: ShortcutsState
+acanthus_services::platform::shortcuts::Shortcuts: struct
+acanthus_services::platform::shortcuts::Shortcuts::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , config : ShortcutsConfig , mut on_activate : impl FnMut (& str) + 'static ,) -> Result < Shortcuts , IoError >
+acanthus_services::platform::shortcuts::ShortcutsConfig.bus: BusKind
+acanthus_services::platform::shortcuts::ShortcutsConfig.kind: CompositorKind
+acanthus_services::platform::shortcuts::ShortcutsConfig.launcher: Launcher
+acanthus_services::platform::shortcuts::ShortcutsConfig.shortcuts: Vec < Shortcut >
+acanthus_services::platform::shortcuts::ShortcutsConfig.strategy: Strategy
+acanthus_services::platform::shortcuts::ShortcutsConfig: struct
+acanthus_services::platform::shortcuts::ShortcutsState.registration: Signal < Registration >
+acanthus_services::platform::shortcuts::ShortcutsState.snippet: Signal < String >
+acanthus_services::platform::shortcuts::ShortcutsState: struct [Clone]
+acanthus_services::platform::shortcuts::Strategy: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::shortcuts::Strategy::Hyprland: variant (PathBuf)
+acanthus_services::platform::shortcuts::Strategy::Portal: variant 
+acanthus_services::platform::shortcuts::Strategy::Sway: variant (PathBuf)
+acanthus_services::platform::shortcuts::Strategy::choose: fn choose (env : impl Fn (& str) -> Option < String > , prefer_portal : bool) -> Strategy
+acanthus_services::platform::shortcuts::snippet: fn snippet (kind : CompositorKind , shortcuts : & [Shortcut] , launcher : & Launcher) -> String
 acanthus_services::platform::toplevels::Toplevel.activated: bool
 acanthus_services::platform::toplevels::Toplevel.app_id: String
 acanthus_services::platform::toplevels::Toplevel.fullscreen: bool
@@ -1248,10 +1303,13 @@ impl Drop for acanthus_services::platform::bridge::ThreadHandle
 impl Drop for acanthus_services::platform::idle::IdleMonitor
 impl Drop for acanthus_services::platform::pam::PamContext
 impl Drop for acanthus_services::platform::pipewire::Pipewire
+impl Drop for acanthus_services::platform::shortcuts::Shortcuts
 impl Exec for acanthus_services::kit::ProcessExec
+impl FromStr for acanthus_services::platform::shortcuts::Chord
 impl GammaBackend for acanthus_services::platform::gamma::Gamma
 impl Notifier for acanthus_services::kit::NotifySendNotifier
 impl Notifier for acanthus_services::platform::notifications::LocalNotifier
 impl Store < K , D > for acanthus_services::kit::ConfigStore
 impl Store < K , D > for acanthus_services::kit::DiskStore
 impl Store < K , D > for acanthus_services::kit::MemoryStore
+impl fmt :: Display for acanthus_services::platform::shortcuts::Chord
