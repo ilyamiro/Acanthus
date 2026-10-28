@@ -353,6 +353,7 @@ fn text_params(style: &TextStyle, width: Option<f32>, generation: u64) -> TextPa
         max_lines: style.max_lines.get(),
         line_height: style.line_height.get(),
         letter_spacing: style.letter_spacing.get(),
+        capitalization: style.capitalization.get(),
         generation,
     }
 }

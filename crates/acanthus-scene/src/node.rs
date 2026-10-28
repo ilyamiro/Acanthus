@@ -11,7 +11,7 @@ use crate::input::MouseArea;
 use crate::keyboard::{CursorShape, KeyEvent, PointerEvent};
 use crate::layout::{Align, Anchors, Constraints, Layout, Margins};
 use crate::shader::{ShaderData, ShaderEffect, ShaderParams};
-use crate::text::{Elide, HAlign, VAlign, WrapMode};
+use crate::text::{Capitalization, Elide, HAlign, VAlign, WrapMode};
 
 new_key_type! {
     /// Identifies a node of a [`Scene`]; stays valid until the node is removed.
@@ -65,6 +65,7 @@ value_into_signal!(
     Option<Gradient>,
     Option<f32>,
     HAlign,
+    Capitalization,
     VAlign,
     Elide,
     WrapMode,
@@ -320,6 +321,8 @@ pub struct TextStyle {
     pub line_height: Signal<Option<f32>>,
     /// Extra spacing after every glyph.
     pub letter_spacing: Signal<f32>,
+    /// Letter case applied when shaping.
+    pub capitalization: Signal<Capitalization>,
 }
 
 /// Properties of an image node.
@@ -511,6 +514,7 @@ impl Node {
             max_lines: Signal::new(0),
             line_height: Signal::new(None),
             letter_spacing: Signal::new(0.0),
+            capitalization: Signal::new(Capitalization::MixedCase),
         }))
     }
 
@@ -941,6 +945,15 @@ impl Node {
         match &mut self.kind {
             Kind::Text(s) => s.h_align = v.into_signal(),
             _ => tracing::warn!("h_align() only applies to Text"),
+        }
+        self
+    }
+
+    /// Sets the letter case of a text node (QML `font.capitalization`).
+    pub fn capitalization(mut self, v: impl IntoSignal<Capitalization>) -> Self {
+        match &mut self.kind {
+            Kind::Text(s) => s.capitalization = v.into_signal(),
+            _ => tracing::warn!("capitalization() only applies to Text"),
         }
         self
     }

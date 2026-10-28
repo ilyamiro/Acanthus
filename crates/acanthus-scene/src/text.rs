@@ -125,6 +125,44 @@ pub enum Elide {
     Right,
 }
 
+/// Letter case applied to displayed text, QML `font.capitalization` without `SmallCaps`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Capitalization {
+    /// The text as written.
+    #[default]
+    MixedCase,
+    /// Every letter in upper case.
+    AllUppercase,
+    /// Every letter in lower case.
+    AllLowercase,
+    /// The first letter of every word in upper case, the rest as written.
+    Capitalize,
+}
+
+impl Capitalization {
+    /// `text` with the case applied.
+    pub fn apply(self, text: &str) -> String {
+        match self {
+            Capitalization::MixedCase => text.to_owned(),
+            Capitalization::AllUppercase => text.to_uppercase(),
+            Capitalization::AllLowercase => text.to_lowercase(),
+            Capitalization::Capitalize => {
+                let mut out = String::with_capacity(text.len());
+                let mut word_start = true;
+                for c in text.chars() {
+                    if word_start && c.is_alphabetic() {
+                        out.extend(c.to_uppercase());
+                    } else {
+                        out.push(c);
+                    }
+                    word_start = c.is_whitespace();
+                }
+                out
+            }
+        }
+    }
+}
+
 /// How lines break when text exceeds its width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WrapMode {
@@ -151,6 +189,7 @@ pub(crate) struct TextParams {
     pub max_lines: usize,
     pub line_height: Option<f32>,
     pub letter_spacing: f32,
+    pub capitalization: Capitalization,
     pub generation: u64,
 }
 
@@ -243,7 +282,10 @@ impl ShapedText {
         });
         self.buffer.set_metrics_and_size(metrics(p.size, p.line_height), p.max_width, None);
         if p.styled {
-            let segments = parse_styled(&self.text);
+            let segments: Vec<Segment> = parse_styled(&self.text)
+                .into_iter()
+                .map(|seg| Segment { text: p.capitalization.apply(&seg.text), ..seg })
+                .collect();
             let spans = segments.iter().map(|seg| {
                 let mut a = attrs.clone();
                 if seg.bold {
@@ -256,7 +298,8 @@ impl ShapedText {
             });
             self.buffer.set_rich_text(spans, &attrs, Shaping::Advanced, None);
         } else {
-            self.buffer.set_text(&self.text, &attrs, Shaping::Advanced, None);
+            let shown = p.capitalization.apply(&self.text);
+            self.buffer.set_text(&shown, &attrs, Shaping::Advanced, None);
         }
         self.buffer.shape_until_scroll(fonts, false);
         let mut w: f32 = 0.0;
@@ -384,5 +427,18 @@ mod styled_tests {
     #[test]
     fn entities_decode_and_stray_brackets_stay() {
         assert_eq!(parse_styled("1 &lt; 2 &amp; 3 > 2 <3 x"), vec![seg("1 < 2 & 3 > 2 <3 x", false, false)]);
+    }
+}
+
+#[cfg(test)]
+mod capitalization_tests {
+    use super::Capitalization::*;
+
+    #[test]
+    fn cases_apply_like_qml() {
+        assert_eq!(MixedCase.apply("Hello wORLD"), "Hello wORLD");
+        assert_eq!(AllUppercase.apply("straße"), "STRASSE");
+        assert_eq!(AllLowercase.apply("Hello WORLD"), "hello world");
+        assert_eq!(Capitalize.apply("hello  wORLD, ünder 3d"), "Hello  WORLD, Ünder 3d");
     }
 }

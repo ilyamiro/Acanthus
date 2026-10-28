@@ -40,6 +40,12 @@ acanthus_scene::BoundsBehavior::OvershootBounds: variant
 acanthus_scene::BoundsBehavior::StopAtBounds: variant 
 acanthus_scene::BoundsBehavior::drag_over: fn drag_over (self) -> bool
 acanthus_scene::BoundsBehavior::overshoot: fn overshoot (self) -> bool
+acanthus_scene::Capitalization: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::Capitalization::AllLowercase: variant 
+acanthus_scene::Capitalization::AllUppercase: variant 
+acanthus_scene::Capitalization::Capitalize: variant 
+acanthus_scene::Capitalization::MixedCase: variant 
+acanthus_scene::Capitalization::apply: fn apply (self , text : & str) -> String
 acanthus_scene::Clip.rect: Rect
 acanthus_scene::Clip.shape: Option < ShapeClip >
 acanthus_scene::Clip: struct [Clone, Copy, Debug, PartialEq]
@@ -404,6 +410,7 @@ acanthus_scene::Node::animated: fn animated (mut self , v : impl IntoSignal < bo
 acanthus_scene::Node::bind: fn bind (self , effect : Effect) -> Self
 acanthus_scene::Node::border: fn border (mut self , width : impl IntoSignal < f32 > , color : impl IntoSignal < Color >) -> Self
 acanthus_scene::Node::bounds: fn bounds (& self) -> Signal < Rect >
+acanthus_scene::Node::capitalization: fn capitalization (mut self , v : impl IntoSignal < Capitalization >) -> Self
 acanthus_scene::Node::children: fn children (& self) -> & [NodeId]
 acanthus_scene::Node::clip: fn clip (mut self , v : impl IntoSignal < bool >) -> Self
 acanthus_scene::Node::color: fn color (mut self , v : impl IntoSignal < Color >) -> Self
@@ -697,6 +704,7 @@ acanthus_scene::TextInputStyle.placeholder_color: Signal < Color >
 acanthus_scene::TextInputStyle.selection_color: Signal < Color >
 acanthus_scene::TextInputStyle: struct
 acanthus_scene::TextStyle.axes: u8
+acanthus_scene::TextStyle.capitalization: Signal < Capitalization >
 acanthus_scene::TextStyle.color: Signal < Color >
 acanthus_scene::TextStyle.elide: Signal < Elide >
 acanthus_scene::TextStyle.family: Signal < String >

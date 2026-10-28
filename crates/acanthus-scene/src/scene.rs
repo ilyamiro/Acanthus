@@ -1180,6 +1180,19 @@ mod tests {
     }
 
     #[test]
+    fn text_capitalization_changes_the_shaped_text() {
+        let width = |case| {
+            let mut s = scene(600.0, 200.0);
+            let root = s.root();
+            let t = s.add(root, Node::text("illimitable").font_size(16.0).capitalization(case));
+            s.frame();
+            s.geometry(t).unwrap().w
+        };
+        assert_eq!(width(crate::Capitalization::MixedCase), width(crate::Capitalization::AllLowercase));
+        assert!(width(crate::Capitalization::AllUppercase) > width(crate::Capitalization::MixedCase) + 10.0);
+    }
+
+    #[test]
     fn text_letter_spacing_and_line_height_change_metrics() {
         let mut base = scene(600.0, 200.0);
         let root = base.root();
