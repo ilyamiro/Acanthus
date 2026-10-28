@@ -1,3 +1,6 @@
+//! Press feedback shared by every button: a scale pop, a white flash, an optional click sound,
+//! keyboard activation, and the ready-made icon button.
+
 use crate::timing::{BASE, FAST, SLOW};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -8,18 +11,28 @@ use acanthus_scene::{Anchors, CursorShape, Key, MouseArea, MouseButton, Node, No
 
 use acanthus_anim::Keep;
 
+/// Optional sound player: receives the relative path of a sound asset (for example a
+/// [`Feel::sound`]) and plays it. `None` keeps the widget silent.
 pub type Sound = Option<Rc<dyn Fn(&str)>>;
 
+/// Shape of a press: how far the body pops, how bright the flash gets and which sound plays.
 #[derive(Clone, Copy)]
 pub struct Feel {
+    /// Scale reached at the top of the pop (1.0 is the resting size).
     pub pop_peak: f32,
+    /// Duration of the pop towards its peak, in milliseconds (OutQuad).
     pub pop_in_ms: u32,
+    /// Duration of the return from the peak to 1.0, in milliseconds (OutQuint).
     pub pop_out_ms: u32,
+    /// Opacity of the white flash right after the press.
     pub flash_peak: f32,
+    /// Duration of the flash fade to transparent, in milliseconds (OutExpo).
     pub flash_ms: u32,
+    /// Relative path of the click sound handed to the [`Sound`] player.
     pub sound: &'static str,
 }
 
+/// Feel of a text button: a light pop and a faint flash.
 pub const CLICK: Feel = Feel {
     pop_peak: 1.015,
     pop_in_ms: 100,
@@ -29,6 +42,7 @@ pub const CLICK: Feel = Feel {
     sound: "reusables/clickbutton/click.wav",
 };
 
+/// Feel of an icon button: a stronger pop and flash.
 pub const ICON: Feel = Feel {
     pop_peak: 1.1,
     pop_in_ms: 110,
@@ -38,6 +52,7 @@ pub const ICON: Feel = Feel {
     sound: "reusables/iconbutton/click.wav",
 };
 
+/// Press animation state of one widget: drives the pop and flash signals and plays the sound.
 pub struct Press {
     feel: Feel,
     sound: Sound,
@@ -48,6 +63,7 @@ pub struct Press {
 }
 
 impl Press {
+    /// Creates the press state for a widget with the given feel and sound player.
     pub fn new(feel: Feel, sound: Sound) -> Rc<Press> {
         Rc::new(Press {
             feel,
@@ -59,6 +75,7 @@ impl Press {
         })
     }
 
+    /// Starts the pop and the flash from the beginning (restarting a running one) and plays the sound.
     pub fn fire(&self) {
         let feel = self.feel;
         self.pop.set(1.0);
@@ -78,6 +95,8 @@ impl Press {
         }
     }
 
+    /// Returns the eased body scale: `hover` (the hover or press target scale) multiplied by the pop,
+    /// smoothed over the base duration. The intermediate signals live in `keep`.
     pub fn scale(&self, keep: &mut Keep, hover: &Signal<f32>) -> Signal<f32> {
         let (hover, pop) = (hover.clone(), self.pop.clone());
         let target = keep.derive(move || hover.get() * pop.get());
@@ -95,6 +114,7 @@ impl Drop for Press {
     }
 }
 
+/// Wraps a click handler so that every activation fires `press` first.
 pub fn activate(press: &Rc<Press>, click: impl Fn() + 'static) -> Rc<dyn Fn()> {
     let press = press.clone();
     Rc::new(move || {
@@ -103,6 +123,7 @@ pub fn activate(press: &Rc<Press>, click: impl Fn() + 'static) -> Rc<dyn Fn()> {
     })
 }
 
+/// Makes `node` focusable and activates it with Space or Enter.
 pub fn focusable(node: Node, activate: Rc<dyn Fn()>) -> Node {
     node.focusable(true).on_key(move |event| {
         if matches!(event.key, Key::Char(' ') | Key::Enter) {
@@ -114,6 +135,7 @@ pub fn focusable(node: Node, activate: Rc<dyn Fn()>) -> Node {
     })
 }
 
+/// Feel of a filled button: the body shrinks briefly instead of growing, with a bright flash.
 pub const FILL: Feel = Feel {
     pop_peak: 0.95,
     pop_in_ms: 110,
@@ -123,29 +145,46 @@ pub const FILL: Feel = Feel {
     sound: "reusables/fillbutton/button.wav",
 };
 
+/// Adds the white flash rectangle of `press` over `body`, clipped to `radius`.
 pub fn flash(scene: &mut Scene, body: NodeId, radius: &Signal<f32>, press: &Press) {
     scene.add(body, Node::rect().anchors(Anchors::fill(0.0)).radius(radius).color(Color::WHITE).opacity(&press.flash));
 }
 
+/// Adds the press decorations (currently the flash) to a button body.
 pub fn dress(scene: &mut Scene, body: NodeId, radius: &Signal<f32>, press: &Press) {
     flash(scene, body, radius, press);
 }
 
+/// Description of an icon button: size, glyph, colours, sound and click handler.
 pub struct IconSpec {
+    /// Width in logical pixels.
     pub width: f32,
+    /// Height in logical pixels.
     pub height: f32,
+    /// Corner radius of the background.
     pub radius: Signal<f32>,
+    /// Glyph shown in the middle, usually a character of an icon font.
     pub glyph: Signal<String>,
+    /// Font size of the glyph.
     pub glyph_size: f32,
+    /// Font family of the glyph.
     pub font: Signal<String>,
+    /// Background colour; lightened on hover and darkened while pressed.
     pub accent: Signal<Color>,
+    /// Opacity of the background rectangle (0 gives a bare glyph).
     pub bg_opacity: Signal<f32>,
+    /// Glyph colour at rest.
     pub text: Signal<Color>,
+    /// Glyph colour while hovered.
     pub text_hover: Signal<Color>,
+    /// Sound player for the click.
     pub sound: Sound,
+    /// Called on a left click, Space or Enter.
     pub on_click: Rc<dyn Fn()>,
 }
 
+/// Builds an icon button under `parent` and returns its outer node: hover and press scale,
+/// colour easing, flash, keyboard activation and a pointer cursor.
 pub fn icon_button(scene: &mut Scene, parent: NodeId, spec: IconSpec) -> NodeId {
     let mut keep = Keep::default();
     let area = MouseArea::new();

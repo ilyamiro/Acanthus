@@ -1,3 +1,6 @@
+//! Value slider from 0 to 100, horizontal or vertical: a gradient fill up to the handle, a handle
+//! that grows while dragged, wheel steps and arrow, Home and End keys.
+
 use crate::timing::{BASE, FAST};
 use crate::wheel::{WHEEL_UNITS_PER_ABSOLUTE, Wheel};
 use std::cell::RefCell;
@@ -9,18 +12,23 @@ use acanthus_scene::{Anchors, CursorShape, Gradient, Key, MouseArea, Node, NodeI
 
 use acanthus_anim::{Animated, Keep};
 
+/// Value under a pointer at `position` along a track of length `extent`, mapped to `from..=to`;
+/// vertical tracks grow upwards.
 pub fn value_at(position: f32, extent: f32, vertical: bool, from: f32, to: f32) -> f32 {
     let extent = extent.max(1.0);
     let fraction = if vertical { (extent - position) / extent } else { position / extent };
     (from + fraction.clamp(0.0, 1.0) * (to - from)).clamp(from, to)
 }
 
+/// Fraction of the track (0 to 1) that `value` fills within `from..=to`.
 pub fn visual_position(value: f32, from: f32, to: f32) -> f32 {
     ((value - from) / (to - from).max(0.0001)).clamp(0.0, 1.0)
 }
 
 const KEY_STEP: f32 = (TO - FROM) / 20.0;
 
+/// Value after pressing `key` at `current`: arrows move by a twentieth of the range, Home and End
+/// jump to the ends; `None` for other keys.
 pub fn key_value(key: Key, current: f32) -> Option<f32> {
     let next = match key {
         Key::Right | Key::Up => current + KEY_STEP,
@@ -32,34 +40,56 @@ pub fn key_value(key: Key, current: f32) -> Option<f32> {
     Some(next.clamp(FROM, TO))
 }
 
+/// Description of a slider.
 pub struct SliderSpec {
+    /// Lays the track out vertically, growing upwards.
     pub vertical: bool,
+    /// Horizontal position inside the parent.
     pub x: Signal<f32>,
+    /// Vertical position inside the parent.
     pub y: Signal<f32>,
+    /// Width of the track.
     pub width: Signal<f32>,
+    /// Height of the track.
     pub height: Signal<f32>,
+    /// Opacity of the whole slider.
     pub opacity: Signal<f32>,
+    /// Whether the slider is shown.
     pub visible: Signal<bool>,
+    /// Committed value from 0 to 100; the slider shows it whenever the user is not dragging.
     pub value: Signal<f32>,
+    /// Corner radius of the track.
     pub corner_radius: f32,
+    /// Diameter of the handle at rest.
     pub handle_size: f32,
+    /// Colour of the empty track.
     pub background: Signal<Color>,
+    /// Colour of the filled part.
     pub accent: Signal<Color>,
+    /// Handle colour at rest.
     pub handle: Signal<Color>,
+    /// Handle colour while dragged.
     pub handle_drag: Signal<Color>,
+    /// Called when a drag begins.
     pub on_drag_start: Rc<dyn Fn()>,
+    /// Called with the new value on every drag move, wheel step or key press.
     pub on_moved: Rc<dyn Fn(f32)>,
+    /// Called when a drag ends.
     pub on_drag_finish: Rc<dyn Fn()>,
 }
 
+/// A built slider.
 pub struct Slider {
+    /// Outer node of the slider.
     pub node: NodeId,
+    /// Value currently shown: the drag preview while dragging, [`SliderSpec::value`] otherwise.
     pub effective: Signal<f32>,
 }
 
 const FROM: f32 = 0.0;
 const TO: f32 = 100.0;
 
+/// Builds a slider under `parent`.
 pub fn build(scene: &mut Scene, parent: NodeId, spec: SliderSpec) -> Slider {
     let mut keep = Keep::default();
     let dragging = Signal::new(false);

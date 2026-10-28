@@ -1,3 +1,6 @@
+//! Scrolling label: text wider than its box scrolls left in a loop, with a pause at the start of
+//! every cycle and a second copy following at a fixed spacing so the text wraps around seamlessly.
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -5,33 +8,48 @@ use acanthus_anim::{Action, AnimHandle, Easing, Keep, Loop, Pause, Sequential, T
 use acanthus_core::{Color, Signal};
 use acanthus_scene::{Layout, Node, NodeId, Scene};
 
+/// Pause before each scroll cycle, in milliseconds.
 pub const MARQUEE_PAUSE_MS: u32 = 3000;
 
+/// Whether a label scrolls: it must be active and wider than a non-empty box.
 pub fn can_marquee(active: bool, text_width: f32, width: f32) -> bool {
     active && text_width > width && width > 0.0
 }
 
+/// Distance of one cycle: the text width plus the spacing to the following copy.
 pub fn scroll_distance(text_width: f32, spacing: f32) -> f32 {
     text_width + spacing
 }
 
+/// Duration of one cycle over `distance` pixels at `speed` milliseconds per pixel, at least one second.
 pub fn scroll_duration_ms(distance: f32, speed: f32) -> u32 {
     (distance * speed).round().max(1000.0) as u32
 }
 
+/// Horizontal offset of the text at `progress` (0 to 1) through a cycle, rounded to whole pixels.
 pub fn scroll_x(progress: f32, distance: f32) -> f32 {
     -(progress * distance).round()
 }
 
+/// Description of a marquee label.
 pub struct Spec {
+    /// Text shown.
     pub text: Signal<String>,
+    /// Text colour.
     pub color: Signal<Color>,
+    /// Font family.
     pub family: Signal<String>,
+    /// Font size.
     pub size: f32,
+    /// Font weight (400 regular, 700 bold).
     pub weight: u16,
+    /// Width of the visible box; the text is clipped to it.
     pub width: Signal<f32>,
+    /// Gap between the text and its following copy.
     pub spacing: f32,
+    /// Scroll speed in milliseconds per pixel (larger is slower).
     pub speed: f32,
+    /// Whether scrolling is allowed; inactive labels stay still and clipped.
     pub active: Signal<bool>,
 }
 
@@ -45,6 +63,8 @@ impl Drop for Run {
     }
 }
 
+/// Builds the label under `parent` and returns its clipping container. The cycle restarts when
+/// the text, its width or the box width changes.
 pub fn build(scene: &mut Scene, parent: NodeId, spec: Spec) -> NodeId {
     let Spec { text, color, family, size, weight, width, spacing, speed, active } = spec;
     let mut keep = Keep::default();

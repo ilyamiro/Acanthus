@@ -1,3 +1,8 @@
+//! Segmented switch: a row of labelled options with a highlight that slides to the selected one.
+//! The highlight's leading edge moves faster than its trailing edge, so it stretches towards the
+//! new option; segments share the width by need, labels shrink when they do not fit, and the row
+//! mirrors for right-to-left languages.
+
 use crate::timing::SLOW;
 use crate::timing::{BASE, FAST};
 use std::cell::Cell;
@@ -11,6 +16,7 @@ use crate::button::{Feel, Press, Sound, flash};
 use acanthus_anim::Animated;
 use acanthus_anim::Keep;
 
+/// Feel of a switch press.
 pub const SWITCH: Feel = Feel {
     pop_peak: 1.04,
     pop_in_ms: 100,
@@ -28,32 +34,58 @@ const TEXT_MARGIN: f32 = 4.0;
 const MIN_FIT: f32 = 28.0;
 const FIT_PADDING: f32 = 10.0;
 
+/// Description of a segmented switch.
 pub struct SwitchSpec {
+    /// Horizontal position inside the parent.
     pub x: Signal<f32>,
+    /// Vertical position inside the parent.
     pub y: Signal<f32>,
+    /// Total width; zero or less sizes the switch from its labels.
     pub width: Signal<f32>,
+    /// Height of the switch.
     pub height: f32,
+    /// Corner radius of the outer ends; inner joints use a small fixed radius.
     pub corner: f32,
+    /// Preferred font size of the labels.
     pub font_size: Signal<f32>,
+    /// Smallest font size a label may shrink to.
     pub min_font_size: f32,
+    /// Font family of the labels.
     pub family: Signal<String>,
+    /// Label of every option slot.
     pub labels: Vec<Signal<String>>,
+    /// Number of options in use, taken from the front of [`SwitchSpec::labels`].
     pub count: Signal<usize>,
+    /// Index of the selected option.
     pub current: Signal<usize>,
+    /// Lays the options out from right to left.
     pub rtl: Signal<bool>,
+    /// Colour of the highlight.
     pub accent: Signal<Color>,
+    /// Colour of the background.
     pub base: Signal<Color>,
+    /// Label colour of unselected options.
     pub text: Signal<Color>,
+    /// Label colour of the selected option.
     pub active_text: Signal<Color>,
+    /// Whether the switch is shown.
     pub visible: Signal<bool>,
+    /// Sound player for presses.
     pub sound: Sound,
+    /// Called with the index of a newly picked option (by click or arrow key).
     pub on_select: Rc<dyn Fn(usize)>,
 }
 
+/// Width a segment needs for a label of `natural` width: the label plus padding, at least a minimum.
 pub fn fit_width(natural: f32) -> f32 {
     MIN_FIT.max(natural.ceil() + FIT_PADDING)
 }
 
+/// Shares `available` width among segments that need `needs`.
+///
+/// Equal shares when every label fits; otherwise wide segments get what they need and narrow ones
+/// give up their surplus, and when even that is not enough every segment scales by need. A
+/// non-positive `available` sizes the switch from its widest label.
 pub fn allocate(needs: &[f32], available: f32) -> Vec<f32> {
     let count = needs.len();
     if count == 0 {
@@ -75,6 +107,7 @@ pub fn allocate(needs: &[f32], available: f32) -> Vec<f32> {
     needs.iter().map(|n| if total > 0.0 { available * (n / total) } else { equal }).collect()
 }
 
+/// Turns segment widths into `(x, width)` pairs inside `total`, mirrored when `rtl`.
 pub fn placements(widths: &[f32], total: f32, rtl: bool) -> Vec<(f32, f32)> {
     let mut at = 0.0;
     widths
@@ -87,10 +120,14 @@ pub fn placements(widths: &[f32], total: f32, rtl: bool) -> Vec<(f32, f32)> {
         .collect()
 }
 
+/// Font size that makes a label of `natural` width fit `available`, never below `minimum`
+/// (or `font` when that is smaller).
 pub fn fitted_size(font: f32, minimum: f32, available: f32, natural: f32) -> f32 {
     if natural <= 0.0 || natural <= available { font } else { (font * available / natural).max(minimum.min(font)) }
 }
 
+/// Logical corner radii `[start, end]` of segment `index` of `count`: `corner` on the outer ends,
+/// a small radius at the joints.
 pub fn edge_radii(index: usize, count: usize, corner: f32) -> [f32; 2] {
     [if index == 0 { corner } else { SMALL_RADIUS }, if index + 1 >= count { corner } else { SMALL_RADIUS }]
 }
@@ -100,6 +137,7 @@ fn physical(radii: [f32; 2], rtl: bool) -> Option<[f32; 4]> {
     Some([left, right, right, left])
 }
 
+/// Index after moving one option forward or back from `current`, clamped to the `count` options.
 pub fn step(current: usize, count: usize, forward: bool) -> usize {
     if forward { (current + 1).min(count.saturating_sub(1)) } else { current.saturating_sub(1) }
 }
@@ -120,6 +158,7 @@ fn edge(target: &Signal<f32>, current: &Signal<usize>, rises_lead: bool) -> Anim
     })
 }
 
+/// Builds a segmented switch under `parent` and returns its root node.
 pub fn switch(scene: &mut Scene, parent: NodeId, spec: SwitchSpec) -> NodeId {
     let mut keep = Keep::default();
     let press = Press::new(SWITCH, spec.sound.clone());

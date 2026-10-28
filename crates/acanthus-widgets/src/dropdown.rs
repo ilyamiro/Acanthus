@@ -1,3 +1,7 @@
+//! Dropdown selector: a button that shows the current option and opens a floating list with a
+//! staggered entrance. Double-clicking the button switches it to a search field that filters the
+//! options by fuzzy score; Enter picks the best match, Escape or a click outside closes the list.
+
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -13,16 +17,29 @@ use crate::button::{Feel, Press, Sound, activate, dress, focusable};
 use crate::scrollbar::{ScrollBar, scroll_bar};
 use crate::timing::{BASE, FAST, SLOW};
 
+/// Height of one list row, in unscaled logical pixels.
 pub const ITEM_HEIGHT: f32 = 32.0;
+/// Vertical gap between rows, in unscaled logical pixels.
 pub const ITEM_GAP: f32 = 2.0;
+/// Height above which the list scrolls instead of growing, in unscaled logical pixels.
 pub const MAX_LIST_HEIGHT: f32 = 250.0;
+/// Padding between the menu frame and the list, in unscaled logical pixels.
 pub const PADDING: f32 = 4.0;
+/// Gap between the button and the menu below it, in unscaled logical pixels.
 pub const MENU_GAP: f32 = 6.0;
+/// Duration of the menu's opening animation, in milliseconds (OutQuint).
 pub const ENTER_MS: u32 = 250;
+/// Duration of the menu's closing animation, in milliseconds (InQuint).
 pub const EXIT_MS: u32 = 150;
+/// Relative path of the sound played when the button or a row is clicked.
 pub const CLICK_SOUND: &str = "reusables/dropdown/click.wav";
 const DOUBLE_CLICK: Duration = Duration::from_millis(400);
 
+/// Scores how well `query` matches `text` as an in-order, case-insensitive subsequence.
+///
+/// Returns `None` when some query character is missing. Every matched character earns 10, runs of
+/// consecutive matches earn a growing bonus, and matches at the start of a word (after `/`, `_`,
+/// `-`, space or `.`) earn 15 more. An empty query matches everything with score 1.
 pub fn fuzzy_score(query: &str, text: &str) -> Option<i32> {
     let query: Vec<char> = query.chars().flat_map(char::to_lowercase).collect();
     if query.is_empty() {
@@ -56,6 +73,8 @@ pub fn fuzzy_score(query: &str, text: &str) -> Option<i32> {
     (matched == query.len()).then_some(score)
 }
 
+/// Returns the indices of the options matching `query`, best score first and in original order
+/// among equal scores. An empty query keeps every option in order.
 pub fn filter(options: &[String], query: &str) -> Vec<usize> {
     if query.is_empty() {
         return (0..options.len()).collect();
@@ -69,64 +88,101 @@ pub fn filter(options: &[String], query: &str) -> Vec<usize> {
 const FEEL: Feel =
     Feel { pop_peak: 1.04, pop_in_ms: 100, pop_out_ms: SLOW, flash_peak: 0.2, flash_ms: SLOW, sound: CLICK_SOUND };
 
+/// Unscaled height of `count` rows including the gaps between them.
 pub fn content_height(count: usize) -> f32 {
     if count == 0 { 0.0 } else { count as f32 * ITEM_HEIGHT + (count - 1) as f32 * ITEM_GAP }
 }
 
+/// Unscaled height of the list viewport for `count` rows, capped at [`MAX_LIST_HEIGHT`].
 pub fn list_height(count: usize) -> f32 {
     content_height(count).min(MAX_LIST_HEIGHT)
 }
 
+/// Number of rows that fit in the viewport without scrolling (the rows that take part in the stagger).
 pub fn visible_count(count: usize) -> usize {
     count.min(((MAX_LIST_HEIGHT + 2.0) / (ITEM_HEIGHT + ITEM_GAP)) as usize)
 }
 
+/// Delay before row `index` appears after the menu starts opening, in milliseconds.
 pub fn stagger_ms(index: usize) -> f32 {
     index as f32 * 40.0 + 20.0
 }
 
+/// Time until the last staggered row of a `count`-row list has appeared, in milliseconds.
 pub fn stagger_total_ms(count: usize) -> f32 {
     stagger_ms(visible_count(count).saturating_sub(1)) + 1.0
 }
 
+/// Whether row `index` of `count` rows is visible `elapsed_ms` after the menu started opening;
+/// rows below the viewport show at once.
 pub fn shown(elapsed_ms: f32, index: usize, count: usize) -> bool {
     index >= visible_count(count) || elapsed_ms >= stagger_ms(index)
 }
 
+/// Corner radius of the menu frame for a button with corner radius `radius`.
 pub fn menu_radius(radius: f32) -> f32 {
     radius.min(16.0)
 }
 
+/// Corner radius of a row inside a menu for a button with corner radius `radius`.
 pub fn row_radius(radius: f32) -> f32 {
     (radius - 4.0).clamp(2.0, 16.0)
 }
 
+/// Description of a dropdown: options, selection, placement, metrics, colours and handlers.
 pub struct Spec {
+    /// Option labels shown in the list.
     pub options: Signal<Vec<String>>,
+    /// Index of the selected option in [`Spec::options`].
     pub current: Signal<usize>,
+    /// Text shown when nothing valid is selected, and the hint of the search field.
     pub placeholder: Signal<String>,
+    /// Whether the menu is open; the widget writes it and the caller may set it too.
     pub open: Signal<bool>,
+    /// Node that hosts the menu and the click-outside catcher, usually a full-size top layer so the
+    /// menu is drawn above siblings and is not clipped.
     pub overlay: NodeId,
+    /// Size of [`Spec::overlay`]; the click-outside catcher covers it.
     pub overlay_size: (f32, f32),
+    /// Horizontal position of the button inside its parent.
     pub x: Signal<f32>,
+    /// Vertical position of the button inside its parent.
     pub y: Signal<f32>,
+    /// Horizontal position of the menu inside [`Spec::overlay`].
     pub menu_x: Signal<f32>,
+    /// Vertical position of the button inside [`Spec::overlay`]; the menu opens below it.
     pub menu_y: Signal<f32>,
+    /// Width of the button and the menu.
     pub width: f32,
+    /// Height of the button.
     pub height: f32,
+    /// Scale factor applied to paddings, rows and gaps.
     pub scale: f32,
+    /// Corner radius of the button; the menu and rows derive theirs from it.
     pub radius: Signal<f32>,
+    /// Font family of the labels.
     pub font: Signal<String>,
+    /// Font size of the labels.
     pub font_size: f32,
+    /// Size of the chevron icon.
     pub icon_size: f32,
+    /// Colour of the selected row, the caret and the search selection.
     pub accent: Signal<Color>,
+    /// Button fill at rest.
     pub base: Signal<Color>,
+    /// Button fill while hovered or open, and the fill of hovered rows.
     pub hover: Signal<Color>,
+    /// Fill of the menu frame.
     pub menu: Signal<Color>,
+    /// Colour of the menu border.
     pub border: Signal<Color>,
+    /// Colour of labels and the chevron.
     pub text: Signal<Color>,
+    /// Label colour of the selected row.
     pub active_text: Signal<Color>,
+    /// Sound player for clicks.
     pub sound: Sound,
+    /// Called with the index in [`Spec::options`] of the option the user picked.
     pub on_select: Rc<dyn Fn(usize)>,
 }
 
@@ -153,6 +209,7 @@ impl Drop for Run {
     }
 }
 
+/// Builds a dropdown under `parent` (its menu under [`Spec::overlay`]) and returns the button node.
 pub fn dropdown(scene: &mut Scene, parent: NodeId, spec: Spec) -> NodeId {
     let mut keep = Keep::default();
     let s = spec.scale;

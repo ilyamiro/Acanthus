@@ -1,7 +1,12 @@
+//! Thin scroll indicator for a [`Flickable`]: visible only while the content moves and only when
+//! the content is taller than the view.
+
 use acanthus_anim::Keep;
 use acanthus_core::{Color, Signal, Vec2};
 use acanthus_scene::{Flickable, IntoSignal, Node, NodeId, Scene};
 
+/// Position and length of the handle for `content` tall content in a `view` tall viewport
+/// scrolled to `position`; `None` when everything fits.
 pub fn scroll_handle(content: f32, view: f32, position: f32) -> Option<(f32, f32)> {
     if content <= view || view <= 0.0 {
         return None;
@@ -12,16 +17,25 @@ pub fn scroll_handle(content: f32, view: f32, position: f32) -> Option<(f32, f32
     Some((position.clamp(0.0, max) / max * travel, height))
 }
 
+/// Description of a scroll bar.
 pub struct ScrollBar<X, C> {
+    /// Flickable whose content height, position and motion the bar follows.
     pub flickable: Flickable,
+    /// Size of the viewport.
     pub view: Signal<Vec2>,
+    /// Horizontal position of the bar inside its parent.
     pub x: X,
+    /// Vertical offset of the track inside its parent.
     pub top: f32,
+    /// Width of the bar.
     pub width: f32,
+    /// Corner radius of the handle.
     pub radius: f32,
+    /// Colour of the handle.
     pub color: C,
 }
 
+/// Builds the scroll bar handle under `parent` and returns it.
 pub fn scroll_bar<X: IntoSignal<f32>, C: IntoSignal<Color>>(
     scene: &mut Scene,
     parent: NodeId,
