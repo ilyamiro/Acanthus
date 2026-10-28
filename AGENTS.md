@@ -1,6 +1,6 @@
 # Acanthus
 
-**Created:** 2026-10-28 · **Progress:** about 46.3 % toward engine v1 (ROADMAP §3)
+**Created:** 2026-10-28 · **Progress:** about 49.3 % toward engine v1 (ROADMAP §3)
 
 ## Purpose
 Acanthus is a standalone Rust toolkit for building Wayland shells, panels, lock screens, desktop widgets and floating apps: the Rust alternative to Quickshell plus the parts of Qt Quick they rely on (scene graph, layout, text, animation, shaders, input), with native system services as signals, an app framework, a widget library and a markup language (`.serp`) with hot reload. Rust 2024, wgpu on Vulkan, Wayland layer-shell. AGPL-3.0-or-later.
