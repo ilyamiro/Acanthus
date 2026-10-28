@@ -366,7 +366,7 @@ pub(crate) type KeyHandler = Box<dyn FnMut(&KeyEvent) -> bool>;
 
 pub(crate) type PointerHandler = Box<dyn FnMut(PointerEvent)>;
 
-/// A node of the scene tree under construction: its kind, geometry, appearance, layout and input properties. Built with chained methods and added with [`Scene::add`].
+/// A node of the scene tree under construction: its kind, geometry, appearance, layout and input properties. Built with chained methods and added with [`Scene::add`](crate::Scene::add).
 pub struct Node {
     pub(crate) parent: Option<NodeId>,
     pub(crate) children: Vec<NodeId>,
