@@ -5,7 +5,7 @@ use acanthus_core::{Color, Signal, lighten};
 use acanthus_scene::{Anchors, CursorShape, MouseArea, MouseButton, Node, NodeId, Scene};
 
 use crate::button::{self, Feel, Press, Sound};
-use crate::component::{Component, Kind, Prop, PropSpec, Props};
+use crate::component::{Component, Prop, PropSpec, Props};
 use crate::timing::{BASE, FAST, SLOW};
 use acanthus_anim::Keep;
 
@@ -157,10 +157,10 @@ impl Component for ToggleComponent {
             PropSpec::number("corner", || Prop::number(12.0)),
             PropSpec::bool("checked", || Prop::bool(false)),
             PropSpec::bool("enabled", || Prop::bool(true)),
-            PropSpec::required("accent", Kind::Color),
-            PropSpec::required("base", Kind::Color),
-            PropSpec::required("handle_on", Kind::Color),
-            PropSpec::required("handle_off", Kind::Color),
+            PropSpec::themed("accent", "primary"),
+            PropSpec::themed("base", "surface1"),
+            PropSpec::themed("handle_on", "base"),
+            PropSpec::themed("handle_off", "text"),
             PropSpec::bool_event("on_toggle"),
         ];
         PROPS

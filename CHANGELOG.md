@@ -10,4 +10,6 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 - `Node::animate(Prop, Motion)`: QML `Behavior on <property>` for position, size, opacity, scale, rotation, colour, radius and border.
 - `Tokens` (motion, spacing, radii) on `Theme`, `SettingKeys::reduced_motion` and reduced motion in `acanthus-anim` (`set_reduced_motion`, `reduced_motion`, `FAST`/`BASE`/`SLOW`).
 - `cargo xtask api [--check]` and the per-crate public API lists in `docs/api/`, checked by `scripts/check.sh`.
+- `PropSpec::themed`, `Registry::with_colors` and `Theme::role`: colour props follow theme roles when not given.
+- `PortalSettings` (feature `portal-settings`) and `Theme::reduced_motion_system`: the desktop's animation preference.
 - Examples `hello-bar`, `hello-popup` and `hello-widget`.

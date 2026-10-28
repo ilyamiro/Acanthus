@@ -149,72 +149,79 @@ pub struct PropSpec {
     pub kind: Kind,
     /// Value used when the prop is not given; `None` makes the prop required.
     pub default: Option<fn() -> Prop>,
+    /// Theme colour role a colour prop follows when it is not given.
+    pub role: Option<&'static str>,
 }
 
 impl PropSpec {
     /// An optional number prop.
     pub const fn number(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Number, default: Some(default) }
+        PropSpec { name, kind: Kind::Number, default: Some(default), role: None }
     }
 
     /// An optional text prop.
     pub const fn text(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Text, default: Some(default) }
+        PropSpec { name, kind: Kind::Text, default: Some(default), role: None }
     }
 
     /// An optional colour prop.
     pub const fn color(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Color, default: Some(default) }
+        PropSpec { name, kind: Kind::Color, default: Some(default), role: None }
     }
 
     /// An optional boolean prop.
     pub const fn bool(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Bool, default: Some(default) }
+        PropSpec { name, kind: Kind::Bool, default: Some(default), role: None }
     }
 
     /// An optional callback without arguments; it does nothing by default.
     pub const fn event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::Event, default: Some(|| Prop::Event(Rc::new(|| {}))) }
+        PropSpec { name, kind: Kind::Event, default: Some(|| Prop::Event(Rc::new(|| {}))), role: None }
     }
 
     /// An optional callback receiving a number; it does nothing by default.
     pub const fn number_event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::NumberEvent, default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))) }
+        PropSpec { name, kind: Kind::NumberEvent, default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))), role: None }
     }
 
     /// An optional point prop.
     pub const fn point(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Point, default: Some(default) }
+        PropSpec { name, kind: Kind::Point, default: Some(default), role: None }
     }
 
     /// An optional index prop.
     pub const fn index(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Index, default: Some(default) }
+        PropSpec { name, kind: Kind::Index, default: Some(default), role: None }
     }
 
     /// An optional list of texts; empty by default.
     pub const fn text_list(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::TextList, default: Some(|| Prop::TextList(Signal::new(Vec::new()))) }
+        PropSpec { name, kind: Kind::TextList, default: Some(|| Prop::TextList(Signal::new(Vec::new()))), role: None }
     }
 
     /// An optional row of text signals; empty by default.
     pub const fn text_slots(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::TextSlots, default: Some(|| Prop::TextSlots(Vec::new())) }
+        PropSpec { name, kind: Kind::TextSlots, default: Some(|| Prop::TextSlots(Vec::new())), role: None }
     }
 
     /// An optional callback receiving an index; it does nothing by default.
     pub const fn index_event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::IndexEvent, default: Some(|| Prop::IndexEvent(Rc::new(|_| {}))) }
+        PropSpec { name, kind: Kind::IndexEvent, default: Some(|| Prop::IndexEvent(Rc::new(|_| {}))), role: None }
     }
 
     /// An optional callback receiving a boolean; it does nothing by default.
     pub const fn bool_event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::BoolEvent, default: Some(|| Prop::BoolEvent(Rc::new(|_| {}))) }
+        PropSpec { name, kind: Kind::BoolEvent, default: Some(|| Prop::BoolEvent(Rc::new(|_| {}))), role: None }
+    }
+
+    /// A colour prop that follows the theme colour `role` (a palette slot or `primary`) when it is not given; without a theme in the registry it must be given.
+    pub const fn themed(name: &'static str, role: &'static str) -> PropSpec {
+        PropSpec { name, kind: Kind::Color, default: None, role: Some(role) }
     }
 
     /// A prop of `kind` that must be given.
     pub const fn required(name: &'static str, kind: Kind) -> PropSpec {
-        PropSpec { name, kind, default: None }
+        PropSpec { name, kind, default: None, role: None }
     }
 }
 
@@ -506,12 +513,22 @@ fn edit_distance(a: &str, b: &str) -> usize {
 #[derive(Default)]
 pub struct Registry {
     components: HashMap<&'static str, Rc<dyn Component>>,
+    colors: Option<ColorSource>,
 }
+
+/// Looks up the colour signal of a theme role such as `primary` or `surface0`.
+pub type ColorSource = Rc<dyn Fn(&str) -> Option<Signal<Color>>>;
 
 impl Registry {
     /// An empty registry.
     pub fn new() -> Registry {
         Registry::default()
+    }
+
+    /// Supplies the colours that themed props follow when they are not given.
+    pub fn with_colors(mut self, colors: impl Fn(&str) -> Option<Signal<Color>> + 'static) -> Registry {
+        self.colors = Some(Rc::new(colors));
+        self
     }
 
     /// Registers `component` under its name, replacing an earlier one of the same name.
@@ -562,6 +579,11 @@ impl Registry {
         }
         for spec in specs {
             if !values.contains_key(spec.name) {
+                let themed = spec.role.zip(self.colors.as_ref()).and_then(|(role, colors)| colors(role));
+                if let Some(signal) = themed {
+                    values.insert(spec.name, Prop::Color(signal));
+                    continue;
+                }
                 let Some(default) = spec.default else {
                     return Err(BuildError::Missing { component: component.name(), name: spec.name });
                 };
@@ -656,6 +678,39 @@ mod tests {
         assert_eq!(err, BuildError::Missing { component: "Swatch", name: "fill" });
         let err = r.resolve("Swatch", vec![fill(), fill()]).err().unwrap();
         assert_eq!(err.to_string(), "`Swatch.fill` is given twice");
+    }
+
+    #[test]
+    fn themed_props_follow_the_colour_source_and_stay_required_without_one() {
+        struct Tinted;
+        impl Component for Tinted {
+            fn name(&self) -> &'static str {
+                "Tinted"
+            }
+            fn props(&self) -> &'static [PropSpec] {
+                const PROPS: &[PropSpec] = &[PropSpec::themed("fill", "primary"), PropSpec::themed("edge", "missing")];
+                PROPS
+            }
+            fn build(&self, scene: &mut Scene, parent: NodeId, _: &Props) -> NodeId {
+                scene.add(parent, Node::rect())
+            }
+        }
+        let accent = Signal::new(Color::hex(0x00ff00));
+        let source = accent.clone();
+        let mut themed = Registry::new().with_colors(move |role| (role == "primary").then(|| source.clone()));
+        themed.register(Tinted);
+        let err = themed.resolve("Tinted", vec![]).err().unwrap();
+        assert_eq!(err, BuildError::Missing { component: "Tinted", name: "edge" });
+        let given = vec![("edge".to_owned(), Prop::color(Color::hex(1)))];
+        let (_, props) = themed.resolve("Tinted", given).unwrap();
+        accent.set(Color::hex(0x0000ff));
+        assert_eq!(props.color("fill").get_untracked(), Color::hex(0x0000ff));
+        let mut bare = Registry::new();
+        bare.register(Tinted);
+        assert_eq!(
+            bare.resolve("Tinted", vec![]).err().unwrap(),
+            BuildError::Missing { component: "Tinted", name: "fill" }
+        );
     }
 
     #[test]

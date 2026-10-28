@@ -1,7 +1,7 @@
 //! Press feedback shared by every button: a scale pop, a white flash, an optional click sound,
 //! keyboard activation, and the ready-made icon button.
 
-use crate::component::{Component, Kind, Prop, PropSpec, Props};
+use crate::component::{Component, Prop, PropSpec, Props};
 use crate::timing::{BASE, FAST, SLOW};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -272,9 +272,9 @@ impl Component for IconButtonComponent {
             PropSpec::number("glyph_size", || Prop::number(16.0)),
             PropSpec::text("font", || Prop::text("")),
             PropSpec::number("bg_opacity", || Prop::number(1.0)),
-            PropSpec::required("accent", Kind::Color),
-            PropSpec::required("text", Kind::Color),
-            PropSpec::required("text_hover", Kind::Color),
+            PropSpec::themed("accent", "primary"),
+            PropSpec::themed("text", "text"),
+            PropSpec::themed("text_hover", "base"),
             PropSpec::event("on_click"),
         ];
         PROPS

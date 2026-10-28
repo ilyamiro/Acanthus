@@ -105,9 +105,11 @@ pub struct Theme {
     pub tokens: Tokens,
     /// Reduced motion from the settings.
     pub reduced_motion_setting: Signal<bool>,
+    /// Reduced motion asked for by the desktop, for example from the portal Settings service.
+    pub reduced_motion_system: Signal<bool>,
     /// Reduced motion forced by the application, for example from a command-line flag.
     pub reduced_motion_forced: Signal<bool>,
-    /// Whether reduced motion is in effect: the setting or the forced switch. It drives [`acanthus_anim::set_reduced_motion`].
+    /// Whether reduced motion is in effect: the setting, the desktop preference or the forced switch. It drives [`acanthus_anim::set_reduced_motion`].
     pub reduced_motion: Signal<bool>,
     effects: RefCell<Vec<Effect>>,
     sources: RefCell<Sources>,
@@ -220,6 +222,7 @@ impl Theme {
             standalone: Signal::new(false),
             tokens: Tokens::default(),
             reduced_motion_setting: Signal::new(false),
+            reduced_motion_system: Signal::new(false),
             reduced_motion_forced: Signal::new(false),
             reduced_motion: Signal::new(false),
             effects: RefCell::new(Vec::new()),
@@ -264,15 +267,30 @@ impl Theme {
             let next = icon_family.get().unwrap_or_else(|| family.get());
             acanthus_core::untrack(|| icon.set(next));
         }));
-        let (reduced, setting, forced) =
-            (self.reduced_motion.clone(), self.reduced_motion_setting.clone(), self.reduced_motion_forced.clone());
+        let (reduced, setting, system, forced) = (
+            self.reduced_motion.clone(),
+            self.reduced_motion_setting.clone(),
+            self.reduced_motion_system.clone(),
+            self.reduced_motion_forced.clone(),
+        );
         effects.push(Effect::new(move || {
-            let next = setting.get() || forced.get();
+            let next = setting.get() || system.get() || forced.get();
             acanthus_core::untrack(|| reduced.set(next));
         }));
         let reduced = self.reduced_motion.clone();
         effects.push(Effect::new(move || acanthus_anim::set_reduced_motion(reduced.get())));
         *self.effects.borrow_mut() = effects;
+    }
+
+    /// The colour signal of the role `name`: `primary`, `text`, `subtext0`, `subtext1` or any palette slot.
+    pub fn role(&self, name: &str) -> Option<Signal<Color>> {
+        match name {
+            "primary" => Some(self.primary.clone()),
+            "text" => Some(self.text.clone()),
+            "subtext0" => Some(self.subtext0.clone()),
+            "subtext1" => Some(self.subtext1.clone()),
+            other => self.palette.slot(other).cloned(),
+        }
     }
 
     /// `color` with the element opacity.
@@ -450,6 +468,16 @@ mod tests {
     }
 
     #[test]
+    fn roles_resolve_to_live_signals() {
+        let theme = Theme::new();
+        let primary = theme.role("primary").unwrap();
+        theme.palette.blue.set(Color::hex(0x123456));
+        assert_eq!(primary.get_untracked(), Color::hex(0x123456));
+        assert!(theme.role("surface0").is_some());
+        assert!(theme.role("nope").is_none());
+    }
+
+    #[test]
     fn reduced_motion_follows_the_setting_or_the_forced_switch() {
         let theme = Theme::new();
         assert!(!theme.reduced_motion.get_untracked());
@@ -457,6 +485,10 @@ mod tests {
         assert!(theme.reduced_motion.get_untracked());
         assert!(acanthus_anim::reduced_motion());
         theme.reduced_motion_setting.set(false);
+        assert!(!theme.reduced_motion.get_untracked());
+        theme.reduced_motion_system.set(true);
+        assert!(theme.reduced_motion.get_untracked());
+        theme.reduced_motion_system.set(false);
         assert!(!theme.reduced_motion.get_untracked());
         theme.reduced_motion_forced.set(true);
         assert!(theme.reduced_motion.get_untracked());

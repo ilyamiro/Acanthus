@@ -49,6 +49,9 @@ pub mod pipewire;
 /// A polkit authentication agent.
 #[cfg(feature = "polkit")]
 pub mod polkit;
+/// Desktop preferences from the XDG Settings portal: reduced motion.
+#[cfg(feature = "portal-settings")]
+pub mod portal_settings;
 /// Power profiles through power-profiles-daemon.
 #[cfg(feature = "power-profiles")]
 pub mod power_profiles;

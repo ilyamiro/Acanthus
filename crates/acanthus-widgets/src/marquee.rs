@@ -4,7 +4,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::component::{Component, Kind, Prop, PropSpec, Props};
+use crate::component::{Component, Prop, PropSpec, Props};
 use acanthus_anim::{Action, AnimHandle, Easing, Keep, Loop, Pause, Sequential, Tween, start};
 use acanthus_core::{Color, Signal};
 use acanthus_scene::{Layout, Node, NodeId, Scene};
@@ -146,7 +146,7 @@ impl Component for MarqueeComponent {
             PropSpec::number("spacing", || Prop::number(40.0)),
             PropSpec::number("speed", || Prop::number(30.0)),
             PropSpec::bool("active", || Prop::bool(true)),
-            PropSpec::required("color", Kind::Color),
+            PropSpec::themed("color", "text"),
         ];
         PROPS
     }

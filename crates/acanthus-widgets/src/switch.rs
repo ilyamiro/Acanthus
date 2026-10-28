@@ -389,10 +389,10 @@ impl Component for SwitchComponent {
             PropSpec::required("labels", Kind::TextSlots),
             PropSpec::required("count", Kind::Index),
             PropSpec::required("current", Kind::Index),
-            PropSpec::required("accent", Kind::Color),
-            PropSpec::required("base", Kind::Color),
-            PropSpec::required("text", Kind::Color),
-            PropSpec::required("active_text", Kind::Color),
+            PropSpec::themed("accent", "primary"),
+            PropSpec::themed("base", "surface0"),
+            PropSpec::themed("text", "text"),
+            PropSpec::themed("active_text", "base"),
             PropSpec::index_event("on_select"),
         ];
         PROPS

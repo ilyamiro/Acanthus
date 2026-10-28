@@ -6,7 +6,7 @@ use acanthus_anim::{Easing, Keep};
 use acanthus_core::{Color, Effect, Signal};
 use acanthus_scene::{Anchors, CursorShape, MouseArea, Node, NodeId, Scene, TextInput, TextInputStyle};
 
-use crate::component::{Component, Kind, Prop, PropSpec, Props};
+use crate::component::{Component, Prop, PropSpec, Props};
 use crate::timing::FAST;
 
 const CLEAR_GLYPH: &str = "\u{f01b4}";
@@ -133,9 +133,9 @@ impl Component for SearchFieldComponent {
             PropSpec::number("width", || Prop::number(200.0)),
             PropSpec::number("height", || Prop::number(32.0)),
             PropSpec::bool("focus", || Prop::bool(false)),
-            PropSpec::required("text_color", Kind::Color),
-            PropSpec::required("muted", Kind::Color),
-            PropSpec::required("accent", Kind::Color),
+            PropSpec::themed("text_color", "text"),
+            PropSpec::themed("muted", "subtext0"),
+            PropSpec::themed("accent", "primary"),
             PropSpec::event("on_clear"),
         ];
         PROPS

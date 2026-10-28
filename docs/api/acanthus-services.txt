@@ -1015,6 +1015,13 @@ acanthus_services::platform::polkit::default_identity: fn default_identity (iden
 acanthus_services::platform::polkit::parse_group: fn parse_group (text : & str) -> Vec < (u32 , Vec < String >) >
 acanthus_services::platform::polkit::parse_passwd: fn parse_passwd (text : & str) -> Vec < (String , u32 , u32) >
 acanthus_services::platform::polkit::resolve_identities: fn resolve_identities (raw : & [RawIdentity] , passwd : & str , group : & str) -> Vec < PolkitIdentity >
+acanthus_services::platform::portal_settings::PortalSettings.state: PortalSettingsState
+acanthus_services::platform::portal_settings::PortalSettings: struct
+acanthus_services::platform::portal_settings::PortalSettings::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind) -> Result < PortalSettings , IoError >
+acanthus_services::platform::portal_settings::PortalSettingsState.ready: Signal < bool >
+acanthus_services::platform::portal_settings::PortalSettingsState.reduced_motion: Signal < bool >
+acanthus_services::platform::portal_settings::PortalSettingsState: struct [Clone]
+acanthus_services::platform::portal_settings::unwrap_bool: fn unwrap_bool (value : & Variant < '_ >) -> Option < bool >
 acanthus_services::platform::power_profiles::PowerProfiles.state: PowerProfilesState
 acanthus_services::platform::power_profiles::PowerProfiles: struct
 acanthus_services::platform::power_profiles::PowerProfiles::set: fn set (& self , profile : Profile) -> bool

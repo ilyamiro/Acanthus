@@ -79,7 +79,7 @@ impl Component for ScrollBarComponent {
             PropSpec::number("radius", || Prop::number(2.0)),
             PropSpec::point("view", || Prop::Point(Signal::new(Vec2::ZERO))),
             PropSpec::required("flickable", Kind::Flickable),
-            PropSpec::required("color", Kind::Color),
+            PropSpec::themed("color", "overlay1"),
         ];
         PROPS
     }

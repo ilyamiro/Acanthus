@@ -40,6 +40,7 @@ default = [
     "mpris",
     "network",
     "notifications",
+    "portal-settings",
     "power-profiles",
     "screensaver",
     "toplevels",
@@ -57,6 +58,7 @@ idle = ["wayland", "dep:wayland-protocols"]
 mpris = []
 network = []
 notifications = []
+portal-settings = []
 power-profiles = []
 screensaver = []
 toplevels = ["wayland", "dep:wayland-protocols-wlr"]

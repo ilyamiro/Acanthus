@@ -38,6 +38,7 @@ acanthus_widgets::component::BuildError::Missing: variant { # [doc = " The compo
 acanthus_widgets::component::BuildError::UnknownComponent: variant { # [doc = " The name that was asked for."] name : String , # [doc = " The closest registered name."] suggestion : Option < String > , }
 acanthus_widgets::component::BuildError::UnknownProp: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop that was given."] name : String , # [doc = " The closest declared prop."] suggestion : Option < String > , }
 acanthus_widgets::component::BuildError::WrongKind: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop."] name : & 'static str , # [doc = " The declared type."] expected : Kind , # [doc = " The type that was given."] found : Kind , }
+acanthus_widgets::component::ColorSource: type ColorSource = Rc < dyn Fn (& str) -> Option < Signal < Color > > >
 acanthus_widgets::component::Component: trait
 acanthus_widgets::component::Component::build: required fn build (& self , scene : & mut Scene , parent : NodeId , props : & Props) -> NodeId
 acanthus_widgets::component::Component::name: required fn name (& self) -> & 'static str
@@ -81,6 +82,7 @@ acanthus_widgets::component::Prop::text: fn text (value : impl Into < String >) 
 acanthus_widgets::component::PropSpec.default: Option < fn () -> Prop >
 acanthus_widgets::component::PropSpec.kind: Kind
 acanthus_widgets::component::PropSpec.name: & 'static str
+acanthus_widgets::component::PropSpec.role: Option < & 'static str >
 acanthus_widgets::component::PropSpec: struct
 acanthus_widgets::component::PropSpec::bool: const fn bool (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::bool_event: const fn bool_event (name : & 'static str) -> PropSpec
@@ -95,6 +97,7 @@ acanthus_widgets::component::PropSpec::required: const fn required (name : & 'st
 acanthus_widgets::component::PropSpec::text: const fn text (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::text_list: const fn text_list (name : & 'static str) -> PropSpec
 acanthus_widgets::component::PropSpec::text_slots: const fn text_slots (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::themed: const fn themed (name : & 'static str , role : & 'static str) -> PropSpec
 acanthus_widgets::component::Props: struct
 acanthus_widgets::component::Props::bool: fn bool (& self , name : & str) -> Signal < bool >
 acanthus_widgets::component::Props::bool_event: fn bool_event (& self , name : & str) -> Rc < dyn Fn (bool) >
@@ -117,6 +120,7 @@ acanthus_widgets::component::Registry::names: fn names (& self) -> Vec < & 'stat
 acanthus_widgets::component::Registry::new: fn new () -> Registry
 acanthus_widgets::component::Registry::register: fn register (& mut self , component : impl Component + 'static)
 acanthus_widgets::component::Registry::resolve: fn resolve (& self , name : & str , given : Vec < (String , Prop) >) -> Result < (Rc < dyn Component > , Props) , BuildError >
+acanthus_widgets::component::Registry::with_colors: fn with_colors (mut self , colors : impl Fn (& str) -> Option < Signal < Color > > + 'static) -> Registry
 acanthus_widgets::component::nearest: fn nearest < 'a > (word : & str , candidates : impl IntoIterator < Item = & 'a str >) -> Option < & 'a str >
 acanthus_widgets::dropdown::CLICK_SOUND: const CLICK_SOUND: & str
 acanthus_widgets::dropdown::DropdownComponent: struct

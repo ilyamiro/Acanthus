@@ -1,7 +1,7 @@
 //! Value slider from 0 to 100, horizontal or vertical: a gradient fill up to the handle, a handle
 //! that grows while dragged, wheel steps and arrow, Home and End keys.
 
-use crate::component::{Component, Kind, Prop, PropSpec, Props};
+use crate::component::{Component, Prop, PropSpec, Props};
 use crate::timing::{BASE, FAST};
 use crate::wheel::{WHEEL_UNITS_PER_ABSOLUTE, Wheel};
 use std::cell::RefCell;
@@ -287,10 +287,10 @@ impl Component for SliderComponent {
             PropSpec::number("value", || Prop::number(0.0)),
             PropSpec::number("corner_radius", || Prop::number(8.0)),
             PropSpec::number("handle_size", || Prop::number(16.0)),
-            PropSpec::required("background", Kind::Color),
-            PropSpec::required("accent", Kind::Color),
-            PropSpec::required("handle", Kind::Color),
-            PropSpec::required("handle_drag", Kind::Color),
+            PropSpec::themed("background", "surface1"),
+            PropSpec::themed("accent", "primary"),
+            PropSpec::themed("handle", "text"),
+            PropSpec::themed("handle_drag", "subtext1"),
             PropSpec::event("on_drag_start"),
             PropSpec::number_event("on_moved"),
             PropSpec::event("on_drag_finish"),

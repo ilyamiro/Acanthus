@@ -179,6 +179,7 @@ acanthus_runtime::Theme.primary: Signal < Color >
 acanthus_runtime::Theme.reduced_motion: Signal < bool >
 acanthus_runtime::Theme.reduced_motion_forced: Signal < bool >
 acanthus_runtime::Theme.reduced_motion_setting: Signal < bool >
+acanthus_runtime::Theme.reduced_motion_system: Signal < bool >
 acanthus_runtime::Theme.standalone: Signal < bool >
 acanthus_runtime::Theme.subtext0: Signal < Color >
 acanthus_runtime::Theme.subtext1: Signal < Color >
@@ -192,6 +193,7 @@ acanthus_runtime::Theme::faded: fn faded (& self , color : Color) -> Color
 acanthus_runtime::Theme::font_names: fn font_names (& self) -> Vec < String >
 acanthus_runtime::Theme::new: fn new () -> Rc < Theme >
 acanthus_runtime::Theme::radius_or: fn radius_or (& self , fallback : f32) -> f32
+acanthus_runtime::Theme::role: fn role (& self , name : & str) -> Option < Signal < Color > >
 acanthus_runtime::Theme::set_catalog: fn set_catalog (& self , catalog : FontCatalog)
 acanthus_runtime::Theme::set_matugen_colors: fn set_matugen_colors (& self , colors : Option < Value >)
 acanthus_runtime::Theme::surface_fill: fn surface_fill (& self) -> Color
