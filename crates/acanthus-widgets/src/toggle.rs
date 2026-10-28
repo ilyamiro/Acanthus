@@ -5,6 +5,7 @@ use acanthus_core::{Color, Signal, lighten};
 use acanthus_scene::{Anchors, CursorShape, MouseArea, MouseButton, Node, NodeId, Scene};
 
 use crate::button::{self, Feel, Press, Sound};
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use crate::timing::{BASE, FAST, SLOW};
 use acanthus_anim::Keep;
 
@@ -138,4 +139,77 @@ pub fn toggle(scene: &mut Scene, parent: NodeId, spec: ToggleSpec) -> NodeId {
         node.keep(keep);
     }
     body
+}
+
+/// The toggle as a [`Component`] named `Toggle`; presses make no sound.
+pub struct ToggleComponent;
+
+impl Component for ToggleComponent {
+    fn name(&self) -> &'static str {
+        "Toggle"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::number("x", || Prop::number(0.0)),
+            PropSpec::number("y", || Prop::number(0.0)),
+            PropSpec::number("scale", || Prop::number(1.0)),
+            PropSpec::number("corner", || Prop::number(12.0)),
+            PropSpec::bool("checked", || Prop::bool(false)),
+            PropSpec::bool("enabled", || Prop::bool(true)),
+            PropSpec::required("accent", Kind::Color),
+            PropSpec::required("base", Kind::Color),
+            PropSpec::required("handle_on", Kind::Color),
+            PropSpec::required("handle_off", Kind::Color),
+            PropSpec::bool_event("on_toggle"),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        toggle(
+            scene,
+            parent,
+            ToggleSpec {
+                x: props.number("x"),
+                y: props.number("y"),
+                scale: props.number("scale").get_untracked(),
+                corner: props.number("corner").get_untracked(),
+                checked: props.bool("checked"),
+                accent: props.color("accent"),
+                base: props.color("base"),
+                handle_on: props.color("handle_on"),
+                handle_off: props.color("handle_off"),
+                enabled: props.bool("enabled"),
+                sound: None,
+                on_toggle: props.bool_event("on_toggle"),
+            },
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::component::Registry;
+
+    #[test]
+    fn the_registry_builds_a_toggle_and_calls_the_bool_event() {
+        let mut registry = Registry::new();
+        registry.register(ToggleComponent);
+        let seen = Rc::new(std::cell::Cell::new(None));
+        let sink = seen.clone();
+        let colors = ["accent", "base", "handle_on", "handle_off"]
+            .map(|name| (name.to_owned(), Prop::color(Color::hex(0x224466))));
+        let mut given = colors.to_vec();
+        given.push(("on_toggle".to_owned(), Prop::BoolEvent(Rc::new(move |value| sink.set(Some(value))))));
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let node = registry.build("Toggle", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        let err =
+            registry.build("Toggle", &mut scene, root, vec![("chekced".to_owned(), Prop::bool(true))]).unwrap_err();
+        assert!(err.to_string().contains("did you mean `checked`"));
+        assert_eq!(seen.get(), None);
+    }
 }

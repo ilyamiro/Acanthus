@@ -4,6 +4,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use acanthus_anim::{Action, AnimHandle, Easing, Keep, Loop, Pause, Sequential, Tween, start};
 use acanthus_core::{Color, Signal};
 use acanthus_scene::{Layout, Node, NodeId, Scene};
@@ -127,6 +128,48 @@ pub fn build(scene: &mut Scene, parent: NodeId, spec: Spec) -> NodeId {
     container
 }
 
+/// The marquee label as a [`Component`] named `Marquee`.
+pub struct MarqueeComponent;
+
+impl Component for MarqueeComponent {
+    fn name(&self) -> &'static str {
+        "Marquee"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::text("text", || Prop::text("")),
+            PropSpec::text("family", || Prop::text("")),
+            PropSpec::number("size", || Prop::number(14.0)),
+            PropSpec::number("weight", || Prop::number(400.0)),
+            PropSpec::number("width", || Prop::number(120.0)),
+            PropSpec::number("spacing", || Prop::number(40.0)),
+            PropSpec::number("speed", || Prop::number(30.0)),
+            PropSpec::bool("active", || Prop::bool(true)),
+            PropSpec::required("color", Kind::Color),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        build(
+            scene,
+            parent,
+            Spec {
+                text: props.text("text"),
+                color: props.color("color"),
+                family: props.text("family"),
+                size: props.number("size").get_untracked(),
+                weight: props.number("weight").get_untracked().clamp(1.0, 1000.0) as u16,
+                width: props.number("width"),
+                spacing: props.number("spacing").get_untracked(),
+                speed: props.number("speed").get_untracked(),
+                active: props.bool("active"),
+            },
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,5 +184,19 @@ mod tests {
         assert_eq!(scroll_duration_ms(240.0, 30.0), 7200);
         assert_eq!(scroll_duration_ms(10.0, 30.0), 1000);
         assert_eq!(scroll_x(0.5, 241.0), -121.0);
+    }
+
+    #[test]
+    fn the_registry_builds_a_marquee_with_a_numeric_weight() {
+        let mut registry = crate::component::Registry::new();
+        registry.register(MarqueeComponent);
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let given =
+            vec![("color".to_owned(), Prop::color(Color::hex(0xffffff))), ("weight".to_owned(), Prop::number(700.0))];
+        let node = registry.build("Marquee", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        let err = registry.build("Marquee", &mut scene, root, vec![]).unwrap_err();
+        assert_eq!(err.to_string(), "`Marquee` needs the prop `color`");
     }
 }

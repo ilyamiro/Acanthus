@@ -26,6 +26,8 @@ pub enum Kind {
     Event,
     /// A callback receiving a number.
     NumberEvent,
+    /// A callback receiving a boolean.
+    BoolEvent,
 }
 
 impl Kind {
@@ -38,6 +40,7 @@ impl Kind {
             Kind::Color => "color",
             Kind::Event => "event",
             Kind::NumberEvent => "number event",
+            Kind::BoolEvent => "bool event",
         }
     }
 }
@@ -57,6 +60,8 @@ pub enum Prop {
     Event(Rc<dyn Fn()>),
     /// A callback receiving a number.
     NumberEvent(Rc<dyn Fn(f32)>),
+    /// A callback receiving a boolean.
+    BoolEvent(Rc<dyn Fn(bool)>),
 }
 
 impl Prop {
@@ -69,6 +74,7 @@ impl Prop {
             Prop::Color(_) => Kind::Color,
             Prop::Event(_) => Kind::Event,
             Prop::NumberEvent(_) => Kind::NumberEvent,
+            Prop::BoolEvent(_) => Kind::BoolEvent,
         }
     }
 
@@ -109,6 +115,16 @@ impl PropSpec {
         PropSpec { name, kind: Kind::Number, default: Some(default) }
     }
 
+    /// An optional text prop.
+    pub const fn text(name: &'static str, default: fn() -> Prop) -> PropSpec {
+        PropSpec { name, kind: Kind::Text, default: Some(default) }
+    }
+
+    /// An optional colour prop.
+    pub const fn color(name: &'static str, default: fn() -> Prop) -> PropSpec {
+        PropSpec { name, kind: Kind::Color, default: Some(default) }
+    }
+
     /// An optional boolean prop.
     pub const fn bool(name: &'static str, default: fn() -> Prop) -> PropSpec {
         PropSpec { name, kind: Kind::Bool, default: Some(default) }
@@ -122,6 +138,11 @@ impl PropSpec {
     /// An optional callback receiving a number; it does nothing by default.
     pub const fn number_event(name: &'static str) -> PropSpec {
         PropSpec { name, kind: Kind::NumberEvent, default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))) }
+    }
+
+    /// An optional callback receiving a boolean; it does nothing by default.
+    pub const fn bool_event(name: &'static str) -> PropSpec {
+        PropSpec { name, kind: Kind::BoolEvent, default: Some(|| Prop::BoolEvent(Rc::new(|_| {}))) }
     }
 
     /// A prop of `kind` that must be given.
@@ -203,6 +224,17 @@ impl Props {
         match self.get(name) {
             Prop::NumberEvent(callback) => callback.clone(),
             other => panic!("prop `{name}` is a {}, not a number event", other.kind().word()),
+        }
+    }
+
+    /// The boolean callback prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as a bool event.
+    pub fn bool_event(&self, name: &str) -> Rc<dyn Fn(bool)> {
+        match self.get(name) {
+            Prop::BoolEvent(callback) => callback.clone(),
+            other => panic!("prop `{name}` is a {}, not a bool event", other.kind().word()),
         }
     }
 }

@@ -1,6 +1,7 @@
 //! Press feedback shared by every button: a scale pop, a white flash, an optional click sound,
 //! keyboard activation, and the ready-made icon button.
 
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use crate::timing::{BASE, FAST, SLOW};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -252,4 +253,74 @@ pub fn icon_button(scene: &mut Scene, parent: NodeId, spec: IconSpec) -> NodeId 
     );
     dress(scene, body, &radius, &press);
     outer
+}
+
+/// The icon button as a [`Component`] named `IconButton`; clicks make no sound.
+pub struct IconButtonComponent;
+
+impl Component for IconButtonComponent {
+    fn name(&self) -> &'static str {
+        "IconButton"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::number("width", || Prop::number(32.0)),
+            PropSpec::number("height", || Prop::number(32.0)),
+            PropSpec::number("radius", || Prop::number(8.0)),
+            PropSpec::text("glyph", || Prop::text("")),
+            PropSpec::number("glyph_size", || Prop::number(16.0)),
+            PropSpec::text("font", || Prop::text("")),
+            PropSpec::number("bg_opacity", || Prop::number(1.0)),
+            PropSpec::required("accent", Kind::Color),
+            PropSpec::required("text", Kind::Color),
+            PropSpec::required("text_hover", Kind::Color),
+            PropSpec::event("on_click"),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        icon_button(
+            scene,
+            parent,
+            IconSpec {
+                width: props.number("width").get_untracked(),
+                height: props.number("height").get_untracked(),
+                radius: props.number("radius"),
+                glyph: props.text("glyph"),
+                glyph_size: props.number("glyph_size").get_untracked(),
+                font: props.text("font"),
+                accent: props.color("accent"),
+                bg_opacity: props.number("bg_opacity"),
+                text: props.color("text"),
+                text_hover: props.color("text_hover"),
+                sound: None,
+                on_click: props.event("on_click"),
+            },
+        )
+    }
+}
+
+#[cfg(test)]
+mod component_tests {
+    use super::*;
+    use crate::component::Registry;
+
+    #[test]
+    fn the_registry_builds_an_icon_button_and_runs_its_click() {
+        let mut registry = Registry::new();
+        registry.register(IconButtonComponent);
+        let clicks = Rc::new(std::cell::Cell::new(0));
+        let sink = clicks.clone();
+        let mut given: Vec<(String, Prop)> =
+            ["accent", "text", "text_hover"].map(|name| (name.to_owned(), Prop::color(Color::hex(0x445566)))).to_vec();
+        given.push(("on_click".to_owned(), Prop::Event(Rc::new(move || sink.set(sink.get() + 1)))));
+        given.push(("glyph".to_owned(), Prop::text("x")));
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let node = registry.build("IconButton", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        assert_eq!(clicks.get(), 0);
+    }
 }
