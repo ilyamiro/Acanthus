@@ -22,6 +22,8 @@ App framework for building shells and apps (ENGINE.md E3.6).
 6. Settings are read through `Config::section::<T>(path)`; consume fields with `Section::select` so a sibling edit does not re-run the module. Settings spread over several paths or in legacy layouts use `Config::section_with(paths, shape)`; tolerant fields (QML truthiness, numeric strings, blank text as unset) use `acanthus_runtime::lenient` with `deserialize_with`.
 7. Each module has a model (pure data and maths), a controller (signals and actions), a host (surface wiring) and a view (nodes); tests drive the model and controller without a GPU, view tests use the scene only.
 
+- `testing` (`Headless`, `Script`, `Run`, `Image`): offscreen render through the real renderer, replay of `"360,90@500 click@800 key:Escape@1200 stall:600@300"` on a virtual 60 Hz clock, PNG output and a JSON frame log; skips (returns `NoAdapter`) without a Vulkan adapter, lavapipe is enough.
+
 Scaffold: `cargo xtask new-module <name> [--dir <parent>]` (default parent `src`) writes `mod.rs`, `model.rs`, `controller.rs` (over a `Host` trait), `host.rs`, `view.rs` and `tests.rs` with two passing tests; add `pub mod <name>;` and a `Module` impl yourself.
 
-Depends on `acanthus-wayland`, `acanthus-io`, `acanthus-scene`, `acanthus-anim` and `acanthus-core`.
+Depends on `acanthus-render`, `acanthus-wayland`, `acanthus-io`, `acanthus-scene`, `acanthus-anim` and `acanthus-core`.

@@ -17,9 +17,14 @@ dependencies = [
  "acanthus-anim",
  "acanthus-core",
  "acanthus-io",
+ "acanthus-render",
  "acanthus-scene",
  "acanthus-wayland",
+ "image",
+ "pollster",
  "serde_json",
+ "tempfile",
+ "thiserror",
  "tracing",
 ]
 

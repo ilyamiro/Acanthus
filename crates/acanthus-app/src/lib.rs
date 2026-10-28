@@ -6,6 +6,7 @@ pub mod dismiss;
 mod module;
 pub mod popup;
 mod slot;
+pub mod testing;
 
 pub use actions::{Actions, Verb};
 pub use module::{Module, Provided, Running, start_all};

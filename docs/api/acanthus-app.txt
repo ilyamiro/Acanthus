@@ -55,4 +55,54 @@ acanthus_app::popup::Popup::open: required fn open (& self , arg : & str)
 acanthus_app::popup::Popup::toggle: provided fn toggle (& self , arg : & str)
 acanthus_app::popup::closing_on_escape: fn closing_on_escape (close : impl Fn () + 'static , mut keys : impl FnMut (& acanthus_scene :: KeyEvent) -> bool + 'static ,) -> impl FnMut (& acanthus_scene :: KeyEvent) -> bool + 'static
 acanthus_app::start_all: fn start_all < 'm , Cx : ? Sized , M : Module < Cx > + ? Sized + 'm > (modules : impl IntoIterator < Item = & 'm M > , app : & mut App , cx : & Cx , mut on_stage : impl FnMut (& str) ,) -> Result < Vec < Running > , Box < dyn Error > >
+acanthus_app::testing::Action: enum [Clone, Debug, PartialEq]
+acanthus_app::testing::Action::Click: variant (MouseButton)
+acanthus_app::testing::Action::Down: variant (MouseButton)
+acanthus_app::testing::Action::Key: variant (KeyEvent)
+acanthus_app::testing::Action::Leave: variant 
+acanthus_app::testing::Action::Move: variant (Vec2)
+acanthus_app::testing::Action::Scroll: variant (ScrollDelta)
+acanthus_app::testing::Action::Stall: variant (u32)
+acanthus_app::testing::Action::Up: variant (MouseButton)
+acanthus_app::testing::FRAME_MS: const FRAME_MS: f64
+acanthus_app::testing::FrameLog.at_ms: f64
+acanthus_app::testing::FrameLog.drawn: bool
+acanthus_app::testing::FrameLog.index: u32
+acanthus_app::testing::FrameLog.work_ms: f64
+acanthus_app::testing::FrameLog: struct [Clone, Copy, Debug, PartialEq]
+acanthus_app::testing::Headless: struct
+acanthus_app::testing::Headless::device_size: fn device_size (& self) -> (u32 , u32)
+acanthus_app::testing::Headless::new: fn new (width : u32 , height : u32 , scale : f32) -> Result < Headless , HeadlessError >
+acanthus_app::testing::Headless::run: fn run (& self , scene : & mut Scene , script : & Script , duration_ms : u32) -> Run
+acanthus_app::testing::Headless::shot: fn shot (& self , scene : & mut Scene) -> Image
+acanthus_app::testing::HeadlessError: enum [Debug, thiserror :: Error]
+acanthus_app::testing::HeadlessError::NoAdapter: variant (# [from] GpuError)
+acanthus_app::testing::HeadlessError::Png: variant (# [from] image :: ImageError)
+acanthus_app::testing::Image.height: u32
+acanthus_app::testing::Image.rgba: Vec < u8 >
+acanthus_app::testing::Image.width: u32
+acanthus_app::testing::Image: struct [Clone, Debug, Eq, PartialEq]
+acanthus_app::testing::Image::painted: fn painted (& self) -> usize
+acanthus_app::testing::Image::pixel: fn pixel (& self , x : u32 , y : u32) -> [u8 ; 4]
+acanthus_app::testing::Image::save_png: fn save_png (& self , path : impl AsRef < Path >) -> Result < () , HeadlessError >
+acanthus_app::testing::Run.frames: Vec < FrameLog >
+acanthus_app::testing::Run.image: Image
+acanthus_app::testing::Run: struct [Clone, Debug]
+acanthus_app::testing::Run::drawn_frames: fn drawn_frames (& self) -> usize
+acanthus_app::testing::Run::frame_log_json: fn frame_log_json (& self) -> String
+acanthus_app::testing::Run::longest_frame_ms: fn longest_frame_ms (& self) -> f64
+acanthus_app::testing::Script: struct [Clone, Debug, Default, PartialEq]
+acanthus_app::testing::Script::at: fn at (mut self , at_ms : u32 , action : Action) -> Script
+acanthus_app::testing::Script::end_ms: fn end_ms (& self) -> u32
+acanthus_app::testing::Script::new: fn new () -> Script
+acanthus_app::testing::Script::parse: fn parse (text : & str) -> Result < Script , ScriptError >
+acanthus_app::testing::Script::steps: fn steps (& self) -> & [Step]
+acanthus_app::testing::ScriptError.reason: & 'static str
+acanthus_app::testing::ScriptError.token: String
+acanthus_app::testing::ScriptError: struct [Clone, Debug, Eq, PartialEq]
+acanthus_app::testing::Step.action: Action
+acanthus_app::testing::Step.at_ms: u32
+acanthus_app::testing::Step: struct [Clone, Debug, PartialEq]
 impl Default for acanthus_app::Slot
+impl fmt :: Display for acanthus_app::testing::ScriptError
+impl std :: error :: Error for acanthus_app::testing::ScriptError

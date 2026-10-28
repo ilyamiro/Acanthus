@@ -9,7 +9,14 @@ license.workspace = true
 acanthus-anim.workspace = true
 acanthus-core.workspace = true
 acanthus-io.workspace = true
+acanthus-render.workspace = true
 acanthus-scene.workspace = true
 acanthus-wayland.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 tracing.workspace = true
+image.workspace = true
+pollster.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
