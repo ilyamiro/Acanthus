@@ -9,7 +9,7 @@ Last updated 2026-10-28 (repository created; documents only). Older notes: `arch
 | Progress | **41.1 %** toward engine v1 (ROADMAP §3: E0 0.80 + E1 13.00 + E2 8.85 + E3 6.80 + E4 2.00 + E5 5.40 + E6 0 + E7 4.28 + E8 0) |
 | Current step | **P0 baseline (E0.1 to E0.4)**: the repository holds documents, skill, hook and tmux helper only; no crates yet |
 | Source of the code | the frozen repository `~/Projects/serp-rust` at its last commit before this day's split (`git -C ~/Projects/serp-rust log -1`); its `crates/engine/*`, `examples/`, `xtask/`, `docs/engine/` are the baseline, about 1,900 tests in the whole workspace (record the engine share at E0.4) |
-| Git | `main`, local only; no remote yet (ROADMAP D11). Commit without pushing until the user adds one |
+| Git | `main`, origin `git@github.com:ilyamiro/Acanthus.git` (added 2026-10-28, nothing pushed yet; the first push happens in the next `/acanthus` run or when the user asks) |
 | Commands | cargo only through `nix-shell --run '...'`; `dbus-daemon` for service tests comes from the host |
 
 ## 2. Done in the frozen repository (carried over by E0.1)
@@ -31,4 +31,4 @@ Standing rules: never stop to ask which slice to take; three slices per `/acanth
 
 ## 6. Open questions
 
-ROADMAP §7: D3 decided, D7 theme model, D8 feeds, D9 crates.io, D10 where Serpantinum lives after the copy, D11 the Git remote (the user creates the repository).
+ROADMAP §7: D3 decided, D7 theme model, D8 feeds, D9 crates.io, D10 where Serpantinum lives after the copy, D11 decided (remote added).

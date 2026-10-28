@@ -154,7 +154,7 @@ scripts/check.sh              # whole workspace before committing
 | D8 | User-defined feeds and daemons declared in settings | ask before starting | |
 | D9 | Publish on crates.io | decide at E8.12 when the API is frozen | E8.12 |
 | D10 | Where Serpantinum lives after the copy (new repo, or `serp-rust` rewritten in place) | recommend a new directory/repo that starts from the copy checklist in §8; ask at P9 | §8 |
-| D11 | Git remote for Acanthus | the user creates the repository; until then commits stay local | pushing |
+| D11 | Git remote | **Decided 2026-10-28:** `git@github.com:ilyamiro/Acanthus.git` (origin); the `/acanthus` skill pushes to it | none |
 
 ---
 
