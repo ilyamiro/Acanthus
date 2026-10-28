@@ -51,3 +51,22 @@ fn unknown_commands_are_not_handled() {
     let (actions, _controller, _scene) = rig();
     assert!(!actions.dispatch("open", "nothing", ""));
 }
+
+#[test]
+fn the_shortcut_toggles_the_greeting() {
+    let (actions, controller, _scene) = rig();
+    let keys = acanthus_app::Keybindings::new()
+        .bind(
+            crate::model::SHORTCUT,
+            "Toggle the greeting",
+            "Super+G",
+            acanthus_app::Verb::Toggle,
+            crate::model::NAME,
+            "",
+        )
+        .unwrap();
+    assert!(keys.activate(&actions, crate::model::SHORTCUT));
+    assert!(controller.open.get_untracked());
+    assert!(keys.activate(&actions, crate::model::SHORTCUT));
+    assert!(!controller.open.get_untracked());
+}

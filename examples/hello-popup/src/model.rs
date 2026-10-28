@@ -1,3 +1,4 @@
+pub const SHORTCUT: &str = "toggle-greeting";
 pub const STACK: &str = "stack";
 pub const NAME: &str = "greeting";
 pub const WIDTH: f32 = 360.0;

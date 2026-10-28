@@ -46,6 +46,13 @@ acanthus_app::dismiss::attach: fn attach (scene : & mut Scene , parent : NodeId 
 acanthus_app::dismiss::bind_input_region: fn bind_input_region (scene : & Scene , keep : & mut Keep , viewport : & Signal < Vec2 > , alive : & Signal < bool > , reserved : Rc < dyn Fn (Vec2) -> Rect > , popup : Option < Rc < dyn Fn () -> Rect > > ,)
 acanthus_app::dismiss::free_area: fn free_area (reserved : Rect , size : Vec2) -> Rect
 acanthus_app::dismiss::regions: fn regions (reserved : Rect , size : Vec2 , popup : Rect) -> Vec < Rect >
+acanthus_app::keybindings::Keybindings: struct [Default]
+acanthus_app::keybindings::Keybindings::activate: fn activate (& self , actions : & Actions , id : & str) -> bool
+acanthus_app::keybindings::Keybindings::bind: fn bind (mut self , id : & str , description : & str , chord : & str , verb : Verb , target : & 'static str , extra : & 'static str ,) -> Result < Keybindings , ChordError >
+acanthus_app::keybindings::Keybindings::new: fn new () -> Keybindings
+acanthus_app::keybindings::Keybindings::serve: fn serve (self : & Rc < Self > , actions : & Rc < Actions > , ipc : & IpcRegistry , target : & str , method : & str)
+acanthus_app::keybindings::Keybindings::shortcuts: fn shortcuts (& self) -> Vec < Shortcut >
+acanthus_app::keybindings::Keybindings::start: fn start < D : 'static > (self : & Rc < Self > , handle : & LoopHandle < 'static , D > , actions : & Rc < Actions > , launcher : Launcher , kind : CompositorKind , strategy : Strategy , bus : BusKind ,) -> Result < Shortcuts , IoError >
 acanthus_app::menu::SUBMENU_OVERLAP: const SUBMENU_OVERLAP: i32
 acanthus_app::menu::context_popup: fn context_popup (anchor : (i32 , i32 , i32 , i32) , size : (u32 , u32)) -> PopupConfig
 acanthus_app::menu::submenu_popup: fn submenu_popup (parent_width : i32 , row_top : i32 , row_height : i32 , size : (u32 , u32)) -> PopupConfig

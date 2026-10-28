@@ -12,5 +12,6 @@ acanthus-scene.workspace = true
 acanthus-wayland.workspace = true
 acanthus-app.workspace = true
 acanthus-io.workspace = true
+acanthus-services.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

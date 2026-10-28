@@ -3,6 +3,7 @@
 
 pub mod actions;
 pub mod dismiss;
+pub mod keybindings;
 pub mod menu;
 mod module;
 pub mod popup;
@@ -10,6 +11,7 @@ mod slot;
 pub mod testing;
 
 pub use actions::{Actions, Verb};
+pub use keybindings::Keybindings;
 pub use module::{Module, Provided, Running, start_all};
 pub use popup::Popup;
 pub use slot::Slot;
