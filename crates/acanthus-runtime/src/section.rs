@@ -75,13 +75,25 @@ impl Config {
     where
         T: DeserializeOwned + Default + Clone + PartialEq + 'static,
     {
-        let leaf = self.value(path);
+        self.section_with(&[path], |values| values[0].clone())
+    }
+
+    /// Like [`Config::section`] for settings spread over several paths or stored in older layouts: `shape` receives
+    /// the JSON at each of `paths` (in order, `null` when unset) and returns the JSON `T` is parsed from, so legacy
+    /// keys and fallbacks map onto one serde type. The section reports the first path as its own.
+    pub fn section_with<T>(&self, paths: &[&str], shape: impl Fn(&[Value]) -> Value + 'static) -> Section<T>
+    where
+        T: DeserializeOwned + Default + Clone + PartialEq + 'static,
+    {
+        let leaves: Vec<Signal<Value>> = paths.iter().map(|path| self.value(path)).collect();
         let value = Signal::new(T::default());
         let errors = Signal::new(Vec::new());
-        let (target, problems, label) = (value.clone(), errors.clone(), path.to_owned());
+        let label = paths.first().copied().unwrap_or_default().to_owned();
+        let (target, problems, name) = (value.clone(), errors.clone(), label.clone());
         let binding = Effect::new(move || {
-            let parsed = leaf
-                .with(|json| if json.is_null() { Ok(T::default()) } else { serde_json::from_value::<T>(json.clone()) });
+            let raw: Vec<Value> = leaves.iter().map(Signal::get).collect();
+            let json = shape(&raw);
+            let parsed = if json.is_null() { Ok(T::default()) } else { serde_json::from_value::<T>(json) };
             untrack(|| match parsed {
                 Ok(next) => {
                     if target.get_untracked() != next {
@@ -91,10 +103,10 @@ impl Config {
                         problems.set(Vec::new());
                     }
                 }
-                Err(error) => problems.set(vec![format!("{label}: {error}")]),
+                Err(error) => problems.set(vec![format!("{name}: {error}")]),
             });
         });
-        Section { value, errors, path: path.to_owned(), _binding: binding }
+        Section { value, errors, path: label, _binding: binding }
     }
 }
 
@@ -174,5 +186,39 @@ mod tests {
         assert_eq!(schema["path"], "bar");
         assert_eq!(schema["fields"]["height"], json!({"type": "integer", "default": 40}));
         assert_eq!(schema["fields"]["showClock"], json!({"type": "boolean", "default": true}));
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+    #[serde(default)]
+    struct Workspaces {
+        #[serde(deserialize_with = "crate::lenient::text")]
+        style: Option<String>,
+        #[serde(deserialize_with = "crate::lenient::integer")]
+        count: Option<i64>,
+        #[serde(deserialize_with = "crate::lenient::truthy")]
+        hide_empty: bool,
+    }
+
+    #[test]
+    fn a_shaped_section_maps_legacy_keys_from_several_paths() {
+        let (_dir, config) = config(r#"{"bar": {"workspacesStyle": "numbers", "hideEmptyWorkspaces": 1}}"#);
+        let section = config.section_with::<Workspaces>(&["bar", "general.workspaceCount"], |raw| {
+            let (bar, fallback) = (&raw[0], &raw[1]);
+            let nested = &bar["workspaces"];
+            let style = bar.get("workspacesStyle").filter(|v| crate::lenient::is_truthy(v)).unwrap_or(&nested["style"]);
+            let count = bar.get("workspaceCount").unwrap_or(fallback);
+            json!({"style": style, "count": count, "hide_empty": bar["hideEmptyWorkspaces"]})
+        });
+        assert_eq!(section.path(), "bar");
+        assert_eq!(
+            section.get_untracked(),
+            Workspaces { style: Some("numbers".into()), count: None, hide_empty: true }
+        );
+        config.set("general.workspaceCount", json!("6"));
+        assert_eq!(section.get_untracked().count, Some(6));
+        config.set("bar.workspacesStyle", json!(""));
+        config.set("bar.workspaces", json!({"style": "pacman"}));
+        assert_eq!(section.get_untracked().style.as_deref(), Some("pacman"));
+        assert!(section.errors.get_untracked().is_empty());
     }
 }

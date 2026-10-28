@@ -7,6 +7,7 @@ mod config;
 mod font_catalog;
 mod i18n;
 mod json;
+pub mod lenient;
 mod matugen;
 mod paths;
 mod qt_format;
