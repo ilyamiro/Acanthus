@@ -10,7 +10,7 @@ use serde_json::{Map, Value, json};
 use acanthus_color::generate::SchemeType;
 
 use crate::{
-    ColorGenError, ColorMode, ColorTable, Config, ImageRequest, Paths, apply_templates, is_matugen_theme,
+    ColorGenError, ColorMode, ColorTable, Config, ImageRequest, Paths, SettingKeys, apply_templates, is_matugen_theme,
     parse_template_config, signal_processes_named, table_from_image,
 };
 
@@ -87,6 +87,7 @@ pub struct Matugen {
     runner: Rc<dyn MatugenRunner>,
     hooks: Rc<dyn MatugenHooks>,
     config: Config,
+    theme_key: String,
     base_dir: PathBuf,
     state_dir: PathBuf,
     running: Signal<bool>,
@@ -182,15 +183,16 @@ pub fn to_md3(colors: &Value) -> Value {
 }
 
 impl Matugen {
-    /// Scheduler using the settings, the paths and `runner`.
-    pub fn new(config: &Config, paths: &Paths, runner: Rc<dyn MatugenRunner>) -> Rc<Matugen> {
+    /// Scheduler using the theme section named by `keys`, the paths and `runner`.
+    pub fn new(config: &Config, keys: &SettingKeys, paths: &Paths, runner: Rc<dyn MatugenRunner>) -> Rc<Matugen> {
         let hooks = Rc::new(FileHooks { state_dir: paths.state_dir.clone() });
-        Matugen::with_hooks(config, paths, runner, hooks)
+        Matugen::with_hooks(config, keys, paths, runner, hooks)
     }
 
     /// Like [`Matugen::new`] with custom `hooks`.
     pub fn with_hooks(
         config: &Config,
+        keys: &SettingKeys,
         paths: &Paths,
         runner: Rc<dyn MatugenRunner>,
         hooks: Rc<dyn MatugenHooks>,
@@ -200,6 +202,7 @@ impl Matugen {
             runner,
             hooks,
             config: config.clone(),
+            theme_key: keys.theme.clone(),
             base_dir: paths.assets.join("matugen"),
             state_dir: paths.state_dir.clone(),
             running: Signal::new(false),
@@ -229,7 +232,7 @@ impl Matugen {
     }
 
     fn theme_value(&self) -> Value {
-        self.config.current("theme")
+        self.config.current(&self.theme_key)
     }
 
     /// Whether the configured theme asks for generated colours.
@@ -485,7 +488,7 @@ mod tests {
         paths.state_dir = dir.path().join("state");
         let runner = Rc::new(FakeRunner::default());
         let hooks = Rc::new(CountingHooks::default());
-        let matugen = Matugen::with_hooks(&config, &paths, runner.clone(), hooks.clone());
+        let matugen = Matugen::with_hooks(&config, &SettingKeys::default(), &paths, runner.clone(), hooks.clone());
         Fixture { _dir: dir, runner, hooks, matugen, config }
     }
 

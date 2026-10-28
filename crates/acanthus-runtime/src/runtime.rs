@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 use crate::{
     Clock, Config, DEFAULT_FULL_DATE, DEFAULT_TIME_FORMAT, FontCatalog, I18n, Matugen, NativeRunner, Paths, Scaler,
-    ThemeService, is_matugen_theme, parse_scalar, system_language,
+    SettingKeys, ThemeService, is_matugen_theme, parse_scalar, system_language,
 };
 
 /// The runtime services of one application, started together.
@@ -40,18 +40,20 @@ fn string_arg(args: &[Value], index: usize) -> Option<String> {
 }
 
 impl Runtime {
-    /// Starts every service in `handle`'s event loop; `defaults` are the default settings and `serve_ipc` starts the IPC server.
+    /// Starts every service in `handle`'s event loop; `defaults` are the default settings, `keys` name the settings the
+    /// services read and `serve_ipc` starts the IPC server.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         fonts: Fonts,
         paths: Paths,
         defaults: Value,
+        keys: &SettingKeys,
         serve_ipc: bool,
     ) -> Result<Runtime, acanthus_io::IoError> {
         let config = Config::load_with_defaults(&paths.settings, defaults);
         config.attach(handle)?;
 
-        let language = config.value("general.language");
+        let language = config.value(&keys.language);
         let initial_language = language
             .get_untracked()
             .as_str()
@@ -77,12 +79,12 @@ impl Runtime {
 
         let time_format = Signal::new(DEFAULT_TIME_FORMAT.to_owned());
         {
-            let (target, config) = (time_format.clone(), config.clone());
+            let (target, config, candidates) = (time_format.clone(), config.clone(), keys.time_format.clone());
             effects.push(Effect::new(move || {
                 config.revision().get();
-                let pick = |path: &str| config.user_value(path).and_then(|v| v.as_str().map(str::to_owned));
-                let next = pick("bar.time.format")
-                    .or_else(|| pick("general.time_format"))
+                let next = candidates
+                    .iter()
+                    .find_map(|path| config.user_value(path).and_then(|v| v.as_str().map(str::to_owned)))
                     .unwrap_or_else(|| DEFAULT_TIME_FORMAT.to_owned());
                 untrack(|| target.set(next));
             }));
@@ -98,12 +100,13 @@ impl Runtime {
         let clock = Clock::new(crate::local_now, time_format, i18n.language(), full_date);
         clock.attach(handle)?;
 
-        let theme = ThemeService::start(&config, &paths, &fonts, handle)?;
-        let scaler = Scaler::new(&config);
-        let matugen = Matugen::new(&config, &paths, NativeRunner::new(handle, paths.home.clone())?);
+        let theme = ThemeService::start(&config, keys, &paths, &fonts, handle)?;
+        let scaler = Scaler::new(&config, keys);
+        let matugen = Matugen::new(&config, keys, &paths, NativeRunner::new(handle, paths.home.clone())?);
 
         {
-            let (theme_value, matugen, config) = (config.value("theme"), matugen.clone(), config.clone());
+            let (theme_value, matugen, config, wallpaper_key) =
+                (config.value(&keys.theme), matugen.clone(), config.clone(), keys.wallpaper.clone());
             effects.push(Effect::new(move || {
                 let theme = theme_value.get();
                 let mode = theme.get("mode").and_then(Value::as_str).map(str::to_owned);
@@ -113,7 +116,7 @@ impl Runtime {
                             .get("wallpaper")
                             .and_then(Value::as_str)
                             .map(str::to_owned)
-                            .or_else(|| config.current("wallpaper").as_str().map(str::to_owned))
+                            .or_else(|| config.current(&wallpaper_key).as_str().map(str::to_owned))
                             .unwrap_or_default();
                         if !wallpaper.is_empty() {
                             let scheme = theme.get("schemeType").and_then(Value::as_str);
@@ -132,7 +135,7 @@ impl Runtime {
         }
 
         let ipc = IpcRegistry::new();
-        Runtime::register_ipc(&ipc, &config, &theme, &matugen, &fonts, &paths);
+        Runtime::register_ipc(&ipc, &config, &keys.theme, &theme, &matugen, &fonts, &paths);
         let ipc_server = if serve_ipc { Some(IpcServer::bind(handle, &paths.ipc_socket, ipc.clone())?) } else { None };
 
         Ok(Runtime {
@@ -153,14 +156,15 @@ impl Runtime {
     fn register_ipc(
         ipc: &IpcRegistry,
         config: &Config,
+        theme_key: &str,
         theme: &ThemeService,
         matugen: &Rc<Matugen>,
         fonts: &Fonts,
         paths: &Paths,
     ) {
-        let (cfg, th) = (config.clone(), theme.theme.clone());
+        let (cfg, th, key) = (config.clone(), theme.theme.clone(), theme_key.to_owned());
         ipc.register("theme", "reloadColors", move |_| {
-            th.apply_config(&cfg.current("theme"));
+            th.apply_config(&cfg.current(&key));
             Ok(Value::Null)
         });
 
@@ -260,6 +264,13 @@ mod tests {
         Env { _dir: dir, paths, event_loop: EventLoop::try_new().unwrap() }
     }
 
+    fn demo_keys() -> SettingKeys {
+        SettingKeys {
+            time_format: vec!["bar.time.format".into(), "general.time_format".into()],
+            ..SettingKeys::default()
+        }
+    }
+
     fn demo_defaults() -> Value {
         serde_json::from_str(include_str!("fixtures/demo_settings.json")).unwrap()
     }
@@ -275,8 +286,15 @@ mod tests {
     fn start_wires_language_time_and_theme_from_settings() {
         let mut env = env(r##"{"general": {"language": "de"}, "bar": {"time": {"format": "h:mm AP"}},
                 "theme": {"matugen": false, "activePreset": "Dracula", "borderRadius": 30}}"##);
-        let runtime =
-            Runtime::start(&env.event_loop.handle(), Fonts::new(), env.paths.clone(), demo_defaults(), false).unwrap();
+        let runtime = Runtime::start(
+            &env.event_loop.handle(),
+            Fonts::new(),
+            env.paths.clone(),
+            demo_defaults(),
+            &demo_keys(),
+            false,
+        )
+        .unwrap();
         assert_eq!(runtime.i18n.language().get_untracked(), "de");
         assert!(runtime.clock.is_12_hour().get_untracked());
         assert_eq!(runtime.theme.theme.palette.base.get_untracked(), acanthus_core::Color::hex(0x282a36));
@@ -293,11 +311,18 @@ mod tests {
     }
 
     #[test]
-    fn general_time_format_is_the_fallback_when_bar_has_none() {
+    fn later_time_format_key_is_the_fallback_when_earlier_ones_are_unset() {
         let env =
             env(r#"{"general": {"time_format": "hh:mm a"}, "theme": {"matugen": false, "activePreset": "Nord"}}"#);
-        let runtime =
-            Runtime::start(&env.event_loop.handle(), Fonts::new(), env.paths.clone(), demo_defaults(), false).unwrap();
+        let runtime = Runtime::start(
+            &env.event_loop.handle(),
+            Fonts::new(),
+            env.paths.clone(),
+            demo_defaults(),
+            &demo_keys(),
+            false,
+        )
+        .unwrap();
         assert!(runtime.clock.is_12_hour().get_untracked());
         assert!(runtime.effects() > 0);
     }
@@ -305,8 +330,15 @@ mod tests {
     #[test]
     fn ipc_serves_config_and_theme_targets_with_original_names() {
         let mut env = env(r#"{"bar": {"height": 52}, "theme": {"matugen": false, "activePreset": "Nord"}}"#);
-        let runtime =
-            Runtime::start(&env.event_loop.handle(), Fonts::new(), env.paths.clone(), demo_defaults(), true).unwrap();
+        let runtime = Runtime::start(
+            &env.event_loop.handle(),
+            Fonts::new(),
+            env.paths.clone(),
+            demo_defaults(),
+            &demo_keys(),
+            true,
+        )
+        .unwrap();
         let socket = runtime.ipc_path().unwrap().to_path_buf();
         let methods = runtime.ipc.methods();
         for expected in [
@@ -343,7 +375,8 @@ mod tests {
         let env = env("{}");
         let event_loop: EventLoop<'static, ()> = EventLoop::try_new().unwrap();
         let runtime =
-            Runtime::start(&event_loop.handle(), Fonts::new(), env.paths.clone(), demo_defaults(), false).unwrap();
+            Runtime::start(&event_loop.handle(), Fonts::new(), env.paths.clone(), demo_defaults(), &demo_keys(), false)
+                .unwrap();
         assert!(runtime.ipc.call("config", "get", &[]).is_err());
         assert!(runtime.ipc.call("matugen", "generateFromStatic", &[json!("not json")]).is_err());
         assert!(runtime.ipc.call("matugen", "generate", &[json!("")]).unwrap() == json!(false));

@@ -1,10 +1,10 @@
 # acanthus-runtime
 
 **Parent context:** `../../AGENTS.md`
-**Generated:** 2026-10-22 · **Updated:** 2026-10-22
+**Generated:** 2026-10-22 · **Updated:** 2026-10-28
 
 ## Purpose
-Config, i18n, theme, time and scaling services, wired together by `Runtime::start` and exposed over IPC. Reads `assets/` and `config/` from this repository (`SERPANTINUM_ASSETS` / `SERPANTINUM_DIR` override).
+Config, i18n, theme, time and scaling services, wired together by `Runtime::start` and exposed over IPC. Directories come from the application's `AppId` (`<NAME>_ASSETS` / `<NAME>_DIR` override); the settings paths the services read come from `SettingKeys`.
 
 ## Key Files
 | File | Description |
@@ -16,7 +16,8 @@ Config, i18n, theme, time and scaling services, wired together by `Runtime::star
 | `src/theme.rs` | `Palette` (22 roles), `Theme`, `ThemeService` (presets, matugen colours, icon font) |
 | `src/matugen.rs` | `Matugen` request queue over a `MatugenRunner` trait, `to_md3` |
 | `src/font_catalog.rs` | Scan of bundled and user font dirs |
-| `src/scaler.rs` | Per-screen UI scale from `display.monitors.<name>.scale` / `general.uiScale` |
+| `src/keys.rs` | `SettingKeys`: settings paths of language, time format, theme, wallpaper and scale, supplied by the app |
+| `src/scaler.rs` | Per-screen UI scale from the `SettingKeys` scale paths |
 | `src/runtime.rs` | `Runtime` bundle and IPC targets `theme`, `fonts`, `matugen`, `config` |
 | `src/paths.rs`, `src/json.rs` | XDG paths; dotted-path JSON helpers |
 

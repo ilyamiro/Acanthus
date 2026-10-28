@@ -9,7 +9,7 @@ use calloop::LoopHandle;
 use serde_json::Value;
 
 use crate::font_catalog::FontCatalog;
-use crate::{Config, Paths};
+use crate::{Config, Paths, SettingKeys};
 
 const ICON_FONT_FILE: &str = "SymbolsNerdFontMono-Regular.ttf";
 
@@ -339,9 +339,10 @@ pub struct ThemeService {
 }
 
 impl ThemeService {
-    /// Starts watching the settings and the generated colour file.
+    /// Starts watching the theme section named by `keys` and the generated colour file.
     pub fn start<D: 'static>(
         config: &Config,
+        keys: &SettingKeys,
         paths: &Paths,
         fonts: &Fonts,
         handle: &LoopHandle<'static, D>,
@@ -360,16 +361,16 @@ impl ThemeService {
         let load_matugen = {
             let weak: Weak<Theme> = Rc::downgrade(&theme);
             let path = matugen_path.clone();
-            let config = config.clone();
+            let (config, theme_key) = (config.clone(), keys.theme.clone());
             move || {
                 let Some(theme) = weak.upgrade() else { return };
                 let Ok(text) = std::fs::read_to_string(&path) else { return };
                 let Ok(value) = serde_json::from_str::<Value>(text.trim()) else { return };
                 theme.set_matugen_colors(Some(value));
-                theme.apply_config(&config.current("theme"));
+                theme.apply_config(&config.current(&theme_key));
             }
         };
-        let theme_value = config.value("theme");
+        let theme_value = config.value(&keys.theme);
         let (weak, fonts_for_effect) = (Rc::downgrade(&theme), fonts.clone());
         let mut bindings = Vec::new();
         load_matugen();

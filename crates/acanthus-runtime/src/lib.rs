@@ -7,6 +7,7 @@ mod config;
 mod font_catalog;
 mod i18n;
 mod json;
+mod keys;
 pub mod lenient;
 mod matugen;
 mod paths;
@@ -26,6 +27,7 @@ pub use config::{Config, ConfigError, WRITE_DEBOUNCE};
 pub use font_catalog::{FontCatalog, FontEntry};
 pub use i18n::{I18n, is_rtl, system_language};
 pub use json::{get_path, parse_scalar, remove_path, set_path};
+pub use keys::SettingKeys;
 pub use matugen::{
     Matugen, MatugenHooks, MatugenJob, MatugenRequest, MatugenRunner, NativeRunner, execute_job, to_md3,
 };
