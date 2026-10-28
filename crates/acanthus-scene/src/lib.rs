@@ -15,6 +15,7 @@ mod scene;
 mod shader;
 mod text;
 mod text_input;
+mod units;
 
 pub use acanthus_image::{FillMode, IconLookup, ImageId, ImageStatus, ImageStore, register_memory_image};
 pub use axes::{Axis, flags_for as axes_flags, lookup as axes_lookup};

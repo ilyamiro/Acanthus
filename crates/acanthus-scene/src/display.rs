@@ -240,6 +240,7 @@ pub(crate) struct DisplayCx<'a> {
     pub extent: Option<Rect>,
     pub forced: Option<NodeId>,
     pub smooth: bool,
+    pub snap: bool,
 }
 
 impl DisplayCx<'_> {
@@ -370,7 +371,7 @@ impl DisplayCx<'_> {
             return;
         }
         let Some(rect) = self.geometry.get(id).copied() else { return };
-        let phys = rect.scale(self.scale);
+        let phys = if self.snap { snapped(rect.scale(self.scale)) } else { rect.scale(self.scale) };
         let world = match node.local_transform(rect, true) {
             Some(local) => parent * local,
             None => parent,
@@ -405,7 +406,11 @@ impl DisplayCx<'_> {
                         orientation,
                         radius: radius * self.scale,
                         radii: radii.map(|v| v * self.scale),
-                        border_width: border_width * self.scale,
+                        border_width: if self.snap && border_width > 0.0 {
+                            (border_width * self.scale).round().max(1.0)
+                        } else {
+                            border_width * self.scale
+                        },
                         border_color: border_color.fade(opacity),
                         clip,
                         transform,
@@ -542,6 +547,12 @@ fn union(a: Option<Rect>, b: Rect) -> Rect {
             Rect::new(x, y, a.right().max(b.right()) - x, a.bottom().max(b.bottom()) - y)
         }
     }
+}
+
+fn snapped(rect: Rect) -> Rect {
+    let x = rect.x.round();
+    let y = rect.y.round();
+    Rect::new(x, y, rect.right().round() - x, rect.bottom().round() - y)
 }
 
 fn pixel_aligned(rect: Rect) -> Rect {

@@ -60,17 +60,21 @@ pub struct Scene {
     image_entries: SecondaryMap<NodeId, ImageEntry>,
     texts: SecondaryMap<NodeId, ShapedText>,
     geometry: SecondaryMap<NodeId, Rect>,
-    viewport: Vec2,
-    viewport_signal: Signal<Vec2>,
-    input_region: Signal<Option<Vec<Rect>>>,
+    pub(crate) viewport: Vec2,
+    pub(crate) viewport_signal: Signal<Vec2>,
+    pub(crate) input_region: Signal<Option<Vec<Rect>>>,
     keyboard_on_demand: Signal<Option<bool>>,
     layer_raised: Signal<Option<bool>>,
-    layer_geometry: Signal<Option<LayerGeometry>>,
+    pub(crate) layer_geometry: Signal<Option<LayerGeometry>>,
     surface_output: Signal<Option<SurfaceOutput>>,
-    scale: f32,
-    tracker: Rc<Tracker>,
+    pub(crate) scale: f32,
+    pub(crate) surface_size: Vec2,
+    pub(crate) output_scale: f32,
+    pub(crate) ui_scale: Signal<f32>,
+    pub(crate) units: f32,
+    pub(crate) tracker: Rc<Tracker>,
     primitives: Vec<Primitive>,
-    pointer: Option<Vec2>,
+    pub(crate) pointer: Option<Vec2>,
     hovered: Vec<NodeId>,
     pressed: Option<(NodeId, MouseButton)>,
     flick_drag: Option<NodeId>,
@@ -108,6 +112,10 @@ impl Scene {
             layer_geometry: Signal::new(None),
             surface_output: Signal::new(None),
             scale: 1.0,
+            surface_size: Vec2::ZERO,
+            output_scale: 1.0,
+            ui_scale: Signal::new(1.0),
+            units: 1.0,
             tracker: Rc::new(Tracker::new()),
             primitives: Vec::new(),
             pointer: None,
@@ -237,13 +245,12 @@ impl Scene {
         self.nodes.len() <= 1
     }
 
-    /// Sets the viewport size in logical pixels and the output scale factor, marking the scene dirty on change.
+    /// Sets the surface size in compositor logical pixels and the output scale factor, marking the scene dirty on change. The viewport the tree sees is this size divided by the [UI scale](Scene::set_ui_scale).
     pub fn set_viewport(&mut self, size: Vec2, scale: f32) {
-        if self.viewport != size || self.scale != scale {
-            self.viewport = size;
-            self.scale = scale;
-            self.viewport_signal.set(size);
-            self.tracker.mark_dirty();
+        if self.surface_size != size || self.output_scale != scale {
+            self.surface_size = size;
+            self.output_scale = scale;
+            self.apply_units();
         }
     }
 
@@ -277,7 +284,7 @@ impl Scene {
         self.layer_raised.clone()
     }
 
-    /// The output scale factor.
+    /// Device pixels per scene unit: the output scale times the UI scale.
     pub fn scale(&self) -> f32 {
         self.scale
     }
@@ -292,11 +299,13 @@ impl Scene {
         if !self.needs_frame() {
             return Frame { changed: false, primitives: &self.primitives };
         }
+        self.apply_units();
         self.sync_hosts();
         self.settle_hosts();
         let viewport = Rect::new(0.0, 0.0, self.viewport.x, self.viewport.y);
         let tracker = self.tracker.clone();
         let next = tracker.track(|| {
+            self.ui_scale.get();
             self.run_layout(viewport);
             let mut next = Vec::with_capacity(self.primitives.len());
             DisplayCx {
@@ -309,6 +318,7 @@ impl Scene {
                 extent: None,
                 forced: None,
                 smooth: false,
+                snap: self.units != 1.0,
             }
             .build(self.root, viewport);
             next
@@ -439,14 +449,15 @@ impl Scene {
         }
     }
 
-    /// Moves the pointer to `pos`, timestamped from the scene's own clock.
+    /// Moves the pointer to `pos` in compositor logical pixels, timestamped from the scene's own clock.
     pub fn pointer_motion(&mut self, pos: Vec2) {
         let time = self.now();
         self.pointer_motion_at(pos, time);
     }
 
-    /// Moves the pointer to `pos` at `time` seconds, updating hover and running drags.
+    /// Moves the pointer to `pos` (compositor logical pixels) at `time` seconds, updating hover and running drags.
     pub fn pointer_motion_at(&mut self, pos: Vec2, time: f32) {
+        let pos = pos / self.units;
         self.pointer = Some(pos);
         if let Some(id) = self.flick_drag {
             let viewport = self.viewport_size(id);
@@ -569,6 +580,7 @@ impl Scene {
 
     /// Delivers a scroll step to the topmost scrollable node under the pointer.
     pub fn scroll(&mut self, delta: ScrollDelta) {
+        let delta = ScrollDelta { x: delta.x / self.units, y: delta.y / self.units };
         let Some(pos) = self.pointer else { return };
         let hits = self.hits(pos);
         let target = hits.iter().rev().copied().find(|id| {

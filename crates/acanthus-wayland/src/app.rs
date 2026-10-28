@@ -420,7 +420,7 @@ impl State {
 
     fn apply_input_regions(&mut self) {
         for surface in self.surfaces.values_mut() {
-            let wanted = surface.scene.input_region().get_untracked();
+            let wanted = surface.scene.surface_input_region();
             if wanted == surface.applied_region {
                 continue;
             }
@@ -447,7 +447,7 @@ impl State {
 
     fn apply_layer_geometry(&mut self) {
         for surface in self.surfaces.values_mut() {
-            let Some(wanted) = surface.scene.layer_geometry().get_untracked() else { continue };
+            let Some(wanted) = surface.scene.surface_layer_geometry() else { continue };
             if Some(wanted) == surface.applied_geometry {
                 continue;
             }

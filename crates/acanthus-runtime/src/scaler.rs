@@ -17,7 +17,7 @@ impl Scaler {
         Scaler { config: config.clone(), scales: RefCell::default() }
     }
 
-    /// Signal of the scale of `screen`: the screen's own setting, else the general one.
+    /// Signal of the scale of `screen`: the screen's own setting, else the general one. Bind it with `Scene::set_ui_scale` on that screen's surfaces.
     pub fn scale_for(&self, screen: &str) -> Signal<f32> {
         if let Some((signal, _)) = self.scales.borrow().get(screen) {
             return signal.clone();
