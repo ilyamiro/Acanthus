@@ -83,7 +83,83 @@ pub fn attach(scene: &mut Scene, parent: NodeId, keep: &mut Keep, viewport: &Sig
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
+    use acanthus_scene::{Fonts, MouseButton};
+
     use super::*;
+
+    struct Fixture {
+        scene: Scene,
+        keep: Keep,
+        alive: Signal<bool>,
+        closed: Rc<Cell<u32>>,
+        popup_clicks: Rc<Cell<u32>>,
+    }
+
+    fn fixture() -> Fixture {
+        let mut scene = Scene::new(Fonts::new());
+        scene.set_viewport(Vec2::new(400.0, 300.0), 1.0);
+        let mut keep = Keep::default();
+        let alive = Signal::new(true);
+        let closed = Rc::new(Cell::new(0));
+        let popup_clicks = Rc::new(Cell::new(0));
+        let root = scene.root();
+        let viewport = scene.viewport();
+        let c = closed.clone();
+        let spec = Spec {
+            alive: alive.clone(),
+            popup: Rc::new(|| Rect::new(100.0, 100.0, 100.0, 100.0)),
+            reserved: Rc::new(|size| Rect::new(0.0, 0.0, size.x, 40.0)),
+            close: Rc::new(move || c.set(c.get() + 1)),
+        };
+        attach(&mut scene, root, &mut keep, &viewport, spec);
+        let p = popup_clicks.clone();
+        let area = MouseArea::new().on_click(move |_| p.set(p.get() + 1));
+        scene.add(root, Node::rect().x(100.0).y(100.0).size(100.0, 100.0).mouse(area));
+        scene.frame();
+        Fixture { scene, keep, alive, closed, popup_clicks }
+    }
+
+    fn click(scene: &mut Scene, x: f32, y: f32) {
+        scene.pointer_motion(Vec2::new(x, y));
+        scene.pointer_button(MouseButton::Left, true);
+        scene.pointer_button(MouseButton::Left, false);
+    }
+
+    #[test]
+    fn a_click_outside_the_popup_closes_and_one_inside_does_not() {
+        let mut f = fixture();
+        click(&mut f.scene, 300.0, 250.0);
+        assert_eq!(f.closed.get(), 1);
+        click(&mut f.scene, 150.0, 150.0);
+        assert_eq!((f.closed.get(), f.popup_clicks.get()), (1, 1));
+        drop(f.keep);
+    }
+
+    #[test]
+    fn the_input_region_follows_alive_and_the_viewport() {
+        let mut f = fixture();
+        let region = f.scene.input_region();
+        assert_eq!(
+            region.get_untracked(),
+            Some(vec![Rect::new(0.0, 40.0, 400.0, 260.0), Rect::new(100.0, 100.0, 100.0, 100.0)])
+        );
+        f.alive.set(false);
+        assert_eq!(region.get_untracked(), Some(Vec::new()));
+        f.alive.set(true);
+        f.scene.set_viewport(Vec2::new(800.0, 600.0), 1.0);
+        assert_eq!(region.get_untracked().unwrap()[0], Rect::new(0.0, 40.0, 800.0, 560.0));
+    }
+
+    #[test]
+    fn a_hidden_layer_ignores_clicks() {
+        let mut f = fixture();
+        f.alive.set(false);
+        f.scene.frame();
+        click(&mut f.scene, 300.0, 250.0);
+        assert_eq!(f.closed.get(), 0);
+    }
 
     fn size() -> Vec2 {
         Vec2::new(1920.0, 1080.0)
