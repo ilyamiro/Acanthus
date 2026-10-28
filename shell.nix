@@ -12,7 +12,7 @@ let
   ];
 in
 pkgs.mkShell {
-  name = "serp-rust";
+  name = "acanthus";
 
   nativeBuildInputs = with pkgs; [
     cargo
