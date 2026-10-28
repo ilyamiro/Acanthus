@@ -1,0 +1,11 @@
+[package]
+name = "acanthus-core"
+description = "Reactive runtime and shared primitive types for Wayland shells and apps"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+slotmap.workspace = true
+tracing.workspace = true
+glam.workspace = true

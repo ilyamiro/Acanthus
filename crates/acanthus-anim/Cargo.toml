@@ -1,0 +1,10 @@
+[package]
+name = "acanthus-anim"
+description = "Animation engine: Qt-compatible easing, tweens, springs and behaviors"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+slotmap.workspace = true

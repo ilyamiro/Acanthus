@@ -1,0 +1,18 @@
+[package]
+name = "acanthus-scene"
+description = "Retained scene graph: nodes, layout, text, input and display lists"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+acanthus-anim.workspace = true
+acanthus-image.workspace = true
+slotmap.workspace = true
+cosmic-text.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+image.workspace = true
+tempfile.workspace = true

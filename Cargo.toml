@@ -1,0 +1,88 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/acanthus-core",
+    "crates/acanthus-color",
+    "crates/acanthus-anim",
+    "crates/acanthus-image",
+    "crates/acanthus-scene",
+    "crates/acanthus-render",
+    "crates/acanthus-wayland",
+    "crates/acanthus-io",
+    "crates/acanthus-runtime",
+    "crates/acanthus-services",
+    "crates/acanthus-widgets",
+    "crates/acanthus-app",
+    "examples/hello-bar",
+    "examples/hello-popup",
+    "examples/hello-widget",
+    "xtask",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/ilyamiro/Acanthus"
+
+[workspace.dependencies]
+acanthus-core = { path = "crates/acanthus-core" }
+acanthus-color = { path = "crates/acanthus-color" }
+acanthus-anim = { path = "crates/acanthus-anim" }
+acanthus-image = { path = "crates/acanthus-image" }
+acanthus-scene = { path = "crates/acanthus-scene" }
+acanthus-render = { path = "crates/acanthus-render" }
+acanthus-wayland = { path = "crates/acanthus-wayland" }
+acanthus-io = { path = "crates/acanthus-io" }
+acanthus-runtime = { path = "crates/acanthus-runtime" }
+acanthus-services = { path = "crates/acanthus-services" }
+acanthus-widgets = { path = "crates/acanthus-widgets" }
+acanthus-app = { path = "crates/acanthus-app" }
+
+wgpu = { version = "30.0.1", default-features = false, features = ["vulkan", "wgsl", "std"] }
+smithay-client-toolkit = { version = "0.21.1", default-features = false, features = ["calloop", "xkbcommon"] }
+wayland-client = { version = "0.31.15", features = ["system"] }
+wayland-protocols = { version = "0.32.13", features = ["client", "staging", "unstable"] }
+wayland-protocols-wlr = { version = "0.3.12", features = ["client"] }
+calloop-wayland-source = "0.4.1"
+cosmic-text = "0.19.0"
+swash = "0.2.10"
+slotmap = "1.1.1"
+raw-window-handle = "0.6.2"
+bytemuck = { version = "1.25.2", features = ["derive"] }
+glam = "0.34.1"
+thiserror = "2.0.21"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+pollster = "1.0.1"
+calloop = "0.14.5"
+rustix = { version = "1.1.5", features = ["process", "fs", "net", "event", "std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tempfile = "3"
+indexmap = "2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp"] }
+resvg = { version = "0.45.1", default-features = false }
+zbus = "6"
+rusqlite = { version = "0.37", features = ["bundled"] }
+futures-lite = "2"
+async-channel = "2"
+async-io = "2"
+async-executor = "1"
+pipewire = "0.10.1"
+libloading = "0.8.9"
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std", "unstable-locales"] }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "unwind"
+debug = "line-tables-only"
+strip = "debuginfo"

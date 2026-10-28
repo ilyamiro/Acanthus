@@ -1,0 +1,40 @@
+[package]
+name = "acanthus-services"
+description = "System integration services (D-Bus, compositor IPC, system info) exposed as reactive signals"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+acanthus-io.workspace = true
+calloop.workspace = true
+zbus.workspace = true
+futures-lite.workspace = true
+async-channel.workspace = true
+async-io.workspace = true
+async-executor.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rustix.workspace = true
+chrono.workspace = true
+image.workspace = true
+regex.workspace = true
+pipewire = { workspace = true, optional = true }
+libloading = { workspace = true, optional = true }
+wayland-client.workspace = true
+wayland-protocols.workspace = true
+wayland-protocols-wlr.workspace = true
+calloop-wayland-source.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[features]
+default = ["pipewire", "pam", "polkit"]
+pipewire = ["dep:pipewire"]
+pam = ["dep:libloading"]
+polkit = []
+testing = []
+
+[dev-dependencies]
+tempfile.workspace = true

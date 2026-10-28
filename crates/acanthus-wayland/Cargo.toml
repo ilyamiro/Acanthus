@@ -1,0 +1,20 @@
+[package]
+name = "acanthus-wayland"
+description = "Wayland platform layer: event loop, layer-shell surfaces, input and frame pacing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+acanthus-anim.workspace = true
+acanthus-scene.workspace = true
+acanthus-render.workspace = true
+smithay-client-toolkit.workspace = true
+wayland-client.workspace = true
+wayland-protocols.workspace = true
+raw-window-handle.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+slotmap.workspace = true

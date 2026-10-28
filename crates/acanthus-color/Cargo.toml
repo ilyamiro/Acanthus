@@ -1,0 +1,12 @@
+[package]
+name = "acanthus-color"
+description = "Material You colour science: HCT, quantiser, scoring and dynamic schemes, ported from material-colors"
+version.workspace = true
+edition.workspace = true
+license = "AGPL-3.0-or-later AND (MIT OR Apache-2.0)"
+
+[dependencies]
+indexmap.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

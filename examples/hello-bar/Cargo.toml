@@ -1,0 +1,16 @@
+[package]
+name = "hello-bar"
+description = "Smallest Acanthus app: a top bar with a clock and the battery level, engine crates only"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+acanthus-core.workspace = true
+acanthus-scene.workspace = true
+acanthus-wayland.workspace = true
+acanthus-runtime.workspace = true
+acanthus-services.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

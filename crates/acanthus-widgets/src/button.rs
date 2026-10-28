@@ -1,0 +1,216 @@
+use crate::timing::{BASE, FAST, SLOW};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use acanthus_anim::{AnimHandle, Easing, Sequential, Tween, start};
+use acanthus_core::{Color, Signal, lighten};
+use acanthus_scene::{Anchors, CursorShape, Key, MouseArea, MouseButton, Node, NodeId, Scene};
+
+use acanthus_anim::Keep;
+
+pub type Sound = Option<Rc<dyn Fn(&str)>>;
+
+#[derive(Clone, Copy)]
+pub struct Feel {
+    pub pop_peak: f32,
+    pub pop_in_ms: u32,
+    pub pop_out_ms: u32,
+    pub flash_peak: f32,
+    pub flash_ms: u32,
+    pub sound: &'static str,
+}
+
+pub const CLICK: Feel = Feel {
+    pop_peak: 1.015,
+    pop_in_ms: 100,
+    pop_out_ms: SLOW,
+    flash_peak: 0.15,
+    flash_ms: SLOW,
+    sound: "reusables/clickbutton/click.wav",
+};
+
+pub const ICON: Feel = Feel {
+    pop_peak: 1.1,
+    pop_in_ms: 110,
+    pop_out_ms: SLOW,
+    flash_peak: 0.4,
+    flash_ms: 400,
+    sound: "reusables/iconbutton/click.wav",
+};
+
+pub struct Press {
+    feel: Feel,
+    sound: Sound,
+    pop: Signal<f32>,
+    flash: Signal<f32>,
+    pop_run: RefCell<Option<AnimHandle>>,
+    flash_run: RefCell<Option<AnimHandle>>,
+}
+
+impl Press {
+    pub fn new(feel: Feel, sound: Sound) -> Rc<Press> {
+        Rc::new(Press {
+            feel,
+            sound,
+            pop: Signal::new(1.0),
+            flash: Signal::new(0.0),
+            pop_run: RefCell::default(),
+            flash_run: RefCell::default(),
+        })
+    }
+
+    pub fn fire(&self) {
+        let feel = self.feel;
+        self.pop.set(1.0);
+        let sequence = Sequential::new()
+            .then(Tween::new(&self.pop, feel.pop_peak, feel.pop_in_ms, Easing::OutQuad))
+            .then(Tween::new(&self.pop, 1.0, feel.pop_out_ms, Easing::OutQuint));
+        if let Some(old) = self.pop_run.borrow_mut().replace(start(sequence)) {
+            old.stop();
+        }
+        self.flash.set(feel.flash_peak);
+        let fade = Tween::new(&self.flash, 0.0, feel.flash_ms, Easing::OutExpo);
+        if let Some(old) = self.flash_run.borrow_mut().replace(start(fade)) {
+            old.stop();
+        }
+        if let Some(sound) = &self.sound {
+            sound(feel.sound);
+        }
+    }
+
+    pub fn scale(&self, keep: &mut Keep, hover: &Signal<f32>) -> Signal<f32> {
+        let (hover, pop) = (hover.clone(), self.pop.clone());
+        let target = keep.derive(move || hover.get() * pop.get());
+        keep.ease(&target, BASE, Easing::OutQuint)
+    }
+}
+
+impl Drop for Press {
+    fn drop(&mut self) {
+        for slot in [&self.pop_run, &self.flash_run] {
+            if let Some(handle) = slot.borrow_mut().take() {
+                handle.stop();
+            }
+        }
+    }
+}
+
+pub fn activate(press: &Rc<Press>, click: impl Fn() + 'static) -> Rc<dyn Fn()> {
+    let press = press.clone();
+    Rc::new(move || {
+        press.fire();
+        click();
+    })
+}
+
+pub fn focusable(node: Node, activate: Rc<dyn Fn()>) -> Node {
+    node.focusable(true).on_key(move |event| {
+        if matches!(event.key, Key::Char(' ') | Key::Enter) {
+            activate();
+            true
+        } else {
+            false
+        }
+    })
+}
+
+pub const FILL: Feel = Feel {
+    pop_peak: 0.95,
+    pop_in_ms: 110,
+    pop_out_ms: 400,
+    flash_peak: 0.5,
+    flash_ms: 400,
+    sound: "reusables/fillbutton/button.wav",
+};
+
+pub fn flash(scene: &mut Scene, body: NodeId, radius: &Signal<f32>, press: &Press) {
+    scene.add(body, Node::rect().anchors(Anchors::fill(0.0)).radius(radius).color(Color::WHITE).opacity(&press.flash));
+}
+
+pub fn dress(scene: &mut Scene, body: NodeId, radius: &Signal<f32>, press: &Press) {
+    flash(scene, body, radius, press);
+}
+
+pub struct IconSpec {
+    pub width: f32,
+    pub height: f32,
+    pub radius: Signal<f32>,
+    pub glyph: Signal<String>,
+    pub glyph_size: f32,
+    pub font: Signal<String>,
+    pub accent: Signal<Color>,
+    pub bg_opacity: Signal<f32>,
+    pub text: Signal<Color>,
+    pub text_hover: Signal<Color>,
+    pub sound: Sound,
+    pub on_click: Rc<dyn Fn()>,
+}
+
+pub fn icon_button(scene: &mut Scene, parent: NodeId, spec: IconSpec) -> NodeId {
+    let mut keep = Keep::default();
+    let area = MouseArea::new();
+    let (hovered, pressed) = (area.hovered(), area.pressed());
+    let press = Press::new(ICON, spec.sound);
+    let act = activate(&press, {
+        let on_click = spec.on_click;
+        move || on_click()
+    });
+    let area = {
+        let act = act.clone();
+        area.on_click(move |btn| {
+            if btn == MouseButton::Left {
+                act()
+            }
+        })
+    };
+    let scale_target = {
+        let (hovered, pressed) = (hovered.clone(), pressed.clone());
+        keep.derive(move || {
+            if pressed.get() {
+                0.96f32
+            } else if hovered.get() {
+                1.04
+            } else {
+                1.0
+            }
+        })
+    };
+    let scale = press.scale(&mut keep, &scale_target);
+    let bg_target = {
+        let (hovered, pressed, accent) = (hovered.clone(), pressed, spec.accent.clone());
+        keep.derive(move || {
+            let base = accent.get();
+            if pressed.get() {
+                Color { r: base.r / 1.12, g: base.g / 1.12, b: base.b / 1.12, a: base.a }
+            } else if hovered.get() {
+                lighten(base, 1.12)
+            } else {
+                base
+            }
+        })
+    };
+    let bg = keep.ease(&bg_target, FAST, Easing::Linear);
+    let glyph_color = {
+        let (hovered, normal, hover) = (hovered, spec.text.clone(), spec.text_hover.clone());
+        keep.derive(move || if hovered.get() { hover.get() } else { normal.get() })
+    };
+    let radius = spec.radius;
+    keep.add(press.clone());
+    let outer = focusable(
+        Node::item().width(spec.width).height(spec.height).mouse(area).cursor(CursorShape::Pointer).own(keep),
+        act,
+    );
+    let outer = scene.add(parent, outer);
+    let body = scene.add(outer, Node::item().anchors(Anchors::fill(0.0)).scale(&scale));
+    scene.add(body, Node::rect().anchors(Anchors::fill(0.0)).radius(&radius).color(&bg).opacity(&spec.bg_opacity));
+    scene.add(
+        body,
+        Node::text(&spec.glyph)
+            .anchors(Anchors::center())
+            .font_family(&spec.font)
+            .font_size(spec.glyph_size)
+            .color(&glyph_color),
+    );
+    dress(scene, body, &radius, &press);
+    outer
+}

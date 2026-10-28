@@ -1,0 +1,11 @@
+[package]
+name = "acanthus-widgets"
+description = "Reusable widgets: press feel, buttons, toggle, switch, slider, marquee, scroll bar, search field, wheel and the motion tokens"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+acanthus-anim.workspace = true
+acanthus-scene.workspace = true

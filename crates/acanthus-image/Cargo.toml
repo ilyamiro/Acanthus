@@ -1,0 +1,15 @@
+[package]
+name = "acanthus-image"
+description = "Image and icon loading: raster and SVG decode, freedesktop icon lookup, fill modes, async store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+image.workspace = true
+resvg = { workspace = true }
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "hello-popup"
+description = "Second Acanthus example: a popup on a lazy surface, opened over IPC through the action registry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+acanthus-core.workspace = true
+acanthus-scene.workspace = true
+acanthus-wayland.workspace = true
+acanthus-app.workspace = true
+acanthus-io.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

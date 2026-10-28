@@ -1,0 +1,18 @@
+[package]
+name = "acanthus-io"
+description = "Process, file watching, atomic writes and IPC sockets driven from a calloop event loop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acanthus-core.workspace = true
+calloop.workspace = true
+rustix.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
