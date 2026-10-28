@@ -2,6 +2,7 @@
 
 #![deny(missing_docs)]
 
+mod animate;
 mod axes;
 mod display;
 mod dynamic;
@@ -18,6 +19,7 @@ mod text_input;
 mod units;
 
 pub use acanthus_image::{FillMode, IconLookup, ImageId, ImageStatus, ImageStore, register_memory_image};
+pub use animate::Prop;
 pub use axes::{Axis, flags_for as axes_flags, lookup as axes_lookup};
 pub use cosmic_text::CacheKey;
 pub use display::{Clip, Glyph, ImageDraw, LayerBegin, LayerFx, LayerShadowFx, Primitive, Quad, ShaderDraw, ShapeClip};
