@@ -27,6 +27,7 @@ impl<E> Clone for EventSink<E> {
 /// Sends commands to a worker task; dropping it closes the channel and unregisters the event source.
 pub struct ServiceHandle<C> {
     commands: async_channel::Sender<C>,
+    stop: async_channel::Sender<()>,
     remove: Option<Box<dyn FnOnce()>>,
 }
 
@@ -40,6 +41,7 @@ impl<C> ServiceHandle<C> {
 impl<C> Drop for ServiceHandle<C> {
     fn drop(&mut self) {
         self.commands.close();
+        self.stop.close();
         if let Some(remove) = self.remove.take() {
             remove();
         }
@@ -130,9 +132,9 @@ where
     Fut: Future<Output = ()> + 'static,
 {
     let name = name.to_owned();
-    spawn_with(handle, on_event, move |events, commands| {
+    spawn_with(handle, on_event, move |events, commands, stop| {
         std::thread::Builder::new().name(name).spawn(move || {
-            async_io::block_on(run(events, commands));
+            async_io::block_on(until_stopped(run(events, commands), &stop));
         })?;
         Ok(())
     })
@@ -141,7 +143,7 @@ where
 fn spawn_with<D, E, C>(
     handle: &LoopHandle<'static, D>,
     mut on_event: impl FnMut(E) + 'static,
-    launch: impl FnOnce(EventSink<E>, async_channel::Receiver<C>) -> Result<(), IoError>,
+    launch: impl FnOnce(EventSink<E>, async_channel::Receiver<C>, async_channel::Receiver<()>) -> Result<(), IoError>,
 ) -> Result<ServiceHandle<C>, IoError>
 where
     D: 'static,
@@ -155,12 +157,27 @@ where
         }
     })?;
     let (command_tx, command_rx) = async_channel::unbounded();
+    let (stop_tx, stop_rx) = async_channel::bounded(1);
     let weak = WeakHandle::new(handle);
-    if let Err(error) = launch(EventSink(sender), command_rx) {
+    if let Err(error) = launch(EventSink(sender), command_rx, stop_rx) {
         weak.remove(token);
         return Err(error);
     }
-    Ok(ServiceHandle { commands: command_tx, remove: Some(Box::new(move || weak.remove(token))) })
+    Ok(ServiceHandle { commands: command_tx, stop: stop_tx, remove: Some(Box::new(move || weak.remove(token))) })
+}
+
+async fn until_stopped(work: impl Future<Output = ()>, stop: &async_channel::Receiver<()>) -> bool {
+    futures_lite::future::or(
+        async {
+            work.await;
+            false
+        },
+        async {
+            let _ = stop.recv().await;
+            true
+        },
+    )
+    .await
 }
 
 type Job = Box<dyn FnOnce(&LocalExecutor<'static>) + Send>;
@@ -240,23 +257,28 @@ where
     Fut: Future<Output = ()> + 'static,
 {
     let label = name.to_owned();
-    spawn_with(handle, on_event, move |events, commands| {
+    spawn_with(handle, on_event, move |events, commands, stop| {
         let job: Job = Box::new(move |local| {
             local
                 .spawn(async move {
                     let mut delay: Option<Duration> = None;
                     loop {
                         let started = Instant::now();
-                        run(events.clone(), commands.clone()).await;
-                        if commands.is_closed() {
+                        if until_stopped(run(events.clone(), commands.clone()), &stop).await || commands.is_closed() {
                             return;
                         }
                         let wait = backoff.next(delay, started.elapsed());
                         tracing::warn!("{label} stopped, restarting in {wait:?}");
                         crate::platform::dbus::forget_all_shared();
                         delay = Some(wait);
-                        async_io::Timer::after(wait).await;
-                        if commands.is_closed() {
+                        let slept = until_stopped(
+                            async {
+                                async_io::Timer::after(wait).await;
+                            },
+                            &stop,
+                        )
+                        .await;
+                        if slept || commands.is_closed() {
                             return;
                         }
                     }
@@ -384,5 +406,64 @@ mod tests {
         let after = *starts.borrow();
         event_loop.dispatch(Duration::from_millis(60), &mut ()).unwrap();
         assert_eq!(*starts.borrow(), after);
+    }
+
+    struct Finished(std::sync::mpsc::Sender<&'static str>);
+
+    impl Drop for Finished {
+        fn drop(&mut self) {
+            let _ = self.0.send("finished");
+        }
+    }
+
+    #[test]
+    fn a_worker_deaf_to_commands_stops_with_its_handle() {
+        let event_loop: EventLoop<'static, ()> = EventLoop::try_new().unwrap();
+        for supervised in [false, true] {
+            let (done_tx, done_rx) = std::sync::mpsc::channel();
+            let run = move |_events: EventSink<()>, _commands: async_channel::Receiver<()>| {
+                let guard = Finished(done_tx.clone());
+                async move {
+                    let _guard = guard;
+                    futures_lite::future::pending::<()>().await;
+                }
+            };
+            let service = if supervised {
+                spawn_supervised(&event_loop.handle(), "deaf", |_: ()| {}, run).unwrap()
+            } else {
+                spawn_worker(&event_loop.handle(), "deaf", |_: ()| {}, run).unwrap()
+            };
+            assert!(done_rx.recv_timeout(Duration::from_millis(100)).is_err(), "supervised {supervised}");
+            drop(service);
+            assert_eq!(done_rx.recv_timeout(Duration::from_secs(5)), Ok("finished"), "supervised {supervised}");
+        }
+    }
+
+    #[test]
+    fn a_supervised_worker_waiting_to_restart_stops_with_its_handle() {
+        let event_loop: EventLoop<'static, ()> = EventLoop::try_new().unwrap();
+        let (runs_tx, runs_rx) = std::sync::mpsc::channel();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        let supervisor_alive = Finished(done_tx);
+        let backoff = Backoff { first: Duration::from_secs(60), max: Duration::from_secs(60), healthy: Duration::ZERO };
+        let service = spawn_supervised_with(
+            &event_loop.handle(),
+            "flaky",
+            backoff,
+            |_: ()| {},
+            move |_events, _commands: async_channel::Receiver<()>| {
+                let _ = &supervisor_alive;
+                let runs = runs_tx.clone();
+                async move {
+                    let _ = runs.send(());
+                }
+            },
+        )
+        .unwrap();
+        runs_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(done_rx.recv_timeout(Duration::from_millis(100)).is_err());
+        drop(service);
+        assert_eq!(done_rx.recv_timeout(Duration::from_secs(5)), Ok("finished"));
+        assert!(runs_rx.try_recv().is_err());
     }
 }

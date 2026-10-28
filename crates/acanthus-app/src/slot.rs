@@ -11,7 +11,8 @@ enum Held<T> {
 ///
 /// A [`Slot::new`] slot keeps the service for the life of the slot. A [`Slot::demand`] slot only
 /// weakly references it, so the service stops when the last consumer drops its handle and starts
-/// again on the next request.
+/// again on the next request. Every `acanthus-services` service stops its worker when dropped, so any of
+/// them can live in a demand slot.
 pub struct Slot<T> {
     held: RefCell<Held<T>>,
     keep: bool,
