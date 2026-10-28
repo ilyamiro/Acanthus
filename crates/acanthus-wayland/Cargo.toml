@@ -9,6 +9,7 @@ license.workspace = true
 acanthus-core.workspace = true
 acanthus-anim.workspace = true
 acanthus-scene.workspace = true
+acanthus-image.workspace = true
 acanthus-render.workspace = true
 smithay-client-toolkit.workspace = true
 wayland-client.workspace = true

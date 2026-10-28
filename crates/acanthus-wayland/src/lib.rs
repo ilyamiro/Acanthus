@@ -2,6 +2,7 @@
 
 #![deny(missing_docs)]
 mod app;
+mod capture;
 mod clipboard;
 mod control;
 mod idle_inhibit;
@@ -14,6 +15,7 @@ mod surface;
 mod window;
 
 pub use app::{App, AppError, AppHandle, State, SurfaceId};
+pub use capture::{Capture, CaptureConfig, CaptureError, CaptureState};
 pub use clipboard::{Selection, SystemClipboard};
 pub use lock::{LockConfig, LockPhase};
 pub use output::OutputInfo;

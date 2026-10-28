@@ -155,6 +155,7 @@ version = "0.1.0"
 dependencies = [
  "acanthus-anim",
  "acanthus-core",
+ "acanthus-image",
  "acanthus-render",
  "acanthus-scene",
  "calloop",

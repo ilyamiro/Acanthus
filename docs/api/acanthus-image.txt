@@ -52,6 +52,10 @@ acanthus_image::ImageStore::request: fn request (& self , source : & str , targe
 acanthus_image::ImageStore::status: fn status (& self , id : ImageId) -> ImageStatus
 acanthus_image::ImageStore::with_icons: fn with_icons (icons : Arc < IconLookup >) -> Self
 acanthus_image::ImageStore::with_waker: fn with_waker (icons : Arc < IconLookup > , waker : Arc < dyn Fn () + Send + Sync >) -> Self
+acanthus_image::MemorySlot: struct [Debug]
+acanthus_image::MemorySlot::new: fn new () -> MemorySlot
+acanthus_image::MemorySlot::set: fn set (& self , width : u32 , height : u32 , rgba : Vec < u8 >) -> String
+acanthus_image::MemorySlot::set_shared: fn set_shared (& self , image : Arc < Decoded >) -> String
 acanthus_image::Placement.rect: Rect
 acanthus_image::Placement.repeat: bool
 acanthus_image::Placement.uv: [f32 ; 4]
@@ -62,6 +66,8 @@ acanthus_image::decode_svg: fn decode_svg (bytes : & [u8] , target : Option < (u
 acanthus_image::place: fn place (mode : FillMode , source : Vec2 , dest : Rect) -> Placement
 acanthus_image::register: fn register (width : u32 , height : u32 , rgba : & [u8]) -> String
 impl Default for acanthus_image::ImageStore
+impl Default for acanthus_image::MemorySlot
 impl Drop for acanthus_image::ImageHandle
+impl Drop for acanthus_image::MemorySlot
 impl fmt :: Display for acanthus_image::DecodeError
 impl std :: error :: Error for acanthus_image::DecodeError

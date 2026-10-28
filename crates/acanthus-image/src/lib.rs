@@ -11,6 +11,6 @@ mod store;
 pub use decode::{Animation, DecodeError, Decoded, decode_file, decode_raster, decode_svg};
 pub use fit::{FillMode, Placement, place};
 pub use icons::IconLookup;
-pub use memory::register as register_memory_image;
+pub use memory::{MemorySlot, register as register_memory_image};
 pub use source::ImageSource;
 pub use store::{ImageHandle, ImageId, ImageStatus, ImageStore};

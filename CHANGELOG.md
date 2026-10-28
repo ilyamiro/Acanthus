@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_wayland::{Capture, CaptureConfig, CaptureState, CaptureError}`, `App::capture` and `App::can_capture`: output capture over `ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1` with shared memory, one-shot or live up to a frame rate ceiling; `acanthus_widgets::screencopy::screencopy_view` shows the frames; `acanthus_image::MemorySlot` keeps one frame of a live source in memory.
 - `acanthus_services::platform::shortcuts` (`Shortcuts`, `Shortcut`, `Chord`, `Launcher`, `Strategy`, `snippet`): global shortcuts bound at runtime in Hyprland or Sway, through the XDG GlobalShortcuts portal, or as a configuration snippet for Niri, Mango and others; feature `shortcuts`.
 - `acanthus_wayland::{SystemClipboard, Selection}` and `App::clipboard`: the desktop clipboard through `ext-data-control-v1` or `zwlr_data_control_v1`; `acanthus_scene::{ClipboardBackend, Clipboard::set_backend, Scene::set_clipboard_backend}` route text widgets through it.
 - `acanthus_wayland::{LockConfig, LockPhase}`, `App::lock` and `AppHandle::unlock`: `ext-session-lock-v1` with a lock surface per output and a signal of the lock phase.

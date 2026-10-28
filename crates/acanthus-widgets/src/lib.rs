@@ -3,6 +3,7 @@ pub mod component;
 pub mod dropdown;
 pub mod marquee;
 pub mod menu;
+pub mod screencopy;
 pub mod scrollbar;
 pub mod search_field;
 pub mod slider;

@@ -31,6 +31,7 @@ use smithay_client_toolkit::shell::wlr_layer::{
 use smithay_client_toolkit::shell::xdg::popup::{Popup, PopupConfigure, PopupHandler};
 use smithay_client_toolkit::shell::xdg::window::{Window, WindowConfigure, WindowHandler};
 use smithay_client_toolkit::shell::xdg::{XdgPositioner, XdgShell, XdgSurface};
+use smithay_client_toolkit::shm::Shm;
 use smithay_client_toolkit::{delegate_registry, registry_handlers};
 use wayland_client::globals::{BindError, GlobalError, registry_queue_init};
 use wayland_client::protocol::{wl_keyboard, wl_output, wl_pointer, wl_seat, wl_surface};
@@ -165,7 +166,7 @@ struct Variants {
 /// The state of the application: surfaces, outputs, input and the GPU, passed to every event source.
 pub struct State {
     conn: Connection,
-    qh: QueueHandle<State>,
+    pub(crate) qh: QueueHandle<State>,
     registry: RegistryState,
     seat_state: SeatState,
     output_state: OutputState,
@@ -192,7 +193,9 @@ pub struct State {
     modifiers: Modifiers,
     pointer_serial: u32,
     applied_cursor: CursorShape,
-    loop_handle: calloop::LoopHandle<'static, State>,
+    pub(crate) loop_handle: calloop::LoopHandle<'static, State>,
+    pub(crate) shm: Shm,
+    pub(crate) captures: crate::capture::Captures,
     surfaces: slotmap::SlotMap<SurfaceId, SurfaceWindow>,
     gpu: Option<Gpu>,
     fonts: Fonts,
@@ -261,6 +264,8 @@ impl App {
             pointer_serial: 0,
             applied_cursor: CursorShape::Default,
             loop_handle: event_loop.handle(),
+            shm: Shm::bind(&globals, &qh)?,
+            captures: crate::capture::Captures::bind(&globals, &qh),
             surfaces: slotmap::SlotMap::with_key(),
             gpu: None,
             fonts: Fonts::new(),
@@ -333,6 +338,20 @@ impl App {
     /// Destroys a surface.
     pub fn close_surface(&mut self, id: SurfaceId) {
         self.state.remove_surface(id);
+    }
+
+    /// Captures `output` into frames: one frame, or a live feed up to `config.max_fps`. Uses `ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1` with shared memory.
+    pub fn capture(
+        &mut self,
+        output: &OutputInfo,
+        config: crate::capture::CaptureConfig,
+    ) -> Result<crate::capture::Capture, crate::capture::CaptureError> {
+        crate::capture::start(&mut self.state, output.output.clone(), config)
+    }
+
+    /// True when the compositor offers a screen capture protocol.
+    pub fn can_capture(&self) -> bool {
+        self.state.captures.is_supported()
     }
 
     /// The desktop clipboard; every scene's text widgets already use it.
@@ -427,7 +446,10 @@ impl App {
             self.event_loop.dispatch(timeout, &mut self.state)?;
             self.state.update();
             if self.state.exit
-                || (self.state.surfaces.is_empty() && self.state.variants.is_empty() && self.state.lock.is_none())
+                || (self.state.surfaces.is_empty()
+                    && self.state.variants.is_empty()
+                    && self.state.lock.is_none()
+                    && self.state.captures.is_empty())
             {
                 return Ok(());
             }
@@ -472,6 +494,7 @@ impl State {
         }
         self.apply_unlock();
         self.apply_clipboard();
+        crate::capture::sweep(self);
         let commands: Vec<(SurfaceId, WindowCommand)> = self.handle.window_commands.borrow_mut().drain(..).collect();
         for (surface, command) in commands {
             self.apply_window_command(surface, command);
@@ -1546,6 +1569,12 @@ fn bind_scale_managers(
     let fractional = globals.bind(qh, 1..=1, ScaleGlobal).ok()?;
     let viewporter = globals.bind(qh, 1..=1, ScaleGlobal).ok()?;
     Some(ScaleManagers { fractional, viewporter })
+}
+
+impl smithay_client_toolkit::shm::ShmHandler for State {
+    fn shm_state(&mut self) -> &mut Shm {
+        &mut self.shm
+    }
 }
 
 delegate_registry!(State);

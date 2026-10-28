@@ -1,5 +1,7 @@
 acanthus_wayland::App: struct
 acanthus_wayland::App::after: fn after (& self , delay : Duration , f : impl FnOnce () + 'static) -> Result < () , AppError >
+acanthus_wayland::App::can_capture: fn can_capture (& self) -> bool
+acanthus_wayland::App::capture: fn capture (& mut self , output : & OutputInfo , config : crate :: capture :: CaptureConfig ,) -> Result < crate :: capture :: Capture , crate :: capture :: CaptureError >
 acanthus_wayland::App::clipboard: fn clipboard (& self) -> SystemClipboard
 acanthus_wayland::App::close_surface: fn close_surface (& mut self , id : SurfaceId)
 acanthus_wayland::App::every: fn every (& self , interval : Duration , mut f : impl FnMut () + 'static) -> Result < () , AppError >
@@ -36,6 +38,20 @@ acanthus_wayland::AppHandle::open_popup: fn open_popup (& self , parent : Surfac
 acanthus_wayland::AppHandle::set_idle_inhibit: fn set_idle_inhibit (& self , surface : SurfaceId , inhibit : bool)
 acanthus_wayland::AppHandle::unlock: fn unlock (& self)
 acanthus_wayland::AppHandle::window_command: fn window_command (& self , surface : SurfaceId , command : WindowCommand)
+acanthus_wayland::Capture.frame: Signal < Option < Arc < Decoded > > >
+acanthus_wayland::Capture.state: Signal < CaptureState >
+acanthus_wayland::Capture: struct
+acanthus_wayland::CaptureConfig.cursor: bool
+acanthus_wayland::CaptureConfig.live: bool
+acanthus_wayland::CaptureConfig.max_fps: u32
+acanthus_wayland::CaptureConfig: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_wayland::CaptureError: enum [Clone, Copy, Debug, Eq, PartialEq, thiserror :: Error]
+acanthus_wayland::CaptureError::Unsupported: variant 
+acanthus_wayland::CaptureState: enum [Clone, Debug, Eq, PartialEq]
+acanthus_wayland::CaptureState::Done: variant 
+acanthus_wayland::CaptureState::Failed: variant (String)
+acanthus_wayland::CaptureState::Starting: variant 
+acanthus_wayland::CaptureState::Streaming: variant 
 acanthus_wayland::Decorations: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
 acanthus_wayland::Decorations::Client: variant 
 acanthus_wayland::Decorations::None: variant 
@@ -156,7 +172,9 @@ acanthus_wayland::WindowState.tiled: bool
 acanthus_wayland::WindowState: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
 impl ClipboardBackend for acanthus_wayland::SystemClipboard
 impl CompositorHandler for acanthus_wayland::State
+impl Default for acanthus_wayland::CaptureConfig
 impl Default for acanthus_wayland::LockConfig
+impl Drop for acanthus_wayland::Capture
 impl KeyboardHandler for acanthus_wayland::State
 impl LayerShellHandler for acanthus_wayland::State
 impl OutputHandler for acanthus_wayland::State
@@ -166,4 +184,5 @@ impl ProvidesRegistryState for acanthus_wayland::State
 impl SeatHandler for acanthus_wayland::State
 impl SessionLockHandler for acanthus_wayland::State
 impl WindowHandler for acanthus_wayland::State
+impl smithay_client_toolkit :: shm :: ShmHandler for acanthus_wayland::State
 impl std :: fmt :: Debug for acanthus_wayland::WindowConfig

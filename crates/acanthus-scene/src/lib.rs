@@ -18,7 +18,9 @@ mod text;
 mod text_input;
 mod units;
 
-pub use acanthus_image::{FillMode, IconLookup, ImageId, ImageStatus, ImageStore, register_memory_image};
+pub use acanthus_image::{
+    Decoded, FillMode, IconLookup, ImageId, ImageStatus, ImageStore, MemorySlot, register_memory_image,
+};
 pub use animate::Prop;
 pub use axes::{Axis, flags_for as axes_flags, lookup as axes_lookup};
 pub use cosmic_text::CacheKey;

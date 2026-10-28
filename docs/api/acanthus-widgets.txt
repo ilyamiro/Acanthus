@@ -235,6 +235,7 @@ acanthus_widgets::menu::menu: fn menu (scene : & mut Scene , parent : NodeId , s
 acanthus_widgets::menu::row_span: fn row_span (entries : & [MenuEntry] , index : usize) -> (f32 , f32)
 acanthus_widgets::menu::step: fn step (entries : & [MenuEntry] , from : Option < usize > , step : i32) -> Option < usize >
 acanthus_widgets::menu::typeahead: fn typeahead (entries : & [MenuEntry] , from : Option < usize > , typed : char) -> Option < usize >
+acanthus_widgets::screencopy::screencopy_view: fn screencopy_view (frame : Signal < Option < Arc < Decoded > > > , fill : FillMode) -> Node
 acanthus_widgets::scrollbar::ScrollBar.color: C
 acanthus_widgets::scrollbar::ScrollBar.flickable: Flickable
 acanthus_widgets::scrollbar::ScrollBar.radius: f32
