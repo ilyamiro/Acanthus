@@ -61,9 +61,12 @@ impl Keep {
         let (running, signal, slot) = (running.clone(), signal.clone(), held.clone());
         self.add(Effect::new(move || {
             let on = running.get();
+            let reduced = crate::reduced_motion();
             untrack(|| {
                 slot.stop();
-                if on {
+                if on && reduced {
+                    signal.set(to * 0.5);
+                } else if on {
                     let tween = Tween::new(&signal, to, ms, Easing::Linear).from(0.0);
                     *slot.0.borrow_mut() = Some(start(Loop::infinite(tween)));
                 }

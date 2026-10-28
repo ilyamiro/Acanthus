@@ -72,11 +72,16 @@ impl<T: Animatable> Animated<T> {
         let slot = running.clone();
         let effect = Effect::new(move || {
             let to = source.get();
+            let reduced = crate::reduced_motion();
             if first.replace(false) {
                 return;
             }
             untrack(|| {
                 slot.stop();
+                if reduced {
+                    target.set(to);
+                    return;
+                }
                 let handle = match motion(&to).into() {
                     Motion::Tween { duration_ms: 0, .. } => {
                         target.set(to);

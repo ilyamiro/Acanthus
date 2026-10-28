@@ -9,7 +9,7 @@ use calloop::LoopHandle;
 use serde_json::Value;
 
 use crate::font_catalog::FontCatalog;
-use crate::{Config, Paths, SettingKeys};
+use crate::{Config, Paths, SettingKeys, Tokens, lenient};
 
 const ICON_FONT_FILE: &str = "SymbolsNerdFontMono-Regular.ttf";
 
@@ -101,6 +101,14 @@ pub struct Theme {
     pub icon_family: Signal<Option<String>>,
     /// Whether the application runs without a compositor background to blur.
     pub standalone: Signal<bool>,
+    /// Design scales: motion durations, spacing and radii.
+    pub tokens: Tokens,
+    /// Reduced motion from the settings.
+    pub reduced_motion_setting: Signal<bool>,
+    /// Reduced motion forced by the application, for example from a command-line flag.
+    pub reduced_motion_forced: Signal<bool>,
+    /// Whether reduced motion is in effect: the setting or the forced switch. It drives [`acanthus_anim::set_reduced_motion`].
+    pub reduced_motion: Signal<bool>,
     effects: RefCell<Vec<Effect>>,
     sources: RefCell<Sources>,
 }
@@ -210,6 +218,10 @@ impl Theme {
             icon_font: Signal::new("Adwaita Mono".into()),
             icon_family: Signal::new(None),
             standalone: Signal::new(false),
+            tokens: Tokens::default(),
+            reduced_motion_setting: Signal::new(false),
+            reduced_motion_forced: Signal::new(false),
+            reduced_motion: Signal::new(false),
             effects: RefCell::new(Vec::new()),
             sources: RefCell::new(Sources::default()),
             palette,
@@ -252,6 +264,14 @@ impl Theme {
             let next = icon_family.get().unwrap_or_else(|| family.get());
             acanthus_core::untrack(|| icon.set(next));
         }));
+        let (reduced, setting, forced) =
+            (self.reduced_motion.clone(), self.reduced_motion_setting.clone(), self.reduced_motion_forced.clone());
+        effects.push(Effect::new(move || {
+            let next = setting.get() || forced.get();
+            acanthus_core::untrack(|| reduced.set(next));
+        }));
+        let reduced = self.reduced_motion.clone();
+        effects.push(Effect::new(move || acanthus_anim::set_reduced_motion(reduced.get())));
         *self.effects.borrow_mut() = effects;
     }
 
@@ -370,9 +390,17 @@ impl ThemeService {
                 theme.apply_config(&config.current(&theme_key));
             }
         };
+        let mut bindings = Vec::new();
+        let reduced_value = config.value(&keys.reduced_motion);
+        let weak_theme = Rc::downgrade(&theme);
+        bindings.push(Effect::new(move || {
+            let on = lenient::is_on(&reduced_value.get());
+            if let Some(theme) = weak_theme.upgrade() {
+                theme.reduced_motion_setting.set(on);
+            }
+        }));
         let theme_value = config.value(&keys.theme);
         let (weak, fonts_for_effect) = (Rc::downgrade(&theme), fonts.clone());
-        let mut bindings = Vec::new();
         load_matugen();
         bindings.push(Effect::new(move || {
             let value = theme_value.get();
@@ -419,6 +447,40 @@ mod tests {
 
     fn color(h: u32) -> Color {
         Color::hex(h)
+    }
+
+    #[test]
+    fn reduced_motion_follows_the_setting_or_the_forced_switch() {
+        let theme = Theme::new();
+        assert!(!theme.reduced_motion.get_untracked());
+        theme.reduced_motion_setting.set(true);
+        assert!(theme.reduced_motion.get_untracked());
+        assert!(acanthus_anim::reduced_motion());
+        theme.reduced_motion_setting.set(false);
+        assert!(!theme.reduced_motion.get_untracked());
+        theme.reduced_motion_forced.set(true);
+        assert!(theme.reduced_motion.get_untracked());
+        drop(theme);
+    }
+
+    #[test]
+    fn a_reduced_theme_makes_followed_signals_jump() {
+        let theme = Theme::new();
+        let src = Signal::new(0.0f32);
+        let anim = acanthus_anim::Animated::new(&src, acanthus_anim::Motion::tween(100, acanthus_anim::Easing::Linear));
+        theme.reduced_motion_forced.set(true);
+        src.set(1.0);
+        assert_eq!(anim.get(), 1.0);
+        theme.reduced_motion_forced.set(false);
+        assert!(!acanthus_anim::reduced_motion());
+    }
+
+    #[test]
+    fn default_tokens_match_the_widget_durations() {
+        let tokens = Theme::new().tokens;
+        assert_eq!((tokens.motion.fast, tokens.motion.base, tokens.motion.slow), (150, 250, 400));
+        assert!(tokens.spacing.xs < tokens.spacing.sm && tokens.spacing.lg < tokens.spacing.xl);
+        assert!(tokens.radii.sm < tokens.radii.md && tokens.radii.lg < tokens.radii.pill);
     }
 
     #[test]

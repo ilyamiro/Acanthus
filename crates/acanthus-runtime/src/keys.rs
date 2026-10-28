@@ -16,6 +16,8 @@ pub struct SettingKeys {
     pub ui_scale: String,
     /// Interface scale of one screen; `{screen}` is replaced by the output name. Beats [`ui_scale`](Self::ui_scale).
     pub screen_scale: String,
+    /// Reduced motion switch; on makes tweens and springs jump and loops rest.
+    pub reduced_motion: String,
 }
 
 impl Default for SettingKeys {
@@ -27,6 +29,7 @@ impl Default for SettingKeys {
             wallpaper: "wallpaper".into(),
             ui_scale: "general.ui_scale".into(),
             screen_scale: "screens.{screen}.scale".into(),
+            reduced_motion: "general.reduced_motion".into(),
         }
     }
 }

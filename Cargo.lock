@@ -86,6 +86,7 @@ dependencies = [
 name = "acanthus-runtime"
 version = "0.1.0"
 dependencies = [
+ "acanthus-anim",
  "acanthus-color",
  "acanthus-core",
  "acanthus-io",

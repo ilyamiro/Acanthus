@@ -16,6 +16,7 @@ mod runtime;
 mod scaler;
 mod section;
 mod theme;
+mod tokens;
 
 pub use acanthus_io::AppId;
 pub use clock::{Clock, DEFAULT_FULL_DATE, DEFAULT_TIME_FORMAT, TimeFormat, local_now};
@@ -37,3 +38,4 @@ pub use runtime::Runtime;
 pub use scaler::Scaler;
 pub use section::Section;
 pub use theme::{Palette, Theme, ThemeService, clamp_border_radius, is_matugen_theme, load_preset, preset_names};
+pub use tokens::{MotionTokens, RadiusTokens, SpacingTokens, Tokens};
