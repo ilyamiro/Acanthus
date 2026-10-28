@@ -20,42 +20,70 @@ pub use vpn::{import_l2tp, import_openconnect, import_pptp, import_strongswan};
 pub use wireguard::import_wireguard;
 pub use wpa::import_wpa_supplicant;
 
+/// Why a profile could not be imported.
 #[derive(Debug, thiserror::Error)]
 pub enum ImportError {
+    /// The text is in none of the supported formats.
     #[error("the file is not a NetworkManager keyfile, WireGuard, wpa_supplicant or OpenVPN configuration")]
     Unrecognised,
+    /// A required entry is missing; the name says which.
     #[error("the profile has no {0}")]
     Missing(&'static str),
+    /// A value cannot be used.
     #[error("invalid value {value:?} for {key}")]
-    Invalid { key: String, value: String },
+    Invalid {
+        /// The setting that has the bad value.
+        key: String,
+        /// The value found.
+        value: String,
+    },
+    /// The profile file could not be read or written.
     #[error("could not read or write a profile file: {0}")]
     Io(#[from] std::io::Error),
 }
 
+/// A profile converted into NetworkManager connection settings, with notes about what the conversion left out.
 #[derive(Debug, Clone, Default)]
 pub struct ImportedProfile {
+    /// Name of the connection.
     pub name: String,
+    /// The settings by setting name.
     pub settings: ConnectionSettings,
+    /// Entries that could not be converted.
     pub ignored: Vec<String>,
+    /// Entries whose type was guessed.
     pub guessed: Vec<String>,
 }
 
+/// A supported profile format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfileFormat {
+    /// NetworkManager keyfile.
     Keyfile,
+    /// WireGuard configuration.
     WireGuard,
+    /// wpa_supplicant configuration.
     WpaSupplicant,
+    /// OpenVPN configuration.
     OpenVpn,
+    /// OpenConnect configuration.
     OpenConnect,
+    /// strongSwan configuration.
     StrongSwan,
+    /// L2TP configuration.
     L2tp,
+    /// PPTP configuration.
     Pptp,
 }
 
+/// Options of a profile import.
 #[derive(Debug, Clone, Default)]
 pub struct ImportOptions {
+    /// The format, or `None` to detect it.
     pub format: Option<ProfileFormat>,
+    /// Types of keys the built-in schema does not know, by `setting.key`.
     pub types: HashMap<String, ValueType>,
+    /// Directory that relative file references are resolved against.
     pub base_dir: Option<PathBuf>,
     /// Directory for inline certificates and keys written next to an imported profile; required when the profile has any.
     pub output_dir: Option<PathBuf>,
@@ -221,6 +249,7 @@ pub(crate) fn dns_value(family: &str, value: &str) -> Result<OwnedValue, ImportE
     }
 }
 
+/// Guesses the format of a profile text.
 pub fn detect_format(text: &str) -> Option<ProfileFormat> {
     let lower = text.to_ascii_lowercase();
     let compact: String = lower.chars().filter(|c| !c.is_whitespace()).collect();
@@ -245,6 +274,7 @@ pub fn detect_format(text: &str) -> Option<ProfileFormat> {
     }
 }
 
+/// Converts a profile text into one or more profiles, detecting the format unless the options give it.
 pub fn import_profiles(
     name_hint: &str,
     text: &str,

@@ -24,30 +24,45 @@ const KEY_DEFAULT_SINK: &str = "default.audio.sink";
 const KEY_DEFAULT_SOURCE: &str = "default.audio.source";
 const DEFAULT_CHANNELS: usize = 2;
 
+/// An audio node of PipeWire: a device or a stream.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PwNode {
+    /// PipeWire's node id.
     pub id: u32,
+    /// Node name.
     pub name: String,
+    /// Human-readable description.
     pub description: String,
+    /// Short name.
     pub nick: String,
+    /// The media class such as `Audio/Sink` or `Stream/Output/Audio`.
     pub media_class: String,
+    /// All properties the node carries.
     pub properties: BTreeMap<String, String>,
+    /// True for application streams.
     pub is_stream: bool,
+    /// True for outputs (sinks and playback streams).
     pub is_sink: bool,
+    /// True when the node carries audio.
     pub has_audio: bool,
+    /// True when muted.
     pub muted: bool,
+    /// Volume per channel, linear.
     pub volumes: Vec<f32>,
 }
 
 impl PwNode {
+    /// The mean volume over the channels, zero when unknown.
     pub fn volume(&self) -> f32 {
         if self.volumes.is_empty() { 0.0 } else { self.volumes.iter().sum::<f32>() / self.volumes.len() as f32 }
     }
 
+    /// The property with this key.
     pub fn property(&self, key: &str) -> Option<&str> {
         self.properties.get(key).map(String::as_str)
     }
 
+    /// The best name to show: the device description, the node description or the node name.
     pub fn display_name(&self) -> &str {
         [self.property("device.description").unwrap_or(""), &self.description, &self.name]
             .into_iter()
@@ -56,21 +71,31 @@ impl PwNode {
     }
 }
 
+/// The audio nodes and defaults at one moment.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PipewireSnapshot {
+    /// All audio nodes.
     pub nodes: Vec<PwNode>,
+    /// Name of the default sink.
     pub default_sink: Option<String>,
+    /// Name of the default source.
     pub default_source: Option<String>,
 }
 
+/// A request to change audio settings.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PipewireCommand {
+    /// Sets the volume of the node with this id, linear.
     SetVolume(u32, f32),
+    /// Mutes or unmutes the node with this id.
     SetMuted(u32, bool),
+    /// Makes the sink with this name the default.
     SetDefaultSink(String),
+    /// Makes the source with this name the default.
     SetDefaultSource(String),
 }
 
+/// The audio node for the registry object `id` with `properties`, or `None` when it is not an audio node.
 pub fn node_from_properties(id: u32, properties: &BTreeMap<String, String>) -> Option<PwNode> {
     let media_class = properties.get("media.class")?.clone();
     if !media_class.contains("Audio") {
@@ -90,6 +115,7 @@ pub fn node_from_properties(id: u32, properties: &BTreeMap<String, String>) -> O
     })
 }
 
+/// The channel volumes and mute flag in a props parameter, each when present.
 pub fn parse_props(bytes: &[u8]) -> Option<(Option<Vec<f32>>, Option<bool>)> {
     let (_, value) = PodDeserializer::deserialize_any_from(bytes).ok()?;
     let Value::Object(object) = value else {
@@ -113,6 +139,7 @@ fn props_bytes(properties: Vec<Property>) -> Option<Vec<u8>> {
     PodSerializer::serialize(Cursor::new(Vec::new()), &object).ok().map(|(cursor, _)| cursor.into_inner())
 }
 
+/// A props parameter that sets all `channels` to `volume`.
 pub fn volume_props(channels: usize, volume: f32) -> Option<Vec<u8>> {
     let volume = if volume.is_finite() { volume.max(0.0) } else { 0.0 };
     props_bytes(vec![Property::new(
@@ -121,23 +148,28 @@ pub fn volume_props(channels: usize, volume: f32) -> Option<Vec<u8>> {
     )])
 }
 
+/// A props parameter that sets the mute flag.
 pub fn mute_props(muted: bool) -> Option<Vec<u8>> {
     props_bytes(vec![Property::new(PROP_MUTE, Value::Bool(muted))])
 }
 
+/// The JSON PipeWire stores for a default device with this name.
 pub fn default_node_json(name: &str) -> String {
     serde_json::json!({ "name": name }).to_string()
 }
 
+/// The device name in the JSON PipeWire stores for a default device.
 pub fn parse_default_node(value: &str) -> Option<String> {
     let parsed: serde_json::Value = serde_json::from_str(value).ok()?;
     parsed.get("name")?.as_str().map(str::to_owned)
 }
 
+/// The output devices among `nodes`.
 pub fn outputs(nodes: &[PwNode]) -> Vec<PwNode> {
     nodes.iter().filter(|n| !n.is_stream && n.is_sink && n.has_audio).cloned().collect()
 }
 
+/// The input devices among `nodes`, without monitors.
 pub fn inputs(nodes: &[PwNode]) -> Vec<PwNode> {
     nodes
         .iter()
@@ -152,6 +184,7 @@ pub fn inputs(nodes: &[PwNode]) -> Vec<PwNode> {
         .collect()
 }
 
+/// The application playback and capture streams among `nodes`.
 pub fn apps(nodes: &[PwNode]) -> Vec<PwNode> {
     nodes
         .iter()
@@ -160,6 +193,7 @@ pub fn apps(nodes: &[PwNode]) -> Vec<PwNode> {
         .collect()
 }
 
+/// True when some audible playback stream is running.
 pub fn has_active_stream(nodes: &[PwNode]) -> bool {
     nodes.iter().any(|n| {
         n.has_audio
@@ -175,17 +209,26 @@ enum Event {
     Unavailable,
 }
 
+/// Observable state of the audio service.
 #[derive(Clone)]
 pub struct PipewireState {
+    /// True once the first snapshot arrived.
     pub ready: Signal<bool>,
+    /// True when PipeWire can be reached.
     pub available: Signal<bool>,
+    /// All audio nodes.
     pub nodes: Signal<Vec<PwNode>>,
+    /// Name of the default sink.
     pub default_sink: Signal<Option<String>>,
+    /// Name of the default source.
     pub default_source: Signal<Option<String>>,
+    /// Name of the device the virtual sink forwards to.
     pub route: Signal<String>,
+    /// Name of the application's virtual sink.
     pub virtual_sink: String,
 }
 
+/// The sink audio really goes to: the route when the default sink is the virtual sink and a route is set, else the default sink.
 pub fn effective_sink(default_sink: Option<&str>, route: &str, virtual_sink: &str) -> Option<String> {
     match default_sink {
         Some(name) if name == virtual_sink && !route.is_empty() => Some(route.to_owned()),
@@ -207,10 +250,12 @@ impl PipewireState {
         }
     }
 
+    /// [`effective_sink`] for the current state.
     pub fn effective_default_sink(&self) -> Option<String> {
         effective_sink(self.default_sink.get().as_deref(), &self.route.get(), &self.virtual_sink)
     }
 
+    /// Copies a snapshot into the signals in one batch.
     pub fn apply(&self, snapshot: &PipewireSnapshot) {
         batch(|| {
             self.available.set(true);
@@ -233,25 +278,31 @@ impl PipewireState {
         });
     }
 
+    /// The node with this id.
     pub fn node(&self, id: u32) -> Option<PwNode> {
         self.nodes.with_untracked(|nodes| nodes.iter().find(|n| n.id == id).cloned())
     }
 
+    /// The node with this name.
     pub fn node_by_name(&self, name: &str) -> Option<PwNode> {
         self.nodes.with_untracked(|nodes| nodes.iter().find(|n| n.name == name).cloned())
     }
 
+    /// The node of the default sink.
     pub fn default_sink_node(&self) -> Option<PwNode> {
         let name = untrack(|| self.effective_default_sink());
         name.and_then(|name| self.node_by_name(&name))
     }
 
+    /// The node of the default source.
     pub fn default_source_node(&self) -> Option<PwNode> {
         self.default_source.with_untracked(|name| name.as_deref().and_then(|name| self.node_by_name(name)))
     }
 }
 
+/// Audio control through PipeWire: devices, streams, volumes and defaults, as signals.
 pub struct Pipewire {
+    /// Its observable state.
     pub state: PipewireState,
     commands: pw::channel::Sender<Message>,
     _thread: ThreadHandle,
@@ -263,13 +314,14 @@ enum Message {
 }
 
 impl Pipewire {
+    /// Connects to PipeWire on a helper thread; `virtual_sink` names the application's own sink, if it has one.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, virtual_sink: &str) -> Result<Pipewire, IoError> {
         let state = PipewireState::new(virtual_sink);
         let target = state.clone();
         let (commands, receiver) = pw::channel::channel::<Message>();
         let thread = spawn_thread(
             handle,
-            "serp-pipewire",
+            "acanthus-pipewire",
             move |event| match event {
                 Event::Snapshot(snapshot) => target.apply(&snapshot),
                 Event::Unavailable => target.lost(),
@@ -283,18 +335,22 @@ impl Pipewire {
         Ok(Pipewire { state, commands, _thread: thread })
     }
 
+    /// Sends a command; false when the service is gone.
     pub fn command(&self, command: PipewireCommand) -> bool {
         self.commands.send(Message::Command(command)).is_ok()
     }
 
+    /// Sets a node's volume, linear.
     pub fn set_volume(&self, id: u32, volume: f32) -> bool {
         self.command(PipewireCommand::SetVolume(id, volume))
     }
 
+    /// Mutes or unmutes a node.
     pub fn set_muted(&self, id: u32, muted: bool) -> bool {
         self.command(PipewireCommand::SetMuted(id, muted))
     }
 
+    /// Toggles the mute flag of a node; false when the node is unknown.
     pub fn toggle_mute(&self, id: u32) -> bool {
         match self.state.node(id) {
             Some(node) => self.set_muted(id, !node.muted),
@@ -302,10 +358,12 @@ impl Pipewire {
         }
     }
 
+    /// Makes the sink the default.
     pub fn set_default_sink(&self, name: &str) -> bool {
         self.command(PipewireCommand::SetDefaultSink(name.to_owned()))
     }
 
+    /// Makes the source the default.
     pub fn set_default_source(&self, name: &str) -> bool {
         self.command(PipewireCommand::SetDefaultSource(name.to_owned()))
     }

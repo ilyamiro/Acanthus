@@ -85,6 +85,7 @@ fn write_inline(options: &ImportOptions, name: &str, tag: &str, body: &str) -> R
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// Imports an OpenVPN configuration named `name`; inline certificates are written to the output directory of `options`.
 pub fn import_openvpn(name: &str, text: &str, options: &ImportOptions) -> Result<ImportedProfile, ImportError> {
     let mut profile = ImportedProfile { name: name.to_owned(), ..Default::default() };
     let mut data: HashMap<String, String> = HashMap::new();

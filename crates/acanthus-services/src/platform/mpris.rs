@@ -17,15 +17,20 @@ const OBJECT_PATH: &str = "/org/mpris/MediaPlayer2";
 const PLAYER_IFACE: &str = "org.mpris.MediaPlayer2.Player";
 const ROOT_IFACE: &str = "org.mpris.MediaPlayer2";
 
+/// Playback state of a media player.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Playback {
+    /// Not playing.
     #[default]
     Stopped,
+    /// Playing.
     Playing,
+    /// Paused.
     Paused,
 }
 
 impl Playback {
+    /// The state for an MPRIS `PlaybackStatus` string; unknown values are stopped.
     pub fn parse(text: &str) -> Playback {
         match text {
             "Playing" => Playback::Playing,
@@ -35,38 +40,64 @@ impl Playback {
     }
 }
 
+/// A media player on the session bus and what it reports.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Player {
+    /// Its D-Bus name.
     pub bus_name: String,
+    /// Name of the player for display.
     pub identity: String,
+    /// Name of the player's desktop entry.
     pub desktop_entry: String,
+    /// Playback state.
     pub playback: Playback,
+    /// Track title.
     pub title: String,
+    /// Track artist.
     pub artist: String,
+    /// Track album.
     pub album: String,
+    /// URL of the cover art.
     pub art_url: String,
+    /// Identifier of the track.
     pub track_id: String,
+    /// Track length in microseconds, zero when unknown.
     pub length_us: i64,
+    /// Position in microseconds when `position_stamp` was taken.
     pub position_us: i64,
+    /// When the position was read.
     pub position_stamp: Option<Instant>,
+    /// Playback rate.
     pub rate: f64,
+    /// Volume from 0 to 1.
     pub volume: f64,
+    /// True when shuffle is on.
     pub shuffle: bool,
+    /// Loop status: `None`, `Track` or `Playlist`.
     pub loop_status: String,
+    /// True when the player can be controlled.
     pub can_control: bool,
+    /// True when it can start playing.
     pub can_play: bool,
+    /// True when it can pause.
     pub can_pause: bool,
+    /// True when it can skip to the next track.
     pub can_go_next: bool,
+    /// True when it can skip to the previous track.
     pub can_go_previous: bool,
+    /// True when it can seek.
     pub can_seek: bool,
+    /// The complete track metadata as JSON.
     pub metadata: Value,
 }
 
 impl Player {
+    /// True while playing.
     pub fn is_playing(&self) -> bool {
         self.playback == Playback::Playing
     }
 
+    /// The position in microseconds extrapolated to `now`, bounded by the track length.
     pub fn live_position_us(&self, now: Instant) -> i64 {
         let elapsed = match (self.is_playing(), self.position_stamp) {
             (true, Some(stamp)) => {
@@ -78,10 +109,12 @@ impl Player {
         if self.length_us > 0 { position.min(self.length_us) } else { position.max(0) }
     }
 
+    /// The identifier of the player: its bus name, else its identity.
     pub fn id(&self) -> &str {
         if self.bus_name.is_empty() { &self.identity } else { &self.bus_name }
     }
 
+    /// The cover art URL: the reported one, the one in the metadata, or the track URL when it points to an image.
     pub fn cover_url(&self) -> String {
         if !self.art_url.is_empty() {
             return self.art_url.clone();
@@ -100,6 +133,7 @@ impl Player {
     }
 }
 
+/// The player to show: the one playing, else the last that played, else a paused one with a title, else a controllable one, else the first by name.
 pub fn select_active<'a>(players: &'a [Player], last_playing_bus: &str) -> Option<&'a Player> {
     let mut sorted: Vec<&Player> = players.iter().collect();
     sorted.sort_by(|a, b| a.bus_name.cmp(&b.bus_name));
@@ -115,22 +149,35 @@ pub fn select_active<'a>(players: &'a [Player], last_playing_bus: &str) -> Optio
         .copied()
 }
 
+/// A command for a media player.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
+    /// Start playing.
     Play,
+    /// Pause.
     Pause,
+    /// Toggle between playing and paused.
     PlayPause,
+    /// Stop.
     Stop,
+    /// Next track.
     Next,
+    /// Previous track.
     Previous,
+    /// Seek by this many microseconds.
     SeekBy(i64),
+    /// Jump to this position in microseconds.
     SetPosition(i64),
+    /// Ask the player to show its window.
     Raise,
 }
 
+/// An action addressed to a player.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Command {
+    /// D-Bus name of the player.
     pub bus_name: String,
+    /// What to do.
     pub action: Action,
 }
 
@@ -175,6 +222,7 @@ fn metadata_json(value: &OwnedValue) -> Value {
     crate::platform::dbus::variant_to_json(value)
 }
 
+/// Builds a [`Player`] from the properties of the root and player interfaces, with the position stamped `now`.
 pub fn parse_player(
     bus_name: &str,
     root: &HashMap<String, OwnedValue>,
@@ -362,13 +410,17 @@ async fn run(bus: BusKind, events: EventSink<Event>, commands: async_channel::Re
     }
 }
 
+/// Media players on the session bus as signals.
 pub struct Mpris {
+    /// All players.
     pub players: Signal<Vec<Player>>,
+    /// The player to show, chosen by [`select_active`].
     pub active: Signal<Option<Player>>,
     service: ServiceHandle<Command>,
 }
 
 impl Mpris {
+    /// Connects to the session bus on a helper thread.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, bus: BusKind) -> Result<Mpris, IoError> {
         let players: Signal<Vec<Player>> = Signal::new(Vec::new());
         let active: Signal<Option<Player>> = Signal::new(None);
@@ -376,7 +428,7 @@ impl Mpris {
         let mut last_playing = String::new();
         let service = spawn_supervised(
             handle,
-            "serp-mpris",
+            "acanthus-mpris",
             move |event| {
                 target_players.update(|list| match event {
                     Event::Updated(player) => match list.iter_mut().find(|p| p.bus_name == player.bus_name) {
@@ -397,10 +449,12 @@ impl Mpris {
         Ok(Mpris { players, active, service })
     }
 
+    /// Sends `action` to the player with this bus name.
     pub fn send(&self, bus_name: &str, action: Action) {
         self.service.send(Command { bus_name: bus_name.to_owned(), action });
     }
 
+    /// Toggles playback of the active player.
     pub fn play_pause_active(&self) {
         if let Some(player) = self.active.get_untracked() {
             self.send(&player.bus_name, Action::PlayPause);

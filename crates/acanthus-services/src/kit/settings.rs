@@ -1,6 +1,7 @@
 use acanthus_core::{Memo, Signal};
 use serde_json::Value;
 
+/// A memoised value computed from a settings document; dependents rerun only when the mapped value changes.
 pub fn derive<T: PartialEq + 'static>(source: &Signal<Value>, map: impl Fn(&Value) -> T + 'static) -> Memo<T> {
     let source = source.clone();
     Memo::new(move || source.with(&map))

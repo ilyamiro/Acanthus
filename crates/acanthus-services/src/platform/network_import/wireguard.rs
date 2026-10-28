@@ -7,6 +7,7 @@ use super::{
     valid_ip,
 };
 
+/// Imports a WireGuard configuration named `name`.
 pub fn import_wireguard(name: &str, text: &str) -> Result<ImportedProfile, ImportError> {
     let groups = parse_groups(text);
     let mut profile = ImportedProfile { name: name.to_owned(), ..Default::default() };

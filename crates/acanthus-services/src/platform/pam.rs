@@ -13,7 +13,9 @@ use acanthus_io::{IoError, WeakHandle};
 use calloop::LoopHandle;
 use calloop::channel::{Channel, Event, Sender, channel};
 
+/// The PAM service used when none is set.
 pub const DEFAULT_CONFIG: &str = "login";
+/// The directory PAM service files are read from unless set otherwise.
 pub const DEFAULT_CONFIG_DIRECTORY: &str = "/etc/pam.d";
 
 const LIBRARY_NAMES: [&str; 2] = ["libpam.so.0", "libpam.so"];
@@ -71,28 +73,42 @@ unsafe extern "C" {
     ) -> c_int;
 }
 
+/// How a PAM conversation ended.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PamResult {
+    /// Authentication succeeded.
     Success,
+    /// Authentication failed.
     Failed,
+    /// Something went wrong; see the preceding [`PamEvent::Error`].
     Error,
+    /// Too many failed attempts.
     MaxTries,
 }
 
+/// What went wrong in a PAM conversation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PamError {
+    /// The PAM helper could not be started.
     StartFailed,
+    /// PAM reported an error while authenticating.
     TryAuthFailed,
+    /// The helper failed in an unexpected way.
     InternalError,
 }
 
+/// An event of a PAM conversation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PamEvent {
+    /// The message or prompt state changed.
     Message,
+    /// The conversation ended with this result.
     Completed(PamResult),
+    /// An error occurred.
     Error(PamError),
 }
 
+/// Maps a PAM return code to the exit code the helper reports.
 pub fn classify(code: c_int) -> u8 {
     match code {
         PAM_SUCCESS => EXIT_SUCCESS,
@@ -102,6 +118,7 @@ pub fn classify(code: c_int) -> u8 {
     }
 }
 
+/// The events produced by a helper exit code.
 pub fn outcome(code: u8) -> Vec<PamEvent> {
     match code {
         EXIT_SUCCESS => vec![PamEvent::Completed(PamResult::Success)],
@@ -174,6 +191,7 @@ fn library() -> Option<&'static Library> {
     LIBRARY.get_or_init(load_library).as_ref()
 }
 
+/// True when `libpam` can be loaded.
 pub fn pam_available() -> bool {
     library().is_some()
 }
@@ -433,12 +451,18 @@ fn lookup_user(name: Option<&str>) -> Option<String> {
     }
 }
 
+/// Observable state of a PAM conversation.
 #[derive(Clone)]
 pub struct PamState {
+    /// True while a conversation runs.
     pub active: Signal<bool>,
+    /// The latest message or prompt text.
     pub message: Signal<String>,
+    /// True when the message is an error.
     pub message_is_error: Signal<bool>,
+    /// True when PAM waits for a response.
     pub response_required: Signal<bool>,
+    /// True when the response may be shown while typed.
     pub response_visible: Signal<bool>,
 }
 
@@ -518,7 +542,9 @@ impl Inner {
     }
 }
 
+/// Authentication through PAM in a helper child process, so that a crash cannot take the application down. Messages and prompts arrive as signals and events.
 pub struct PamContext {
+    /// Its observable state.
     pub state: PamState,
     config: RefCell<String>,
     config_directory: RefCell<String>,
@@ -529,6 +555,7 @@ pub struct PamContext {
 }
 
 impl PamContext {
+    /// Creates a context delivering events to `on_event` on the loop behind `handle`.
     pub fn new<D: 'static>(
         handle: &LoopHandle<'static, D>,
         on_event: impl FnMut(PamEvent) + 'static,
@@ -561,36 +588,43 @@ impl PamContext {
         })
     }
 
+    /// The PAM service name in use.
     pub fn config(&self) -> String {
         self.config.borrow().clone()
     }
 
+    /// Sets the PAM service name; ignored while a conversation runs.
     pub fn set_config(&self, config: &str) {
         if !self.is_active() {
             *self.config.borrow_mut() = config.to_owned();
         }
     }
 
+    /// The directory PAM service files are read from.
     pub fn config_directory(&self) -> String {
         self.config_directory.borrow().clone()
     }
 
+    /// Sets the directory of PAM service files; ignored while a conversation runs.
     pub fn set_config_directory(&self, directory: &str) {
         if !self.is_active() {
             *self.config_directory.borrow_mut() = directory.to_owned();
         }
     }
 
+    /// Sets the user to authenticate, or the current user for `None`; ignored while a conversation runs.
     pub fn set_user(&self, user: Option<&str>) {
         if !self.is_active() {
             *self.user.borrow_mut() = user.filter(|name| !name.is_empty()).map(str::to_owned);
         }
     }
 
+    /// True while a conversation runs.
     pub fn is_active(&self) -> bool {
         self.state.active.get()
     }
 
+    /// Starts a conversation; false when the configuration or user is missing or the helper cannot start. Returns true when one is already running.
     pub fn start(&self) -> bool {
         if self.is_active() {
             return true;
@@ -626,7 +660,7 @@ impl PamContext {
         self.state.active.set(true);
         let sink = self.sink.clone();
         if std::thread::Builder::new()
-            .name("serp-pam".into())
+            .name("acanthus-pam".into())
             .spawn(move || read_events(session, reader, sink, child))
             .is_err()
         {
@@ -636,6 +670,7 @@ impl PamContext {
         true
     }
 
+    /// Answers the pending prompt; false when none is pending.
     pub fn respond(&self, text: &str) -> bool {
         if !self.is_active() || !self.state.response_required.get() {
             return false;
@@ -658,6 +693,7 @@ impl PamContext {
         sent
     }
 
+    /// Ends the running conversation.
     pub fn abort(&self) {
         self.inner.end_conversation();
     }
@@ -672,6 +708,7 @@ impl Drop for PamContext {
     }
 }
 
+/// True when `directory` holds a file for the PAM service `service`.
 pub fn service_exists(directory: &Path, service: &str) -> bool {
     directory.join(service).exists()
 }

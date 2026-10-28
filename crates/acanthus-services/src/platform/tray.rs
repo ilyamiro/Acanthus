@@ -21,11 +21,15 @@ const DEFAULT_ITEM_PATH: &str = "/StatusNotifierItem";
 type Pixmaps = Vec<(i32, i32, Vec<u8>)>;
 type Layout = (i32, HashMap<String, OwnedValue>, Vec<OwnedValue>);
 
+/// Status of a tray item.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TrayStatus {
+    /// Nothing to show; may be hidden.
     Passive,
+    /// Normal.
     #[default]
     Active,
+    /// Wants the user's attention.
     NeedsAttention,
 }
 
@@ -39,85 +43,133 @@ impl TrayStatus {
     }
 }
 
+/// A tray icon image.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrayPixmap {
+    /// Width in pixels.
     pub width: u32,
+    /// Height in pixels.
     pub height: u32,
+    /// Pixels as RGBA bytes.
     pub rgba: Vec<u8>,
 }
 
+/// A StatusNotifierItem in the tray.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TrayItem {
+    /// Unique key of the item, from its bus name and object path.
     pub key: String,
+    /// The id the application gave it.
     pub id: String,
+    /// Title.
     pub title: String,
+    /// Category such as `ApplicationStatus`.
     pub category: String,
+    /// Status.
     pub status: TrayStatus,
+    /// Icon name.
     pub icon: String,
+    /// Icon name shown while it needs attention.
     pub attention_icon: String,
+    /// Name of an overlay icon.
     pub overlay_icon: String,
+    /// Icon image used when there is no icon name.
     pub pixmap: Option<TrayPixmap>,
+    /// Name of the tooltip icon.
     pub tooltip_icon: String,
+    /// Image of the tooltip icon.
     pub tooltip_pixmap: Option<TrayPixmap>,
+    /// Tooltip title.
     pub tooltip_title: String,
+    /// Tooltip text.
     pub tooltip_text: String,
+    /// Object path of the menu, if any.
     pub menu_path: Option<String>,
+    /// True when activating the item opens only its menu.
     pub is_menu_only: bool,
 }
 
 impl TrayItem {
+    /// True when the item has a menu.
     pub fn has_menu(&self) -> bool {
         self.menu_path.is_some()
     }
 
+    /// The best name to show: the title, the tooltip title or the id.
     pub fn display_name(&self) -> &str {
         [&self.title, &self.tooltip_title, &self.id].into_iter().find(|s| !s.is_empty()).map_or("", |s| s.as_str())
     }
 }
 
+/// Kind of check mark of a menu entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MenuToggle {
+    /// Plain entry.
     #[default]
     None,
+    /// Check box.
     Check,
+    /// Radio button.
     Radio,
 }
 
+/// One entry of a tray menu.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct MenuEntry {
+    /// Identifier within the menu.
     pub id: i32,
+    /// Label without the mnemonic marker.
     pub text: String,
+    /// Icon name.
     pub icon: String,
+    /// True when it can be clicked.
     pub enabled: bool,
+    /// True when it is a separator line.
     pub separator: bool,
+    /// Kind of check mark.
     pub toggle: MenuToggle,
+    /// True when the check mark is set.
     pub checked: bool,
+    /// Entries of a submenu.
     pub children: Vec<MenuEntry>,
 }
 
 impl MenuEntry {
+    /// True when the entry opens a submenu.
     pub fn has_children(&self) -> bool {
         !self.children.is_empty()
     }
 }
 
+/// The menu of an item.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TrayMenu {
+    /// Key of the item.
     pub key: String,
+    /// The top level entries.
     pub entries: Vec<MenuEntry>,
 }
 
+/// A request to the tray service.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TrayCommand {
+    /// Primary activation at a screen position.
     Activate(String, i32, i32),
+    /// Secondary activation (middle click) at a screen position.
     SecondaryActivate(String, i32, i32),
+    /// Ask the item for its context menu at a screen position.
     ContextMenu(String, i32, i32),
+    /// Scroll by a delta, horizontally when the flag is true.
     Scroll(String, i32, bool),
+    /// Load the menu of the item with this key.
     LoadMenu(String),
+    /// Tell the service the menu was closed.
     CloseMenu,
+    /// Click the menu entry with this id of the item with this key.
     MenuClick(String, i32),
 }
 
+/// The bus name and object path of an item registered as `service` by `sender`.
 pub fn item_address(service: &str, sender: &str) -> (String, String) {
     if service.starts_with('/') {
         (sender.to_owned(), service.to_owned())
@@ -128,10 +180,12 @@ pub fn item_address(service: &str, sender: &str) -> (String, String) {
     }
 }
 
+/// Converts ARGB pixels in network byte order to RGBA.
 pub fn argb_to_rgba(argb: &[u8]) -> Vec<u8> {
     argb.as_chunks::<4>().0.iter().flat_map(|p| [p[1], p[2], p[3], p[0]]).collect()
 }
 
+/// The largest valid pixmap of a list.
 pub fn best_pixmap(pixmaps: &Pixmaps) -> Option<TrayPixmap> {
     pixmaps
         .iter()
@@ -140,6 +194,7 @@ pub fn best_pixmap(pixmaps: &Pixmaps) -> Option<TrayPixmap> {
         .map(|(w, h, data)| TrayPixmap { width: *w as u32, height: *h as u32, rgba: argb_to_rgba(data) })
 }
 
+/// The label without its mnemonic marker `_`.
 pub fn strip_mnemonic(label: &str) -> String {
     let mut out = String::with_capacity(label.len());
     let mut chars = label.chars().peekable();
@@ -190,6 +245,7 @@ fn resolve_icon(name: &str, theme_path: &str) -> String {
     name.to_owned()
 }
 
+/// Builds an item from its properties.
 pub fn build_item(key: &str, props: &Props) -> TrayItem {
     let theme_path = text(props, "IconThemePath");
     let tooltip = props
@@ -251,6 +307,7 @@ fn parse_children(children: &[OwnedValue]) -> Vec<MenuEntry> {
         .collect()
 }
 
+/// Converts a dbusmenu layout into entries.
 pub fn parse_layout(layout: &Layout) -> Vec<MenuEntry> {
     parse_children(&layout.2)
 }
@@ -281,11 +338,16 @@ enum Input {
     Ignore,
 }
 
+/// Observable state of the tray.
 #[derive(Clone)]
 pub struct TrayState {
+    /// True once the watcher is set up.
     pub ready: Signal<bool>,
+    /// True when the watcher could be provided.
     pub available: Signal<bool>,
+    /// The items.
     pub items: Signal<Vec<TrayItem>>,
+    /// The menu being shown.
     pub menu: Signal<Option<TrayMenu>>,
 }
 
@@ -299,27 +361,32 @@ impl TrayState {
         }
     }
 
+    /// The item with this key.
     pub fn item(&self, key: &str) -> Option<TrayItem> {
         self.items.with_untracked(|items| items.iter().find(|i| i.key == key).cloned())
     }
 
+    /// The item with this application id.
     pub fn item_by_id(&self, id: &str) -> Option<TrayItem> {
         self.items.with_untracked(|items| items.iter().find(|i| i.id == id).cloned())
     }
 }
 
+/// The system tray: acts as StatusNotifierWatcher and host and delivers items and their menus as signals.
 pub struct Tray {
+    /// Its observable state.
     pub state: TrayState,
     service: ServiceHandle<TrayCommand>,
 }
 
 impl Tray {
+    /// Starts the watcher on `bus` on a helper thread.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, bus: BusKind) -> Result<Tray, IoError> {
         let state = TrayState::new();
         let target = state.clone();
         let service = spawn_supervised(
             handle,
-            "serp-tray",
+            "acanthus-tray",
             move |event| match event {
                 Event::Watcher(available) => batch(|| {
                     target.available.set(available);
@@ -345,34 +412,42 @@ impl Tray {
         Ok(Tray { state, service })
     }
 
+    /// Sends a command; false when the service is gone.
     pub fn command(&self, command: TrayCommand) -> bool {
         self.service.send(command)
     }
 
+    /// Activates the item at a screen position.
     pub fn activate(&self, key: &str, x: i32, y: i32) -> bool {
         self.command(TrayCommand::Activate(key.to_owned(), x, y))
     }
 
+    /// Secondary-activates the item at a screen position.
     pub fn secondary_activate(&self, key: &str, x: i32, y: i32) -> bool {
         self.command(TrayCommand::SecondaryActivate(key.to_owned(), x, y))
     }
 
+    /// Asks the item to show its context menu at a screen position.
     pub fn context_menu(&self, key: &str, x: i32, y: i32) -> bool {
         self.command(TrayCommand::ContextMenu(key.to_owned(), x, y))
     }
 
+    /// Scrolls over the item.
     pub fn scroll(&self, key: &str, delta: i32, horizontal: bool) -> bool {
         self.command(TrayCommand::Scroll(key.to_owned(), delta, horizontal))
     }
 
+    /// Loads the menu of the item into the state.
     pub fn load_menu(&self, key: &str) -> bool {
         self.command(TrayCommand::LoadMenu(key.to_owned()))
     }
 
+    /// Clicks an entry of the item's menu.
     pub fn click_menu_entry(&self, key: &str, id: i32) -> bool {
         self.command(TrayCommand::MenuClick(key.to_owned(), id))
     }
 
+    /// Closes the menu.
     pub fn close_menu(&self) {
         self.state.menu.set(None);
         self.command(TrayCommand::CloseMenu);

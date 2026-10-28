@@ -21,15 +21,21 @@ use crate::platform::dbus::{BusKind, variant_to_json};
 const WELL_KNOWN_NAME: &str = "org.freedesktop.Notifications";
 const OBJECT_PATH: &str = "/org/freedesktop/Notifications";
 
+/// Why a notification was closed, with the codes of the specification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CloseReason {
+    /// It timed out.
     Expired,
+    /// The user dismissed it.
     Dismissed,
+    /// The sender or the service closed it.
     Closed,
+    /// Another reason.
     Undefined,
 }
 
 impl CloseReason {
+    /// The numeric code of the specification.
     pub fn code(self) -> u32 {
         match self {
             CloseReason::Expired => 1,
@@ -40,24 +46,36 @@ impl CloseReason {
     }
 }
 
+/// A button of a notification.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Action {
+    /// Identifier sent back when it is invoked.
     pub id: String,
+    /// Label.
     pub text: String,
 }
 
+/// Raw image data from the `image-data` hint.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ImageData {
+    /// Width in pixels.
     pub width: i32,
+    /// Height in pixels.
     pub height: i32,
+    /// Bytes per row.
     pub rowstride: i32,
+    /// True when there is an alpha channel.
     pub has_alpha: bool,
+    /// Bits per colour sample; only 8 is supported.
     pub bits_per_sample: i32,
+    /// Channels per pixel, 3 or 4.
     pub channels: i32,
+    /// The pixels.
     pub data: Vec<u8>,
 }
 
 impl ImageData {
+    /// The pixels as tightly packed RGBA, or `None` when the format is not supported.
     pub fn to_rgba(&self) -> Option<Vec<u8>> {
         if self.bits_per_sample != 8 || self.width <= 0 || self.height <= 0 || !(3..=4).contains(&self.channels) {
             return None;
@@ -79,32 +97,51 @@ impl ImageData {
     }
 }
 
+/// A notification as received from an application.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Notification {
+    /// Identifier assigned by the server.
     pub id: u32,
+    /// Name of the sending application.
     pub app_name: String,
+    /// Icon of the application.
     pub app_icon: String,
+    /// Title.
     pub summary: String,
+    /// Body text.
     pub body: String,
+    /// Buttons.
     pub actions: Vec<Action>,
+    /// Urgency.
     pub urgency: Urgency,
+    /// Timeout in milliseconds; -1 for the server's default, 0 for none.
     pub expire_timeout_ms: i32,
+    /// Path of an image to show.
     pub image_path: String,
+    /// Raw image data to show.
     pub image_data: Option<ImageData>,
+    /// Desktop entry of the sender.
     pub desktop_entry: String,
+    /// Category hint.
     pub category: String,
+    /// True when the notification should not be kept in history.
     pub transient: bool,
+    /// True when it stays after an action is invoked.
     pub resident: bool,
+    /// Arrival time as Unix milliseconds.
     pub timestamp_ms: u64,
+    /// True when it replaced an earlier notification.
     pub replaced: bool,
 }
 
 impl Notification {
+    /// The image to show: the image path, else the application icon.
     pub fn image(&self) -> &str {
         if !self.image_path.is_empty() { &self.image_path } else { &self.app_icon }
     }
 }
 
+/// Pairs `[id, text, id, text, ...]` as sent over D-Bus into actions.
 pub fn parse_actions(raw: &[String]) -> Vec<Action> {
     raw.chunks(2)
         .filter(|pair| pair.len() == 2)
@@ -128,6 +165,7 @@ fn parse_image_data(value: &OwnedVariant) -> Option<ImageData> {
     })
 }
 
+/// Builds a notification from the arguments and hints of a `Notify` call.
 #[allow(clippy::too_many_arguments)]
 pub fn build_notification(
     id: u32,
@@ -173,8 +211,11 @@ enum Event {
     Closed(u32),
 }
 
+/// A request to the notification worker.
 pub enum Command {
+    /// Close the notification with this id for this reason.
     Close(u32, CloseReason),
+    /// Invoke the action with this id on the notification with this id.
     Invoke(u32, String),
 }
 
@@ -304,8 +345,11 @@ type CloseListener = Box<dyn FnMut(u32)>;
 type ActionHandler = Box<dyn FnOnce(String)>;
 type LocalActions = Rc<RefCell<HashMap<u32, ActionHandler>>>;
 
+/// The `org.freedesktop.Notifications` server: receives notifications from applications and publishes them to listeners.
 pub struct NotificationServer {
+    /// True while the server owns the bus name.
     pub running: Signal<bool>,
+    /// The notifications currently shown.
     pub live: Signal<Vec<Notification>>,
     listeners: Rc<RefCell<Vec<Listener>>>,
     close_listeners: Rc<RefCell<Vec<CloseListener>>>,
@@ -315,6 +359,7 @@ pub struct NotificationServer {
 }
 
 impl NotificationServer {
+    /// Starts the server for the application `app` on `bus`.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         bus: BusKind,
@@ -332,7 +377,7 @@ impl NotificationServer {
         let worker_ids = next_id.clone();
         let service = spawn_supervised(
             handle,
-            "serp-notifications",
+            "acanthus-notifications",
             move |event| match event {
                 Event::Name(owned) => r.set(owned),
                 Event::Notified(notification) => publish(&l, &ls, &notification),
@@ -349,14 +394,17 @@ impl NotificationServer {
         Ok(NotificationServer { running, live, listeners, close_listeners, next_id, local_actions, service })
     }
 
+    /// Adds a listener called for every new notification.
     pub fn on_notification(&self, listener: impl FnMut(&Notification) + 'static) {
         self.listeners.borrow_mut().push(Box::new(listener));
     }
 
+    /// Adds a listener called with the id of every closed notification.
     pub fn on_closed(&self, listener: impl FnMut(u32) + 'static) {
         self.close_listeners.borrow_mut().push(Box::new(listener));
     }
 
+    /// Shows a notification created by this process and returns its id.
     pub fn post_local(&self, notice: Notice) -> u32 {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let Notice { app_name, summary, body, icon, urgency, actions, on_action } = notice;
@@ -379,12 +427,14 @@ impl NotificationServer {
         id
     }
 
+    /// Closes a notification and tells its sender.
     pub fn close(&self, id: u32, reason: CloseReason) {
         self.local_actions.borrow_mut().remove(&id);
         self.live.update(|list| list.retain(|n| n.id != id));
         self.service.send(Command::Close(id, reason));
     }
 
+    /// Invokes an action: the local handler for local notifications, else a signal to the sender.
     pub fn invoke_action(&self, id: u32, action_id: &str) {
         let local = self.local_actions.borrow_mut().remove(&id);
         if let Some(handler) = local {
@@ -395,12 +445,14 @@ impl NotificationServer {
     }
 }
 
+/// A [`Notifier`] that shows notices through the local server when it runs and falls back to `notify-send` otherwise.
 pub struct LocalNotifier {
     server: Rc<NotificationServer>,
     fallback: NotifySendNotifier,
 }
 
 impl LocalNotifier {
+    /// Creates a notifier using `server`, or `fallback` while the server is not running.
     pub fn new(server: Rc<NotificationServer>, fallback: NotifySendNotifier) -> LocalNotifier {
         LocalNotifier { server, fallback }
     }

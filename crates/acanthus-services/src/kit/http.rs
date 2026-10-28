@@ -10,50 +10,67 @@ use super::{Cmd, Exec, Running};
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 const CURL_TIMEOUT_EXIT: i32 = 28;
 
+/// An HTTP GET request executed through `curl`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
+    /// The URL.
     pub url: String,
+    /// Overall timeout.
     pub timeout: Duration,
+    /// Extra headers as name and value.
     pub headers: Vec<(String, String)>,
+    /// User agent, or `None` for curl's own.
     pub user_agent: Option<String>,
 }
 
 impl Request {
+    /// A request for `url` with a ten-second timeout.
     pub fn new(url: impl Into<String>) -> Request {
         Request { url: url.into(), timeout: DEFAULT_TIMEOUT, headers: Vec::new(), user_agent: None }
     }
 
+    /// Sets the timeout.
     pub fn timeout(mut self, timeout: Duration) -> Request {
         self.timeout = timeout;
         self
     }
 
+    /// Sets the timeout in seconds.
     pub fn timeout_secs(self, seconds: u64) -> Request {
         self.timeout(Duration::from_secs(seconds))
     }
 
+    /// Adds a header.
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Request {
         self.headers.push((name.into(), value.into()));
         self
     }
 
+    /// Adds several headers.
     pub fn headers(mut self, headers: &[(&str, &str)]) -> Request {
         self.headers.extend(headers.iter().map(|(name, value)| ((*name).to_owned(), (*value).to_owned())));
         self
     }
 
+    /// Sets the user agent.
     pub fn user_agent(mut self, agent: impl Into<String>) -> Request {
         self.user_agent = Some(agent.into());
         self
     }
 }
 
+/// Why a request failed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HttpError {
+    /// The helper process could not be started.
     Spawn,
+    /// The request timed out or was killed.
     Timeout,
+    /// The helper exited with this non-zero code.
     Exit(i32),
+    /// The server answered with this HTTP status.
     Status(u16),
+    /// The response was empty.
     Empty,
 }
 
@@ -72,12 +89,14 @@ fn base_argv(request: &Request, flags: &[&str]) -> Vec<String> {
     argv
 }
 
+/// The command line that fetches `request` and prints the body.
 pub fn get_argv(request: &Request) -> Vec<String> {
     let mut argv = base_argv(request, &["-sfL"]);
     argv.push(request.url.clone());
     argv
 }
 
+/// The command line that saves the response of `request` to `dest` and prints the HTTP status.
 pub fn download_argv(request: &Request, dest: &Path) -> Vec<String> {
     let mut argv = base_argv(request, &["-s", "-L"]);
     argv.extend(["-o".to_owned(), dest.to_string_lossy().into_owned()]);
@@ -104,6 +123,7 @@ fn classify_download(info: ExitInfo) -> Result<u16, HttpError> {
     }
 }
 
+/// Downloads `request` to `dest` synchronously and returns the HTTP status.
 pub fn download_blocking(request: &Request, dest: &Path) -> Result<u16, HttpError> {
     let info = run_blocking(&Cmd::new(download_argv(request, dest))).ok_or(HttpError::Spawn)?;
     classify_download(info)
@@ -111,21 +131,27 @@ pub fn download_blocking(request: &Request, dest: &Path) -> Result<u16, HttpErro
 
 pub type Parser<T> = Rc<dyn Fn(&str) -> Option<T>>;
 
+/// One place to try in [`Http::first_of`]: a request and the parser of its body.
 pub struct Source<T> {
+    /// The request.
     pub request: Request,
+    /// Turns the body into a value, `None` when it is not usable.
     pub parse: Parser<T>,
 }
 
+/// Runs HTTP requests through an [`Exec`], so tests can fake them.
 #[derive(Clone)]
 pub struct Http {
     exec: Rc<dyn Exec>,
 }
 
 impl Http {
+    /// Creates a client running requests with `exec`.
     pub fn new(exec: Rc<dyn Exec>) -> Http {
         Http { exec }
     }
 
+    /// Fetches the body of `request` and calls `done`; the returned handle cancels it.
     pub fn get(
         &self,
         request: Request,
@@ -134,6 +160,7 @@ impl Http {
         self.exec.run(Cmd::new(get_argv(&request)), Box::new(move |info| done(classify_get(info))))
     }
 
+    /// Downloads `request` to `dest` and calls `done` with the HTTP status; the returned handle cancels it.
     pub fn download(
         &self,
         request: Request,
@@ -143,6 +170,7 @@ impl Http {
         self.exec.run(Cmd::new(download_argv(&request, dest)), Box::new(move |info| done(classify_download(info))))
     }
 
+    /// Tries `sources` in order and calls `done` with the first parsed value, or `None` when every source fails.
     pub fn first_of<T: 'static>(&self, sources: Vec<Source<T>>, done: impl FnOnce(Option<T>) + 'static) {
         fn step<T: 'static>(http: Http, mut sources: std::vec::IntoIter<Source<T>>, done: Box<dyn FnOnce(Option<T>)>) {
             let Some(source) = sources.next() else {

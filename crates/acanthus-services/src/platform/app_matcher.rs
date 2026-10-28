@@ -30,6 +30,7 @@ const WRAPPER_EXECS: &[&str] = &[
     "pkexec",
 ];
 
+/// The lowercase desktop-file id without any `.desktop` suffix.
 pub fn canonical_id(id: &str) -> String {
     let mut s = id.trim().to_lowercase();
     while let Some(stripped) = s.strip_suffix(".desktop") {
@@ -38,6 +39,7 @@ pub fn canonical_id(id: &str) -> String {
     s
 }
 
+/// The lowercase form of a window class or name used as a lookup key.
 pub fn normalize_key(value: &str) -> String {
     value.trim().to_lowercase()
 }
@@ -48,6 +50,7 @@ fn put(map: &mut HashMap<String, String>, key: String, id: &str) {
     }
 }
 
+/// Maps window class names and application ids to desktop entries by id, class, executable and name; results are cached.
 pub struct AppMatcher {
     by_id: HashMap<String, Rc<DesktopEntry>>,
     keys: HashMap<String, String>,
@@ -55,6 +58,7 @@ pub struct AppMatcher {
 }
 
 impl AppMatcher {
+    /// Builds a matcher over `entries`.
     pub fn new(entries: &[Rc<DesktopEntry>]) -> AppMatcher {
         let mut by_id: HashMap<String, Rc<DesktopEntry>> = HashMap::new();
         let (mut id_keys, mut class_keys, mut exec_keys, mut tail_keys, mut name_keys) =
@@ -84,6 +88,7 @@ impl AppMatcher {
         AppMatcher { by_id, keys, cache: RefCell::default() }
     }
 
+    /// The desktop-file id that best matches `app_id`, or an empty string when nothing does.
     pub fn resolve(&self, app_id: &str) -> String {
         let key = normalize_key(app_id);
         if key.is_empty() {
@@ -115,15 +120,18 @@ impl AppMatcher {
             .or_else(|| self.by_id.keys().find(|id| id.rsplit('.').next() == Some(cid_key)).cloned())
     }
 
+    /// The entry with this desktop-file id.
     pub fn entry(&self, id: &str) -> Option<Rc<DesktopEntry>> {
         let cid = canonical_id(id);
         (!cid.is_empty()).then(|| self.by_id.get(&cid).cloned()).flatten()
     }
 
+    /// The number of entries.
     pub fn len(&self) -> usize {
         self.by_id.len()
     }
 
+    /// True when there are no entries.
     pub fn is_empty(&self) -> bool {
         self.by_id.is_empty()
     }

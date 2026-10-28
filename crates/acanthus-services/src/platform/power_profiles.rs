@@ -12,15 +12,20 @@ const ENDPOINTS: [(&str, &str); 2] = [
     ("net.hadess.PowerProfiles", "/net/hadess/PowerProfiles"),
 ];
 
+/// A power profile of power-profiles-daemon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Profile {
+    /// Lowest consumption.
     PowerSaver,
+    /// The default profile.
     #[default]
     Balanced,
+    /// Highest performance.
     Performance,
 }
 
 impl Profile {
+    /// The profile with this daemon name; unknown names are balanced.
     pub fn from_name(name: &str) -> Profile {
         match name {
             "power-saver" => Profile::PowerSaver,
@@ -29,6 +34,7 @@ impl Profile {
         }
     }
 
+    /// The daemon's name of the profile.
     pub fn name(self) -> &'static str {
         match self {
             Profile::PowerSaver => "power-saver",
@@ -54,14 +60,20 @@ enum Item {
     Command(Profile),
 }
 
+/// Observable state of the power profiles service.
 #[derive(Clone)]
 pub struct PowerProfilesState {
+    /// True once the daemon answered.
     pub ready: Signal<bool>,
+    /// The active profile.
     pub profile: Signal<Profile>,
+    /// True when the machine offers the performance profile.
     pub has_performance: Signal<bool>,
 }
 
+/// Power profile control through power-profiles-daemon.
 pub struct PowerProfiles {
+    /// Its observable state.
     pub state: PowerProfilesState,
     service: ServiceHandle<Profile>,
 }
@@ -127,6 +139,7 @@ async fn run(bus: BusKind, events: EventSink<Event>, commands: async_channel::Re
 }
 
 impl PowerProfiles {
+    /// Connects to the daemon on `bus` on a helper thread.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, bus: BusKind) -> Result<PowerProfiles, IoError> {
         let state = PowerProfilesState {
             ready: Signal::new(false),
@@ -136,7 +149,7 @@ impl PowerProfiles {
         let target = state.clone();
         let service = spawn_supervised(
             handle,
-            "serp-power-profiles",
+            "acanthus-power-profiles",
             move |event| match event {
                 Event::Snapshot(snapshot) => batch(|| {
                     target.profile.set(snapshot.profile);
@@ -150,6 +163,7 @@ impl PowerProfiles {
         Ok(PowerProfiles { state, service })
     }
 
+    /// Requests `profile`; false when the service is gone.
     pub fn set(&self, profile: Profile) -> bool {
         self.service.send(profile)
     }

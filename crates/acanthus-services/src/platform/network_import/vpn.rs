@@ -50,6 +50,7 @@ pub(crate) fn looks_like_openconnect(text: &str) -> bool {
             .any(|k| has(k))
 }
 
+/// Imports an OpenConnect configuration.
 pub fn import_openconnect(name: &str, text: &str) -> Result<ImportedProfile, ImportError> {
     let mut data: HashMap<String, String> = HashMap::new();
     let mut user = None;
@@ -148,6 +149,7 @@ pub(crate) fn looks_like_strongswan(text: &str) -> bool {
         && text.contains("right")
 }
 
+/// Imports the connections of a strongSwan configuration, one profile per connection.
 pub fn import_strongswan(name_hint: &str, text: &str) -> Result<Vec<ImportedProfile>, ImportError> {
     let conns = sections(text, "conn");
     if conns.is_empty() {
@@ -273,6 +275,7 @@ pub(crate) fn looks_like_l2tp(text: &str) -> bool {
     text.lines().any(|l| l.trim().to_ascii_lowercase().starts_with("[lac "))
 }
 
+/// Imports the connections of an L2TP configuration (xl2tpd or strongSwan style).
 pub fn import_l2tp(name_hint: &str, text: &str) -> Result<Vec<ImportedProfile>, ImportError> {
     let lacs = sections(text, "lac");
     if lacs.is_empty() {
@@ -313,6 +316,7 @@ pub(crate) fn looks_like_pptp(text: &str) -> bool {
     lower.contains("pptp") && lower.lines().any(|l| l.trim_start().starts_with("pty"))
 }
 
+/// Imports a PPTP configuration.
 pub fn import_pptp(name_hint: &str, text: &str) -> Result<ImportedProfile, ImportError> {
     let mut gateway = None;
     let mut user = None;

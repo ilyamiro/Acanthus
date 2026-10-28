@@ -50,10 +50,12 @@ fn numbered(key: &str, prefix: &str) -> bool {
     key.strip_prefix(prefix).is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
 }
 
+/// Imports a NetworkManager keyfile.
 pub fn import_keyfile(text: &str) -> Result<ImportedProfile, ImportError> {
     import_keyfile_with(text, &ImportOptions::default())
 }
 
+/// Like [`import_keyfile`] with explicit options.
 pub fn import_keyfile_with(text: &str, options: &ImportOptions) -> Result<ImportedProfile, ImportError> {
     let groups = parse_groups(text);
     let mut profile = ImportedProfile::default();

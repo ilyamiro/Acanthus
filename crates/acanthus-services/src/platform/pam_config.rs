@@ -2,6 +2,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+/// The name of the PAM service that behaves like `service` without the fingerprint module.
 pub fn no_fingerprint_config(service: &str) -> String {
     format!("{service}-nofp")
 }
@@ -60,6 +61,7 @@ fn tool_on_path(path_dirs: &[PathBuf], name: &str) -> bool {
     path_dirs.iter().any(|dir| dir.join(name).is_file())
 }
 
+/// True when a fingerprint tool is on the given path directories and the PAM configuration of `service` in `directory` uses the fingerprint module.
 pub fn fingerprint_available_in(directory: &Path, path_dirs: &[PathBuf], service: &str) -> bool {
     if !FINGERPRINT_TOOLS.iter().any(|tool| tool_on_path(path_dirs, tool)) {
         return false;
@@ -67,12 +69,14 @@ pub fn fingerprint_available_in(directory: &Path, path_dirs: &[PathBuf], service
     mentions_fingerprint(&base_config(directory, service), directory, 0)
 }
 
+/// Like [`fingerprint_available_in`] using the `PATH` of the process.
 pub fn fingerprint_available(directory: &Path, service: &str) -> bool {
     let path_dirs: Vec<PathBuf> =
         std::env::var_os("PATH").map(|path| std::env::split_paths(&path).collect()).unwrap_or_default();
     fingerprint_available_in(directory, &path_dirs, service)
 }
 
+/// Writes a copy of the PAM configuration directory `source` into `destination` containing the fingerprint-free variant of `service`.
 pub fn build_no_fingerprint_dir(source: &Path, destination: &Path, service: &str) -> io::Result<()> {
     if destination.as_os_str().is_empty() || !source.is_dir() {
         return Err(io::Error::new(io::ErrorKind::InvalidInput, "pam directories missing"));

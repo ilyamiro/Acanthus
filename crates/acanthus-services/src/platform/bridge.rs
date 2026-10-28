@@ -8,9 +8,11 @@ use async_executor::LocalExecutor;
 use calloop::channel::{Channel, Event, Sender, channel};
 use calloop::{LoopHandle, RegistrationToken};
 
+/// Sends events from a worker thread to the main loop. Cloning shares the channel.
 pub struct EventSink<E>(Sender<E>);
 
 impl<E> EventSink<E> {
+    /// Sends an event; false when the receiving side is gone.
     pub fn send(&self, event: E) -> bool {
         self.0.send(event).is_ok()
     }
@@ -22,12 +24,14 @@ impl<E> Clone for EventSink<E> {
     }
 }
 
+/// Sends commands to a worker task; dropping it closes the channel and unregisters the event source.
 pub struct ServiceHandle<C> {
     commands: async_channel::Sender<C>,
     remove: Option<Box<dyn FnOnce()>>,
 }
 
 impl<C> ServiceHandle<C> {
+    /// Sends a command; false when the worker is gone or its queue is closed.
     pub fn send(&self, command: C) -> bool {
         self.commands.try_send(command).is_ok()
     }
@@ -42,14 +46,17 @@ impl<C> Drop for ServiceHandle<C> {
     }
 }
 
+/// A flag a worker thread polls to learn that it should stop.
 #[derive(Clone, Default)]
 pub struct StopFlag(Arc<AtomicBool>);
 
 impl StopFlag {
+    /// True once stop was requested.
     pub fn is_set(&self) -> bool {
         self.0.load(Ordering::Relaxed)
     }
 
+    /// Sleeps up to `duration`, waking early when the flag is set; returns true when stopped.
     pub fn sleep(&self, duration: Duration) -> bool {
         let end = Instant::now() + duration;
         while Instant::now() < end {
@@ -62,12 +69,14 @@ impl StopFlag {
     }
 }
 
+/// Handle of a thread started by [`spawn_thread`]; dropping it sets the stop flag and unregisters the event source.
 pub struct ThreadHandle {
     stop: StopFlag,
     remove: Option<Box<dyn FnOnce()>>,
 }
 
 impl ThreadHandle {
+    /// The flag the thread was given.
     pub fn stop_flag(&self) -> StopFlag {
         self.stop.clone()
     }
@@ -82,6 +91,7 @@ impl Drop for ThreadHandle {
     }
 }
 
+/// Starts a thread named `name` running `run` and delivers the events it sends to `on_event` on the main loop.
 pub fn spawn_thread<D, E>(
     handle: &LoopHandle<'static, D>,
     name: &str,
@@ -105,6 +115,7 @@ where
     Ok(ThreadHandle { stop, remove: Some(Box::new(move || weak.remove(token))) })
 }
 
+/// Starts a thread named `name` that runs the async `run` with an event sink and a command receiver, delivering events to `on_event` on the main loop.
 pub fn spawn_worker<D, E, C, F, Fut>(
     handle: &LoopHandle<'static, D>,
     name: &str,
@@ -171,17 +182,23 @@ fn executor() -> Result<&'static async_channel::Sender<Job>, IoError> {
     Ok(EXECUTOR.get_or_init(|| sender))
 }
 
+/// Restart delays for supervised workers: the first delay, the longest delay and how long a run must last to count as healthy.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Backoff {
+    /// Delay after the first failure.
     pub first: Duration,
+    /// Longest delay; the delay doubles up to this.
     pub max: Duration,
+    /// A run lasting at least this long resets the delay.
     pub healthy: Duration,
 }
 
 impl Backoff {
+    /// One second first, thirty seconds at most, healthy after a minute.
     pub const DEFAULT: Backoff =
         Backoff { first: Duration::from_secs(1), max: Duration::from_secs(30), healthy: Duration::from_secs(60) };
 
+    /// The delay before the next restart, given the previous delay and how long the last run lasted.
     pub fn next(&self, previous: Option<Duration>, ran_for: Duration) -> Duration {
         match previous {
             Some(delay) if ran_for < self.healthy => (delay * 2).min(self.max),
@@ -190,6 +207,7 @@ impl Backoff {
     }
 }
 
+/// Like [`spawn_worker`] but the worker is restarted with the default backoff when it returns.
 pub fn spawn_supervised<D, E, C, F, Fut>(
     handle: &LoopHandle<'static, D>,
     name: &str,
@@ -206,6 +224,7 @@ where
     spawn_supervised_with(handle, name, Backoff::DEFAULT, on_event, run)
 }
 
+/// Like [`spawn_supervised`] with an explicit backoff.
 pub fn spawn_supervised_with<D, E, C, F, Fut>(
     handle: &LoopHandle<'static, D>,
     name: &str,

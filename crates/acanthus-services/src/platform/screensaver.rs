@@ -23,23 +23,34 @@ const LOCK_WAIT: Duration = Duration::from_secs(4);
 const RETRY_DELAY: Duration = Duration::from_secs(10);
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
+/// System power transitions reported by logind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PowerEvent {
+    /// The system is about to sleep.
     Sleep,
+    /// The system woke up.
     Wake,
 }
 
+/// Settings of the screen saver service.
 #[derive(Debug, Clone)]
 pub struct ScreensaverOptions {
+    /// File whose existence tells that the session is locked.
     pub lock_marker: PathBuf,
+    /// Name used when taking sleep inhibitors.
     pub inhibitor_name: String,
+    /// How long simulated activity keeps the screen awake.
     pub activity_hold: Duration,
+    /// How long to wait for the lock marker before sleeping.
     pub lock_wait: Duration,
+    /// Delay before retrying a failed bus connection.
     pub retry_delay: Duration,
+    /// Polling interval of the worker.
     pub poll_interval: Duration,
 }
 
 impl ScreensaverOptions {
+    /// Options with the default timings and the given lock marker and inhibitor name.
     pub fn new(lock_marker: PathBuf, inhibitor_name: impl Into<String>) -> Self {
         ScreensaverOptions {
             lock_marker,
@@ -52,6 +63,7 @@ impl ScreensaverOptions {
     }
 }
 
+/// Bookkeeping of inhibit requests: cookies per requester and a temporary activity hold.
 #[derive(Debug, Default)]
 pub struct Inhibitions {
     cookies: HashMap<u32, String>,
@@ -61,6 +73,7 @@ pub struct Inhibitions {
 }
 
 impl Inhibitions {
+    /// Records an inhibit request from `sender` and returns its cookie.
     pub fn inhibit(&mut self, sender: &str) -> u32 {
         while self.next_cookie == 0 || self.cookies.contains_key(&self.next_cookie) {
             self.next_cookie = self.next_cookie.wrapping_add(1);
@@ -71,18 +84,22 @@ impl Inhibitions {
         cookie
     }
 
+    /// Drops the request with this cookie.
     pub fn uninhibit(&mut self, cookie: u32) {
         self.cookies.remove(&cookie);
     }
 
+    /// Holds the screen awake until `now + hold`.
     pub fn simulate_activity(&mut self, now: Instant, hold: Duration) {
         self.activity_until = Some(now + hold);
     }
 
+    /// Drops the requests of a requester that left the bus.
     pub fn sender_vanished(&mut self, name: &str) {
         self.cookies.retain(|_, owner| owner != name);
     }
 
+    /// Sets whether this process owns the screen saver name; losing it clears all requests.
     pub fn set_owner(&mut self, owner: bool) {
         self.owner = owner;
         if !owner {
@@ -91,14 +108,17 @@ impl Inhibitions {
         }
     }
 
+    /// True when this process owns the name and a request or an activity hold is active.
     pub fn inhibited(&self, now: Instant) -> bool {
         self.owner && (!self.cookies.is_empty() || self.activity_until.is_some_and(|until| now < until))
     }
 
+    /// When the activity hold ends, if one is active.
     pub fn next_deadline(&self) -> Option<Instant> {
         self.activity_until
     }
 
+    /// Drops an activity hold that has ended.
     pub fn expire(&mut self, now: Instant) {
         if self.activity_until.is_some_and(|until| now >= until) {
             self.activity_until = None;
@@ -170,10 +190,14 @@ enum Command {
     SleepLock(bool),
 }
 
+/// Observable state of the screen saver service.
 #[derive(Clone)]
 pub struct ScreensaverState {
+    /// True while some client inhibits the screen saver.
     pub inhibited: Signal<bool>,
+    /// True while the system sleeps.
     pub sleeping: Signal<bool>,
+    /// True while a sleep delay lock is held.
     pub sleep_lock_held: Signal<bool>,
 }
 
@@ -196,12 +220,15 @@ impl ScreensaverState {
     }
 }
 
+/// The `org.freedesktop.ScreenSaver` service: collects inhibit requests, reports power events and holds a sleep inhibitor while the session locks.
 pub struct Screensaver {
+    /// Its observable state.
     pub state: ScreensaverState,
     service: ServiceHandle<Command>,
 }
 
 impl Screensaver {
+    /// Starts the worker on the session and system buses; `on_power` receives sleep and wake events.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         session: BusKind,
@@ -213,7 +240,7 @@ impl Screensaver {
         let target = state.clone();
         let service = spawn_worker(
             handle,
-            "serp-screensaver",
+            "acanthus-screensaver",
             move |event| {
                 target.apply(&event);
                 if let Event::Power(power) = event {
@@ -225,6 +252,7 @@ impl Screensaver {
         Ok(Screensaver { state, service })
     }
 
+    /// Takes or releases the sleep delay lock; false when the service is gone.
     pub fn set_sleep_lock(&self, enabled: bool) -> bool {
         self.service.send(Command::SleepLock(enabled))
     }

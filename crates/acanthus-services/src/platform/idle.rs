@@ -21,6 +21,7 @@ const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const NOTIFIER_MAX_VERSION: u32 = 2;
 const INPUT_ONLY_VERSION: u32 = 2;
 
+/// The timeout in milliseconds, saturating at `u32::MAX`.
 pub fn timeout_millis(timeout: Duration) -> u32 {
     u32::try_from(timeout.as_millis()).unwrap_or(u32::MAX)
 }
@@ -38,9 +39,12 @@ enum Event {
     Unavailable,
 }
 
+/// Availability of idle detection.
 #[derive(Clone)]
 pub struct IdleState {
+    /// True once the compositor connection is set up.
     pub ready: Signal<bool>,
+    /// True when the compositor supports idle notifications.
     pub available: Signal<bool>,
 }
 
@@ -68,7 +72,9 @@ fn clear_all(monitors: &Monitors) {
     });
 }
 
+/// Idle detection through the `ext-idle-notify` protocol.
 pub struct Idle {
+    /// Its availability.
     pub state: IdleState,
     commands: Sender<Command>,
     monitors: Monitors,
@@ -77,6 +83,7 @@ pub struct Idle {
 }
 
 impl Idle {
+    /// Connects to the compositor on a helper thread and delivers idle events on the loop behind `handle`.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>) -> Result<Idle, IoError> {
         let state = IdleState::new();
         let target = state.clone();
@@ -85,7 +92,7 @@ impl Idle {
         let (commands, receiver) = channel::<Command>();
         let thread = spawn_thread(
             handle,
-            "serp-idle",
+            "acanthus-idle",
             move |event| match event {
                 Event::Ready => {
                     batch(|| {
@@ -112,6 +119,7 @@ impl Idle {
         Ok(Idle { state, commands, monitors, next_id: Cell::new(0), _thread: thread })
     }
 
+    /// Creates a monitor that reports idle after `timeout` without input; with `respect_inhibitors`, inhibitors keep the session from counting as idle.
     pub fn monitor(&self, timeout: Duration, respect_inhibitors: bool) -> IdleMonitor {
         self.next_id.set(self.next_id.get() + 1);
         let id = self.next_id.get();
@@ -131,10 +139,12 @@ impl Idle {
     }
 }
 
+/// One idle timeout being watched; dropping it removes the notification.
 pub struct IdleMonitor {
     id: u64,
     timeout_ms: u32,
     respect_inhibitors: bool,
+    /// True while the session is idle.
     pub is_idle: Signal<bool>,
     enabled: Cell<bool>,
     commands: Sender<Command>,
@@ -150,10 +160,12 @@ impl IdleMonitor {
         });
     }
 
+    /// True when the monitor is active.
     pub fn enabled(&self) -> bool {
         self.enabled.get()
     }
 
+    /// Turns the monitor on or off; turning it off clears the idle state.
     pub fn set_enabled(&self, enabled: bool) {
         if self.enabled.replace(enabled) == enabled {
             return;

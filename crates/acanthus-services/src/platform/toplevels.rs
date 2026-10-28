@@ -28,14 +28,20 @@ const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const OUTPUT_NAME_VERSION: u32 = 4;
 const MANAGER_MAX_VERSION: u32 = 3;
 
+/// State flags of a toplevel window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ToplevelFlags {
+    /// The window is maximized.
     pub maximized: bool,
+    /// The window is minimized.
     pub minimized: bool,
+    /// The window has focus.
     pub activated: bool,
+    /// The window is fullscreen.
     pub fullscreen: bool,
 }
 
+/// Decodes the state array of the foreign-toplevel protocol.
 pub fn state_flags(bytes: &[u8]) -> ToplevelFlags {
     let mut flags = ToplevelFlags::default();
     for chunk in bytes.as_chunks::<4>().0 {
@@ -50,36 +56,55 @@ pub fn state_flags(bytes: &[u8]) -> ToplevelFlags {
     flags
 }
 
+/// A window reported by the compositor.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Toplevel {
+    /// Identifier valid while the service runs.
     pub id: u64,
+    /// Application id.
     pub app_id: String,
+    /// Title.
     pub title: String,
+    /// Names of the outputs it is on.
     pub outputs: Vec<String>,
+    /// True when it has focus.
     pub activated: bool,
+    /// True when it is minimized.
     pub minimized: bool,
+    /// True when it is maximized.
     pub maximized: bool,
+    /// True when it is fullscreen.
     pub fullscreen: bool,
+    /// The window it is a dialog of.
     pub parent: Option<u64>,
 }
 
 impl Toplevel {
+    /// The first output it is on, empty when none.
     pub fn output(&self) -> &str {
         self.outputs.first().map(String::as_str).unwrap_or("")
     }
 }
 
+/// A request to change a window.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ToplevelCommand {
+    /// Gives the window focus.
     Activate(u64),
+    /// Closes the window.
     Close(u64),
+    /// Minimizes or restores the window.
     SetMinimized(u64, bool),
+    /// Maximizes or restores the window.
     SetMaximized(u64, bool),
+    /// Makes the window fullscreen or restores it.
     SetFullscreen(u64, bool),
 }
 
+/// All windows at one moment.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ToplevelSnapshot {
+    /// The windows.
     pub toplevels: Vec<Toplevel>,
 }
 
@@ -88,11 +113,16 @@ enum Event {
     Unavailable,
 }
 
+/// Observable state of the toplevel service.
 #[derive(Clone)]
 pub struct ToplevelsState {
+    /// True once the first list arrived.
     pub ready: Signal<bool>,
+    /// True when the compositor supports toplevel management.
     pub available: Signal<bool>,
+    /// All windows.
     pub toplevels: Signal<Vec<Toplevel>>,
+    /// Id of the focused window.
     pub active: Signal<Option<u64>>,
 }
 
@@ -103,6 +133,7 @@ impl Default for ToplevelsState {
 }
 
 impl ToplevelsState {
+    /// State with no windows.
     pub fn new() -> Self {
         ToplevelsState {
             ready: Signal::new(false),
@@ -112,6 +143,7 @@ impl ToplevelsState {
         }
     }
 
+    /// Copies a snapshot into the signals in one batch.
     pub fn apply(&self, snapshot: &ToplevelSnapshot) {
         batch(|| {
             self.available.set(true);
@@ -132,29 +164,34 @@ impl ToplevelsState {
         });
     }
 
+    /// The window with this id.
     pub fn toplevel(&self, id: u64) -> Option<Toplevel> {
         self.toplevels.with_untracked(|list| list.iter().find(|t| t.id == id).cloned())
     }
 
+    /// The focused window.
     pub fn active_toplevel(&self) -> Option<Toplevel> {
         self.active.with_untracked(|id| id.and_then(|id| self.toplevel(id)))
     }
 }
 
+/// Windows of all applications through the foreign-toplevel protocol, with control over them.
 pub struct Toplevels {
+    /// Its observable state.
     pub state: ToplevelsState,
     commands: Sender<ToplevelCommand>,
     _thread: ThreadHandle,
 }
 
 impl Toplevels {
+    /// Connects to the compositor on a helper thread.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>) -> Result<Toplevels, IoError> {
         let state = ToplevelsState::new();
         let target = state.clone();
         let (commands, receiver) = channel::<ToplevelCommand>();
         let thread = spawn_thread(
             handle,
-            "serp-toplevels",
+            "acanthus-toplevels",
             move |event| match event {
                 Event::Snapshot(snapshot) => target.apply(&snapshot),
                 Event::Unavailable => target.lost(),
@@ -168,26 +205,32 @@ impl Toplevels {
         Ok(Toplevels { state, commands, _thread: thread })
     }
 
+    /// Sends a command; false when the service is gone.
     pub fn command(&self, command: ToplevelCommand) -> bool {
         self.commands.send(command).is_ok()
     }
 
+    /// Gives the window focus; false when the service is gone.
     pub fn activate(&self, id: u64) -> bool {
         self.command(ToplevelCommand::Activate(id))
     }
 
+    /// Closes the window; false when the service is gone.
     pub fn close(&self, id: u64) -> bool {
         self.command(ToplevelCommand::Close(id))
     }
 
+    /// Minimizes or restores the window; false when the service is gone.
     pub fn set_minimized(&self, id: u64, minimized: bool) -> bool {
         self.command(ToplevelCommand::SetMinimized(id, minimized))
     }
 
+    /// Maximizes or restores the window; false when the service is gone.
     pub fn set_maximized(&self, id: u64, maximized: bool) -> bool {
         self.command(ToplevelCommand::SetMaximized(id, maximized))
     }
 
+    /// Makes the window fullscreen or restores it; false when the service is gone.
     pub fn set_fullscreen(&self, id: u64, fullscreen: bool) -> bool {
         self.command(ToplevelCommand::SetFullscreen(id, fullscreen))
     }

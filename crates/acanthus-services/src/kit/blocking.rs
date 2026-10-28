@@ -11,12 +11,14 @@ type Job = Box<dyn FnOnce() -> Output + Send>;
 type Done = Box<dyn FnOnce(Output)>;
 type Launch = Rc<dyn Fn(Job, Done)>;
 
+/// Runs blocking work on a helper thread and delivers the result back on the main loop.
 #[derive(Clone)]
 pub struct Blocking {
     launch: Launch,
 }
 
 impl Blocking {
+    /// Creates a runner delivering results through the event loop behind `handle`.
     pub fn new<D: 'static>(handle: &LoopHandle<'static, D>) -> Blocking {
         let weak = WeakHandle::new(handle);
         Blocking {
@@ -51,10 +53,12 @@ impl Blocking {
         }
     }
 
+    /// A runner that executes the job on the calling thread and delivers immediately; for tests.
     pub fn inline() -> Blocking {
         Blocking { launch: Rc::new(|job, done| done(job())) }
     }
 
+    /// Runs `job` off the main loop and then `done` with its result on the main loop. The result is dropped when the loop is gone.
     pub fn run<T: Send + 'static>(&self, job: impl FnOnce() -> T + Send + 'static, done: impl FnOnce(T) + 'static) {
         (self.launch)(
             Box::new(move || Box::new(job()) as Output),

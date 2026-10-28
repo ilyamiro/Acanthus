@@ -18,8 +18,11 @@ use wayland_protocols_wlr::gamma_control::v1::client::zwlr_gamma_control_v1::{se
 
 use crate::platform::bridge::{EventSink, ThreadHandle, spawn_thread};
 
+/// Lowest colour temperature in kelvin.
 pub const TEMP_MIN: i64 = 1000;
+/// Highest colour temperature in kelvin.
 pub const TEMP_MAX: i64 = 10000;
+/// Neutral colour temperature in kelvin, at which the screen is unchanged.
 pub const DAY_TEMP: u32 = 6500;
 
 fn helland(kelvin: f64) -> [f64; 3] {
@@ -40,6 +43,7 @@ fn helland(kelvin: f64) -> [f64; 3] {
     [red.clamp(0.0, 255.0), green.clamp(0.0, 255.0), blue.clamp(0.0, 255.0)]
 }
 
+/// Per-channel multipliers (red, green, blue, at most 1) that give a screen the colour temperature `kelvin`, relative to [`DAY_TEMP`].
 pub fn kelvin_multipliers(kelvin: u32) -> [f64; 3] {
     let reference = helland(DAY_TEMP as f64);
     let color = helland(kelvin.clamp(TEMP_MIN as u32, TEMP_MAX as u32) as f64);
@@ -49,10 +53,13 @@ pub fn kelvin_multipliers(kelvin: u32) -> [f64; 3] {
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
 const OUTPUT_NAME_VERSION: u32 = 4;
 
+/// Applies colour temperatures to outputs.
 pub trait GammaBackend {
+    /// Sets the temperature of `output`, or of every output when `None`; `None` for `kelvin` restores the neutral ramp.
     fn set(&self, output: Option<&str>, kelvin: Option<u32>);
 }
 
+/// The gamma ramp for `size` entries: three 16-bit little-endian channels scaled by `multipliers`.
 pub fn ramp_bytes(size: usize, multipliers: [f64; 3]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(size * 3 * 2);
     for channel in multipliers {
@@ -65,9 +72,12 @@ pub fn ramp_bytes(size: usize, multipliers: [f64; 3]) -> Vec<u8> {
     bytes
 }
 
+/// A copy of the gamma state for tests and diagnostics.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GammaSnapshot {
+    /// Names of the outputs known.
     pub outputs: Vec<String>,
+    /// Output names and the kelvin applied to each.
     pub applied: Vec<(String, u32)>,
 }
 
@@ -81,11 +91,16 @@ enum Command {
     Set { output: Option<String>, kelvin: Option<u32> },
 }
 
+/// Observable state of the gamma service.
 #[derive(Clone)]
 pub struct GammaState {
+    /// True once the compositor connection is set up.
     pub ready: Signal<bool>,
+    /// True when the compositor supports gamma control.
     pub available: Signal<bool>,
+    /// Names of the outputs that can be adjusted.
     pub outputs: Signal<Vec<String>>,
+    /// Output names and the kelvin applied to each.
     pub applied: Signal<Vec<(String, u32)>>,
 }
 
@@ -122,13 +137,16 @@ impl GammaState {
     }
 }
 
+/// Colour temperature control through `wlr-gamma-control`.
 pub struct Gamma {
+    /// Its observable state.
     pub state: GammaState,
     commands: Sender<Command>,
     _thread: ThreadHandle,
 }
 
 impl Gamma {
+    /// Connects to the compositor on a helper thread; `on_failed` receives a message when control is lost.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         mut on_failed: impl FnMut(String) + 'static,
@@ -138,7 +156,7 @@ impl Gamma {
         let (commands, receiver) = channel::<Command>();
         let thread = spawn_thread(
             handle,
-            "serp-gamma",
+            "acanthus-gamma",
             move |event| match event {
                 Event::Snapshot(snapshot) => target.apply(snapshot),
                 Event::Failed(name) => on_failed(name),
@@ -249,7 +267,7 @@ impl Worker {
 
 fn write_ramp(control: &ZwlrGammaControlV1, size: usize, kelvin: u32) -> std::io::Result<()> {
     let bytes = ramp_bytes(size, kelvin_multipliers(kelvin));
-    let fd = memfd_create("serp-gamma", MemfdFlags::CLOEXEC).map_err(std::io::Error::from)?;
+    let fd = memfd_create("acanthus-gamma", MemfdFlags::CLOEXEC).map_err(std::io::Error::from)?;
     let mut file = File::from(fd);
     file.write_all(&bytes)?;
     file.seek(SeekFrom::Start(0))?;

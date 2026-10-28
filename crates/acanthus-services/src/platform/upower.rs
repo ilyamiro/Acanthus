@@ -10,19 +10,28 @@ use crate::platform::dbus::BusKind;
 const DISPLAY_DEVICE: &str = "/org/freedesktop/UPower/devices/DisplayDevice";
 const TYPE_BATTERY: u32 = 2;
 
+/// Charge state of a battery.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BatteryState {
+    /// Not reported.
     #[default]
     Unknown,
+    /// Charging.
     Charging,
+    /// Discharging.
     Discharging,
+    /// Empty.
     Empty,
+    /// Fully charged.
     FullyCharged,
+    /// Waiting to charge.
     PendingCharge,
+    /// Waiting to discharge.
     PendingDischarge,
 }
 
 impl BatteryState {
+    /// The state for a UPower state number; unknown numbers give `Unknown`.
     pub fn from_raw(raw: u32) -> Self {
         match raw {
             1 => BatteryState::Charging,
@@ -60,14 +69,22 @@ trait Device {
     fn power_supply(&self) -> zbus::Result<bool>;
 }
 
+/// A reading of the display device.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct DeviceSnapshot {
+    /// Charge state.
     pub state: BatteryState,
+    /// Charge from 0 to 100.
     pub percentage: f64,
+    /// Seconds until empty, zero when unknown.
     pub time_to_empty: i64,
+    /// Seconds until full, zero when unknown.
     pub time_to_full: i64,
+    /// True when a battery is present.
     pub is_present: bool,
+    /// True when the device is the battery of a laptop.
     pub is_laptop_battery: bool,
+    /// Charge or discharge rate in watts.
     pub change_rate: f64,
 }
 
@@ -76,15 +93,24 @@ enum Event {
     Unavailable,
 }
 
+/// The combined battery as signals.
 #[derive(Clone)]
 pub struct DisplayDevice {
+    /// True once a reading arrived.
     pub ready: Signal<bool>,
+    /// Charge state.
     pub state: Signal<BatteryState>,
+    /// Charge from 0 to 100.
     pub percentage: Signal<f64>,
+    /// Seconds until empty, zero when unknown.
     pub time_to_empty: Signal<i64>,
+    /// Seconds until full, zero when unknown.
     pub time_to_full: Signal<i64>,
+    /// True when a battery is present.
     pub is_present: Signal<bool>,
+    /// True when the device is the battery of a laptop.
     pub is_laptop_battery: Signal<bool>,
+    /// Charge or discharge rate in watts.
     pub change_rate: Signal<f64>,
 }
 
@@ -109,6 +135,7 @@ impl DisplayDevice {
         }
     }
 
+    /// Copies a reading into the signals in one batch.
     pub fn apply(&self, snapshot: &DeviceSnapshot) {
         batch(|| {
             self.state.set(snapshot.state);
@@ -122,12 +149,15 @@ impl DisplayDevice {
         });
     }
 
+    /// True while charging or about to charge.
     pub fn is_charging(&self) -> bool {
         matches!(self.state.get(), BatteryState::Charging | BatteryState::PendingCharge)
     }
 }
 
+/// Battery state from UPower.
 pub struct UPower {
+    /// The combined battery of the machine.
     pub display_device: DisplayDevice,
     _service: ServiceHandle<()>,
 }
@@ -174,12 +204,13 @@ async fn run(bus: BusKind, events: EventSink<Event>, _commands: async_channel::R
 }
 
 impl UPower {
+    /// Connects to UPower on `bus` on a helper thread.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, bus: BusKind) -> Result<UPower, IoError> {
         let display_device = DisplayDevice::new();
         let target = display_device.clone();
         let service = spawn_supervised(
             handle,
-            "serp-upower",
+            "acanthus-upower",
             move |event| match event {
                 Event::Snapshot(snapshot) => target.apply(&snapshot),
                 Event::Unavailable => target.ready.set(false),

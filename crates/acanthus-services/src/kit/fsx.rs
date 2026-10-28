@@ -1,11 +1,13 @@
 use std::path::Path;
 
+/// Creates `dir` and its parents; failures are logged under the name `service`.
 pub fn create_dir(service: &str, dir: &Path) {
     if let Err(error) = std::fs::create_dir_all(dir) {
         tracing::warn!("{service}: cannot create {}: {error}", dir.display());
     }
 }
 
+/// Writes `bytes` to `path`, creating parent directories; failures are logged.
 pub fn write_file(service: &str, path: &Path, bytes: &[u8]) {
     if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
         create_dir(service, parent);
@@ -15,12 +17,14 @@ pub fn write_file(service: &str, path: &Path, bytes: &[u8]) {
     }
 }
 
+/// Writes `bytes` to `path` atomically, so readers never see a partial file; failures are logged.
 pub fn write_atomic(service: &str, path: &Path, bytes: &[u8]) {
     if let Err(error) = acanthus_io::atomic_write(path, bytes) {
         tracing::warn!("{service}: cannot write {}: {error}", path.display());
     }
 }
 
+/// Removes `path`; a missing file is not an error and other failures are logged.
 pub fn remove_file(service: &str, path: &Path) {
     match std::fs::remove_file(path) {
         Ok(()) => {}
@@ -29,6 +33,7 @@ pub fn remove_file(service: &str, path: &Path) {
     }
 }
 
+/// Moves `from` to `to` and reports whether it worked; failures are logged.
 pub fn rename(service: &str, from: &Path, to: &Path) -> bool {
     match std::fs::rename(from, to) {
         Ok(()) => true,
@@ -39,6 +44,7 @@ pub fn rename(service: &str, from: &Path, to: &Path) -> bool {
     }
 }
 
+/// Sets the modification time of `path` to now; a missing file is ignored and other failures are logged.
 pub fn touch(service: &str, path: &Path) {
     match std::fs::OpenOptions::new().write(true).open(path) {
         Ok(file) => {

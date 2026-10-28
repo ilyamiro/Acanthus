@@ -2,19 +2,32 @@ use zbus::{OwnedVariant as OwnedValue, Variant as ZValue};
 
 use super::{ImportError, cert_value, invalid, owned, parse_bool, parse_hex, parse_mac, split_list};
 
+/// The type of a profile value, deciding how its text is stored.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValueType {
+    /// A string.
     Str,
+    /// An unsigned 32-bit integer.
     U32,
+    /// A signed 32-bit integer.
     I32,
+    /// A signed 64-bit integer.
     I64,
+    /// An unsigned 64-bit integer.
     U64,
+    /// A boolean.
     Bool,
+    /// A list of strings.
     StrList,
+    /// A Wi-Fi network name as bytes.
     Ssid,
+    /// A hardware address as bytes.
     Mac,
+    /// A certificate or key, as a path or inline data.
     Cert,
+    /// Bytes written in hexadecimal.
     Hex,
+    /// A value that is on, off or default.
     Ternary,
 }
 

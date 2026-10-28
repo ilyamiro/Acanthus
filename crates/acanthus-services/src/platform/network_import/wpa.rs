@@ -309,6 +309,7 @@ fn insert_text(map: &mut HashMap<String, OwnedValue>, key: &str, value: &str) {
     map.insert(key.to_owned(), owned(ZValue::from(value)));
 }
 
+/// Imports the networks of a wpa_supplicant configuration, one profile per network.
 pub fn import_wpa_supplicant(text: &str) -> Result<Vec<ImportedProfile>, ImportError> {
     let blocks = parse_blocks(text);
     if blocks.is_empty() {

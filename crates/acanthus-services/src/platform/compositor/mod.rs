@@ -27,17 +27,22 @@ pub use types::{CompositorKind, Snapshot, Window, Workspace};
 const POLL: Duration = Duration::from_millis(40);
 const RECONNECT: Duration = Duration::from_secs(1);
 
+/// The focused window as the bar or title display needs it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FocusInfo {
+    /// Application class or id of the focused window.
     pub app_class: String,
+    /// Title of the focused window.
     pub title: String,
 }
 
 impl FocusInfo {
+    /// The title, or the class when there is no title.
     pub fn display_text(&self) -> &str {
         if self.title.is_empty() { &self.app_class } else { &self.title }
     }
 
+    /// True when a window has focus.
     pub fn is_focused(&self) -> bool {
         !self.display_text().is_empty()
     }
@@ -59,10 +64,15 @@ enum Endpoint {
     None,
 }
 
+/// Windows, workspaces and keyboard layout from the running compositor, as signals. Hyprland, Niri, Sway and Mango are supported; the kind is detected from the environment.
 pub struct Compositor {
+    /// The detected compositor.
     pub kind: CompositorKind,
+    /// Workspaces, windows, focused output and keyboard layouts.
     pub snapshot: Signal<Snapshot>,
+    /// The focused window.
     pub focus: Signal<FocusInfo>,
+    /// True while the compositor connection is up.
     pub connected: Signal<bool>,
     endpoint: Endpoint,
     _thread: Option<ThreadHandle>,
@@ -95,6 +105,7 @@ fn endpoint_for(kind: CompositorKind, env: &impl Fn(&str) -> Option<String>) -> 
 }
 
 impl Compositor {
+    /// Detects the compositor from `env` and connects on a helper thread; with an unknown compositor the signals stay empty.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         env: impl Fn(&str) -> Option<String>,
@@ -112,7 +123,7 @@ impl Compositor {
                 let mut mango = MangoModel::default();
                 Some(spawn_thread(
                     handle,
-                    "serp-compositor",
+                    "acanthus-compositor",
                     move |message: Message| match message {
                         Message::Snapshot(next) => apply(&s, &f, &c, next),
                         Message::MangoTags(tags) => {
@@ -138,6 +149,7 @@ impl Compositor {
         Ok(Compositor { kind, snapshot, focus, connected, endpoint, _thread: thread })
     }
 
+    /// Switches to the workspace with this index.
     pub fn focus_workspace(&self, index: u32) {
         let endpoint = self.endpoint.clone();
         std::thread::spawn(move || {
@@ -152,6 +164,7 @@ impl Compositor {
         });
     }
 
+    /// Focuses `window`.
     pub fn focus_window(&self, window: &Window) {
         let (endpoint, id) = (self.endpoint.clone(), window.native_id.clone());
         std::thread::spawn(move || {
@@ -169,6 +182,7 @@ impl Compositor {
         });
     }
 
+    /// Closes `window`.
     pub fn close_window(&self, window: &Window) {
         let (endpoint, id) = (self.endpoint.clone(), window.native_id.clone());
         std::thread::spawn(move || {
@@ -186,6 +200,7 @@ impl Compositor {
         });
     }
 
+    /// Switches to the next keyboard layout.
     pub fn switch_keyboard_layout(&self) {
         let endpoint = self.endpoint.clone();
         std::thread::spawn(move || {

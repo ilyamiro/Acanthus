@@ -36,19 +36,24 @@ const HELPER_DIRS: [&str; 7] = [
 const RETRY_DELAY: Duration = Duration::from_secs(10);
 const DEFAULT_LOCALE: &str = "en_US.UTF-8";
 
+/// How to reach the polkit authentication helper.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Transport {
+    /// Connect to the helper's socket.
     Socket(PathBuf),
+    /// Start the helper program, which is at this path.
     Spawn(PathBuf),
 }
 
 impl Transport {
+    /// Looks for the helper socket, then for the helper program in the known library directories and on `PATH`.
     pub fn discover() -> Option<Transport> {
         let path_dirs: Vec<PathBuf> =
             std::env::var_os("PATH").map(|path| std::env::split_paths(&path).collect()).unwrap_or_default();
         Transport::discover_with(&path_dirs, |path| path.exists())
     }
 
+    /// Like [`Transport::discover`] with the `PATH` directories and the existence check given.
     pub fn discover_with(path_dirs: &[PathBuf], exists: impl Fn(&Path) -> bool) -> Option<Transport> {
         let socket = Path::new(HELPER_SOCKET);
         if exists(socket) {
@@ -64,19 +69,29 @@ impl Transport {
     }
 }
 
+/// Settings of the polkit agent.
 #[derive(Debug, Clone)]
 pub struct PolkitOptions {
+    /// How to reach the helper, `None` when it is not installed.
     pub transport: Option<Transport>,
+    /// Session to register the agent for, from `XDG_SESSION_ID`.
     pub session_id: Option<String>,
+    /// D-Bus object path of the agent.
     pub agent_path: String,
+    /// Locale reported to polkit.
     pub locale: String,
+    /// Delay before registering again after a failure.
     pub retry_delay: Duration,
+    /// Path of the passwd file used to resolve users.
     pub passwd: PathBuf,
+    /// Path of the group file used to resolve groups.
     pub group: PathBuf,
+    /// User id of the current user, preselected as the identity.
     pub uid: u32,
 }
 
 impl PolkitOptions {
+    /// Options with the discovered helper, the current session, locale and user, and an agent path derived from the application name `app`.
     pub fn for_app(app: &str) -> Self {
         let locale = ["LC_ALL", "LC_MESSAGES", "LANG"]
             .iter()
@@ -95,18 +110,25 @@ impl PolkitOptions {
     }
 }
 
+/// A user who may authenticate a request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolkitIdentity {
+    /// User id.
     pub uid: u32,
+    /// User name.
     pub name: String,
 }
 
+/// An identity as polkit sends it: a kind such as `unix-user` or `unix-group` and an optional id.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RawIdentity {
+    /// `unix-user` or `unix-group`.
     pub kind: String,
+    /// User or group id.
     pub id: Option<u32>,
 }
 
+/// The `(name, uid, gid)` entries of a passwd file.
 pub fn parse_passwd(text: &str) -> Vec<(String, u32, u32)> {
     text.lines()
         .filter_map(|line| {
@@ -119,6 +141,7 @@ pub fn parse_passwd(text: &str) -> Vec<(String, u32, u32)> {
         .collect()
 }
 
+/// The `(gid, members)` entries of a group file.
 pub fn parse_group(text: &str) -> Vec<(u32, Vec<String>)> {
     text.lines()
         .filter_map(|line| {
@@ -130,6 +153,7 @@ pub fn parse_group(text: &str) -> Vec<(u32, Vec<String>)> {
         .collect()
 }
 
+/// Expands polkit identities into users: group identities become their members, user identities their names.
 pub fn resolve_identities(raw: &[RawIdentity], passwd: &str, group: &str) -> Vec<PolkitIdentity> {
     let users = parse_passwd(passwd);
     let groups = parse_group(group);
@@ -161,36 +185,57 @@ pub fn resolve_identities(raw: &[RawIdentity], passwd: &str, group: &str) -> Vec
     found
 }
 
+/// The index of the identity with the user id `uid`, or the first.
 pub fn default_identity(identities: &[PolkitIdentity], uid: u32) -> usize {
     identities.iter().position(|identity| identity.uid == uid).unwrap_or(0)
 }
 
+/// What a helper output line meant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineResult {
+    /// The helper asks for a response.
     Prompt,
+    /// The helper sent a message.
     Message,
+    /// Authentication succeeded.
     Success,
+    /// Authentication failed.
     Failure,
+    /// The line is not relevant.
     Ignored,
 }
 
+/// One authentication request being handled.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolkitFlow {
+    /// Polkit's cookie of the request.
     pub cookie: String,
+    /// The action being authorised.
     pub action_id: String,
+    /// The explanation to show to the user.
     pub message: String,
+    /// Name of the icon to show.
     pub icon_name: String,
+    /// Extra details about the request.
     pub details: BTreeMap<String, String>,
+    /// The users who may authenticate.
     pub identities: Vec<PolkitIdentity>,
+    /// Index of the selected user.
     pub selected: usize,
+    /// True while the helper waits for a response.
     pub response_required: bool,
+    /// The text of the prompt.
     pub input_prompt: String,
+    /// True when the typed response may be shown.
     pub echo: bool,
+    /// The latest informational or error message from the helper.
     pub supplementary_message: String,
+    /// True when that message is an error.
     pub supplementary_is_error: bool,
 }
 
 impl PolkitFlow {
+    /// The selected user.
     pub fn identity(&self) -> Option<&PolkitIdentity> {
         self.identities.get(self.selected)
     }
@@ -203,6 +248,7 @@ impl PolkitFlow {
         self.supplementary_is_error = false;
     }
 
+    /// Updates the flow from one helper output line and tells what the line meant.
     pub fn apply_line(&mut self, line: &str) -> LineResult {
         let line = line.trim_end_matches(['\r', '\n']);
         let (tag, rest) = line.split_once(' ').unwrap_or((line, ""));
@@ -225,17 +271,25 @@ impl PolkitFlow {
     }
 }
 
+/// Why an authentication failed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PolkitError {
+    /// The attempt failed without a message.
     Failed,
+    /// The attempt failed with this message.
     Message(String),
 }
 
+/// A change worth reacting to in a polkit request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PolkitEvent {
+    /// A request arrived.
     RequestStarted,
+    /// The request was cancelled by polkit.
     Cancelled,
+    /// The request failed.
     Failed,
+    /// The request succeeded.
     Succeeded,
 }
 
@@ -255,11 +309,16 @@ enum Event {
     Outcome(Outcome),
 }
 
+/// Observable state of the polkit agent.
 #[derive(Clone)]
 pub struct PolkitState {
+    /// True when the helper is installed.
     pub available: Signal<bool>,
+    /// True when the agent is registered with polkit.
     pub registered: Signal<bool>,
+    /// The request being handled, if any.
     pub flow: Signal<Option<PolkitFlow>>,
+    /// The latest error, if any.
     pub error: Signal<Option<PolkitError>>,
 }
 
@@ -273,6 +332,7 @@ impl PolkitState {
         }
     }
 
+    /// True while a request is being handled.
     pub fn is_active(&self) -> bool {
         self.flow.with(|flow| flow.is_some())
     }
@@ -326,12 +386,15 @@ enum Command {
     Select(usize),
 }
 
+/// A polkit authentication agent: registers on the system bus and lets the application ask users for their password.
 pub struct Polkit {
+    /// Its observable state.
     pub state: PolkitState,
     service: ServiceHandle<Command>,
 }
 
 impl Polkit {
+    /// Starts the agent on `bus`; `on_event` receives request events.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         bus: BusKind,
@@ -342,7 +405,7 @@ impl Polkit {
         let target = state.clone();
         let service = spawn_worker(
             handle,
-            "serp-polkit",
+            "acanthus-polkit",
             move |event| {
                 if let Some(event) = target.apply(&event) {
                     on_event(event);
@@ -353,14 +416,17 @@ impl Polkit {
         Ok(Polkit { state, service })
     }
 
+    /// Sends the response to the current prompt; false when the agent is gone.
     pub fn submit(&self, response: impl Into<String>) -> bool {
         self.service.send(Command::Submit(response.into()))
     }
 
+    /// Cancels the current request; false when the agent is gone.
     pub fn cancel(&self) -> bool {
         self.service.send(Command::Cancel)
     }
 
+    /// Selects the user at `index`; false when the agent is gone.
     pub fn select_identity(&self, index: usize) -> bool {
         self.service.send(Command::Select(index))
     }
@@ -1383,7 +1449,7 @@ mod tests {
         let user = std::env::var("USER").unwrap();
         let mut stream = UnixStream::connect(path).unwrap();
         writeln!(stream, "{user}").unwrap();
-        writeln!(stream, "serp-rust-test-cookie").unwrap();
+        writeln!(stream, "acanthus-rust-test-cookie").unwrap();
         stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
         let mut line = String::new();
         BufReader::new(stream.try_clone().unwrap()).read_line(&mut line).unwrap();

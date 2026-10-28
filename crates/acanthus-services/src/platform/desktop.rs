@@ -1,34 +1,59 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+/// A quick action of a desktop entry.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct DesktopAction {
+    /// Identifier within the entry.
     pub id: String,
+    /// Name to show.
     pub name: String,
+    /// Command line.
     pub exec: String,
+    /// Icon name.
     pub icon: String,
 }
 
+/// An application described by a desktop file.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct DesktopEntry {
+    /// Desktop-file id without the suffix.
     pub id: String,
+    /// Path of the file.
     pub path: PathBuf,
+    /// Name to show.
     pub name: String,
+    /// Generic name such as "Web browser".
     pub generic_name: String,
+    /// Short description.
     pub comment: String,
+    /// Icon name or path.
     pub icon: String,
+    /// Command line with field codes.
     pub exec: String,
+    /// Program that must exist for the entry to be usable.
     pub try_exec: String,
+    /// Working directory.
     pub working_dir: String,
+    /// True when the program needs a terminal.
     pub terminal: bool,
+    /// True when the entry must not appear in menus.
     pub no_display: bool,
+    /// True when the entry is deleted for the user.
     pub hidden: bool,
+    /// Window class the program uses.
     pub startup_wm_class: String,
+    /// Menu categories.
     pub categories: Vec<String>,
+    /// Search keywords.
     pub keywords: Vec<String>,
+    /// MIME types the program handles.
     pub mime_types: Vec<String>,
+    /// Desktops the entry is limited to.
     pub only_show_in: Vec<String>,
+    /// Desktops the entry is hidden on.
     pub not_show_in: Vec<String>,
+    /// Additional actions.
     pub actions: Vec<DesktopAction>,
 }
 
@@ -125,6 +150,7 @@ fn parse_groups(text: &str) -> Vec<(String, Group)> {
     groups
 }
 
+/// The locale candidates for `raw` locale names, most specific first, without duplicates.
 pub fn expand_locales(raw: &[String]) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for locale in raw {
@@ -141,6 +167,7 @@ pub fn expand_locales(raw: &[String]) -> Vec<String> {
     out
 }
 
+/// The locales of the user's environment (`LC_ALL`, `LC_MESSAGES`, `LANG`, `LANGUAGE`), expanded.
 pub fn locales_from_env(env: impl Fn(&str) -> Option<String>) -> Vec<String> {
     let mut raw: Vec<String> = Vec::new();
     for key in ["LC_ALL", "LC_MESSAGES", "LANG"] {
@@ -154,6 +181,7 @@ pub fn locales_from_env(env: impl Fn(&str) -> Option<String>) -> Vec<String> {
     expand_locales(&raw)
 }
 
+/// Parses the text of a desktop file with the id `id` at `path`, picking localised values from `locales`; `None` when it is not an application.
 pub fn parse_entry(id: &str, path: &Path, text: &str, locales: &[String]) -> Option<DesktopEntry> {
     let groups = parse_groups(text);
     let main = &groups.iter().find(|(name, _)| name == "Desktop Entry")?.1;
@@ -206,6 +234,7 @@ pub fn parse_entry(id: &str, path: &Path, text: &str, locales: &[String]) -> Opt
     })
 }
 
+/// Splits a command line into arguments following desktop-entry quoting.
 pub fn split_exec(exec: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut current = String::new();
@@ -245,15 +274,18 @@ pub fn split_exec(exec: &str) -> Vec<String> {
 }
 
 impl DesktopEntry {
+    /// The command line with `files` substituted for the field codes.
     pub fn command(&self, files: &[String]) -> Vec<String> {
         expand_exec(&self.exec, self, files)
     }
 
+    /// The command line of the action with this id.
     pub fn action_command(&self, action_id: &str) -> Option<Vec<String>> {
         let action = self.actions.iter().find(|a| a.id == action_id)?;
         Some(expand_exec(&action.exec, self, &[]))
     }
 
+    /// True when the entry may be shown on any of `current_desktops`.
     pub fn is_visible_in(&self, current_desktops: &[String]) -> bool {
         if self.hidden {
             return false;
@@ -265,6 +297,7 @@ impl DesktopEntry {
         self.not_show_in.is_empty() || !matches(&self.not_show_in)
     }
 
+    /// The command line to launch the entry with `files`, wrapped in `terminal` when the entry needs one.
     pub fn launch_command(&self, files: &[String], terminal: Option<&str>) -> Vec<String> {
         let command = self.command(files);
         match (self.terminal, terminal) {
@@ -328,6 +361,7 @@ fn expand_exec(exec: &str, entry: &DesktopEntry, files: &[String]) -> Vec<String
     out
 }
 
+/// The directories that hold desktop files according to the XDG variables read through `env`.
 pub fn application_dirs(env: impl Fn(&str) -> Option<String>) -> Vec<PathBuf> {
     let home = env("HOME").filter(|h| !h.is_empty()).map(PathBuf::from);
     let data_home = env("XDG_DATA_HOME")
@@ -357,6 +391,7 @@ fn collect_files(base: &Path, dir: &Path, out: &mut Vec<(String, PathBuf)>) {
     }
 }
 
+/// Reads all desktop files below `dirs`; earlier directories win for equal ids.
 pub fn scan(dirs: &[PathBuf], locales: &[String]) -> Vec<DesktopEntry> {
     let mut seen: HashSet<String> = HashSet::new();
     let mut entries = Vec::new();

@@ -3,14 +3,19 @@ use std::sync::Mutex;
 use serde_json::{Map, Number, Value as Json};
 use zbus::{Connection, Variant};
 
+/// Which message bus to connect to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BusKind {
+    /// The system bus.
     System,
+    /// The session bus.
     Session,
+    /// A bus at an explicit address, used in tests.
     Address(String),
 }
 
 impl BusKind {
+    /// Opens a new connection.
     pub async fn connect(&self) -> zbus::Result<Connection> {
         match self {
             BusKind::System => Connection::system().await,
@@ -32,6 +37,7 @@ fn shared_slot(kind: &BusKind) -> Option<&'static Mutex<Option<Connection>>> {
 }
 
 impl BusKind {
+    /// Returns the process-wide connection to the system or session bus, opening it on first use; other kinds always connect anew.
     pub async fn connect_shared(&self) -> zbus::Result<Connection> {
         let Some(slot) = shared_slot(self) else {
             return self.connect().await;
@@ -44,6 +50,7 @@ impl BusKind {
         Ok(guard.get_or_insert(connection).clone())
     }
 
+    /// Drops the shared connection so the next call reconnects.
     pub fn forget_shared(&self) {
         if let Some(slot) = shared_slot(self) {
             slot.lock().unwrap_or_else(|e| e.into_inner()).take();
@@ -51,11 +58,13 @@ impl BusKind {
     }
 }
 
+/// Drops both shared connections.
 pub fn forget_all_shared() {
     BusKind::System.forget_shared();
     BusKind::Session.forget_shared();
 }
 
+/// Converts a D-Bus value to JSON; dictionaries become objects and unsupported values become null.
 pub fn variant_to_json(value: &Variant<'_>) -> Json {
     let number = |n: f64| Number::from_f64(n).map_or(Json::Null, Json::Number);
     match value {
@@ -89,6 +98,7 @@ pub fn variant_to_json(value: &Variant<'_>) -> Json {
     }
 }
 
+/// A private message bus for tests; needs `dbus-daemon` installed.
 #[cfg(test)]
 pub mod testbus {
     use std::io::{BufRead, BufReader};
@@ -108,13 +118,16 @@ pub mod testbus {
 </busconfig>
 "#;
 
+    /// A running private message bus; it stops when dropped.
     pub struct TestBus {
         child: Child,
+        /// The address to connect to.
         pub address: String,
         _dir: tempfile::TempDir,
     }
 
     impl TestBus {
+        /// Starts a private bus and waits for its address.
         pub fn start() -> TestBus {
             let dir = tempfile::tempdir().unwrap();
             let config = dir.path().join("bus.conf");
@@ -132,6 +145,7 @@ pub mod testbus {
             TestBus { child, address: line.trim().to_owned(), _dir: dir }
         }
 
+        /// The bus as a [`BusKind`].
         pub fn kind(&self) -> BusKind {
             BusKind::Address(self.address.clone())
         }

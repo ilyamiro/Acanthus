@@ -47,56 +47,85 @@ const SECRET_FLAG_REQUEST_NEW: u32 = 0x2;
 const SCAN_INTERVAL: Duration = Duration::from_secs(10);
 const COALESCE: Duration = Duration::from_millis(80);
 
+/// Properties of one D-Bus interface.
 pub type Properties = HashMap<String, OwnedValue>;
+/// Connection settings by setting name.
 pub type ConnectionSettings = HashMap<String, Properties>;
 
+/// Kind of a network device.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DeviceKind {
+    /// An Ethernet device.
     Wired,
+    /// A Wi-Fi device.
     Wifi,
+    /// Any other device.
     #[default]
     Other,
 }
 
+/// Security of a Wi-Fi network.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WifiSecurity {
+    /// No encryption.
     #[default]
     Open,
+    /// Opportunistic wireless encryption without a password.
     Owe,
+    /// WEP.
     Wep,
+    /// WPA with a pre-shared key.
     WpaPsk,
+    /// WPA2 with a pre-shared key.
     Wpa2Psk,
+    /// WPA3 with simultaneous authentication of equals.
     Wpa3Sae,
+    /// Enterprise authentication (802.1X).
     Eap,
 }
 
 impl WifiSecurity {
+    /// True when no password is needed.
     pub fn is_open(self) -> bool {
         matches!(self, WifiSecurity::Open | WifiSecurity::Owe)
     }
 
+    /// True when a password or key is needed.
     pub fn needs_psk(self) -> bool {
         matches!(self, WifiSecurity::Wep | WifiSecurity::WpaPsk | WifiSecurity::Wpa2Psk | WifiSecurity::Wpa3Sae)
     }
 }
 
+/// Outer authentication method of an enterprise network.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EapMethod {
+    /// PEAP.
     #[default]
     Peap,
+    /// TTLS.
     Ttls,
+    /// TLS.
     Tls,
+    /// FAST.
     Fast,
+    /// PWD.
     Pwd,
+    /// SIM.
     Sim,
+    /// AKA.
     Aka,
+    /// AKA'.
     AkaPrime,
 }
 
+/// How EAP-FAST provisions its credentials.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FastProvisioning {
+    /// Anonymous provisioning.
     Anonymous,
+    /// Authenticated provisioning.
     Authenticated,
+    /// Both (the default).
     #[default]
     Both,
 }
@@ -126,137 +155,240 @@ impl EapMethod {
     }
 }
 
+/// Credentials of an enterprise network.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Enterprise {
+    /// Outer method.
     pub method: EapMethod,
+    /// User identity.
     pub identity: String,
+    /// Anonymous outer identity.
     pub anonymous_identity: Option<String>,
+    /// Password.
     pub password: Option<String>,
+    /// Inner authentication method.
     pub phase2: Option<String>,
+    /// Path of the CA certificate.
     pub ca_cert: Option<String>,
+    /// Path of the client certificate.
     pub client_cert: Option<String>,
+    /// Path of the private key.
     pub private_key: Option<String>,
+    /// Password of the private key.
     pub private_key_password: Option<String>,
+    /// Required suffix of the server's domain.
     pub domain_suffix: Option<String>,
+    /// Required match of the server's domain.
     pub domain_match: Option<String>,
+    /// Required match of the certificate subject.
     pub subject_match: Option<String>,
+    /// Required matches of alternative subject names.
     pub altsubject_matches: Vec<String>,
+    /// True to trust the system CA certificates.
     pub system_ca_certs: bool,
+    /// Directory of CA certificates.
     pub ca_path: Option<String>,
+    /// FAST provisioning mode.
     pub fast_provisioning: FastProvisioning,
+    /// Path of the FAST PAC file.
     pub pac_file: Option<String>,
+    /// Smart card or token PIN.
     pub pin: Option<String>,
 }
 
+/// How a WEP key is given.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WepKeyType {
+    /// The key itself.
     #[default]
     Key,
+    /// A passphrase the key is derived from.
     Passphrase,
 }
 
+/// Credentials and flags for connecting to a network.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ConnectOptions {
+    /// Password or key.
     pub psk: Option<String>,
+    /// True for a hidden network.
     pub hidden: bool,
+    /// Enterprise credentials.
     pub enterprise: Option<Enterprise>,
+    /// How the WEP key is given.
     pub wep_key_type: WepKeyType,
+    /// True for shared-key authentication.
     pub wep_shared: bool,
 }
 
+/// A network device.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct NetworkDevice {
+    /// D-Bus object path.
     pub path: String,
+    /// Interface name.
     pub name: String,
+    /// Kind of device.
     pub kind: DeviceKind,
+    /// Hardware address.
     pub address: String,
+    /// True when connected.
     pub connected: bool,
+    /// True when a cable is plugged in or the radio is on.
     pub has_link: bool,
 }
 
+/// A Wi-Fi network in range.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct WifiNetwork {
+    /// D-Bus object path of the access point.
     pub path: String,
+    /// Object path of the Wi-Fi device it is seen by.
     pub device: String,
+    /// Network name.
     pub name: String,
+    /// Signal strength from 0 to 100.
     pub signal_strength: f64,
+    /// Security.
     pub security: WifiSecurity,
+    /// True when connected to it.
     pub connected: bool,
+    /// True when a saved profile exists.
     pub known: bool,
 }
 
+/// A request from NetworkManager for a password or key.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SecretRequest {
+    /// Identifier to answer with.
     pub id: u64,
+    /// Object path of the connection.
     pub connection_path: String,
+    /// Name of the connection.
     pub connection_name: String,
+    /// Name of the setting that needs the secret.
     pub setting: String,
+    /// Hints from NetworkManager.
     pub hints: Vec<String>,
+    /// Keys of the secrets wanted.
     pub keys: Vec<String>,
+    /// The first key wanted.
     pub key: String,
+    /// Message to show to the user.
     pub message: String,
+    /// True when the user may be asked.
     pub allow_interaction: bool,
+    /// True when the earlier secret was wrong.
     pub request_new: bool,
 }
 
+/// A VPN profile.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct VpnConnection {
+    /// D-Bus object path.
     pub path: String,
+    /// Name.
     pub name: String,
+    /// True when connected.
     pub active: bool,
 }
 
+/// Everything known about the network at one moment.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct NetworkSnapshot {
+    /// True when NetworkManager is reachable.
     pub available: bool,
+    /// True when Wi-Fi is switched on.
     pub wifi_enabled: bool,
+    /// Network devices.
     pub devices: Vec<NetworkDevice>,
+    /// Wi-Fi networks in range.
     pub networks: Vec<WifiNetwork>,
+    /// VPN profiles.
     pub vpns: Vec<VpnConnection>,
 }
 
+/// A request to the network service.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NetworkCommand {
+    /// Switches Wi-Fi on or off.
     SetWifiEnabled(bool),
+    /// Scans for networks once.
     Scan,
+    /// Scans continuously or stops.
     SetScanning(bool),
-    ProvideSecret { id: u64, secrets: Option<HashMap<String, String>> },
-    Connect { ssid: String, options: Box<ConnectOptions> },
+    /// Answer to a secret request.
+    ProvideSecret {
+        /// Id of the request.
+        id: u64,
+        /// The secrets by key, `None` to cancel.
+        secrets: Option<HashMap<String, String>>,
+    },
+    /// Connect to a network, creating a profile when none exists.
+    Connect {
+        /// Network name.
+        ssid: String,
+        /// Credentials and flags.
+        options: Box<ConnectOptions>,
+    },
+    /// Disconnects the device at this object path.
     Disconnect(String),
+    /// Activates the best saved connection of the device at this object path.
     Activate(String),
+    /// Deletes the saved profiles of the network with this name.
     Forget(String),
+    /// Adds a connection profile.
     AddConnection(Box<ConnectionSettings>),
+    /// Connects the VPN at this object path.
     ConnectVpn(String),
+    /// Disconnects the VPN at this object path.
     DisconnectVpn(String),
 }
 
+/// An access point as NetworkManager reports it.
 #[derive(Debug, Clone, Default)]
 pub struct RawAccessPoint {
+    /// D-Bus object path.
     pub path: String,
+    /// Its properties.
     pub props: Properties,
 }
 
+/// A device as NetworkManager reports it.
 #[derive(Debug, Clone, Default)]
 pub struct RawDevice {
+    /// D-Bus object path.
     pub path: String,
+    /// Properties of the device interface.
     pub device: Properties,
+    /// Properties of the wired interface.
     pub wired: Properties,
+    /// Properties of the wireless interface.
     pub wireless: Properties,
+    /// Access points seen by the device.
     pub access_points: Vec<RawAccessPoint>,
 }
 
+/// Saved profiles by network name: the object paths of the connections.
 pub type Known = HashMap<String, Vec<String>>;
 
+/// A VPN profile with its active connection.
 #[derive(Debug, Clone, Default)]
 pub struct VpnProfile {
+    /// D-Bus object path of the profile.
     pub path: String,
+    /// Name.
     pub name: String,
+    /// Object path of the active connection, if connected.
     pub active_path: Option<String>,
 }
 
+/// Saved connection profiles.
 #[derive(Debug, Clone, Default)]
 pub struct Profiles {
+    /// Wi-Fi profiles.
     pub known: Known,
+    /// VPN profiles.
     pub vpns: Vec<VpnProfile>,
 }
 
@@ -288,6 +420,7 @@ fn as_bytes(value: &OwnedValue) -> Option<Vec<u8>> {
     Vec::<u8>::try_from(value.clone()).ok()
 }
 
+/// The security of an access point from its flags and its WPA and RSN flags.
 pub fn security_from_flags(flags: u32, wpa: u32, rsn: u32) -> WifiSecurity {
     let any = wpa | rsn;
     if any & KEY_MGMT_EAP_SUITE_B_192 != 0 || any & KEY_MGMT_8021X != 0 {
@@ -379,6 +512,7 @@ fn parse_networks(raw: &RawDevice, known: &Known) -> Vec<WifiNetwork> {
     networks
 }
 
+/// Builds a snapshot from raw NetworkManager data.
 pub fn build_snapshot(wifi_enabled: bool, raws: &[RawDevice], profiles: &Profiles) -> NetworkSnapshot {
     let mut devices: Vec<NetworkDevice> = raws.iter().filter_map(parse_device).collect();
     devices.sort_by(|a, b| a.path.cmp(&b.path));
@@ -465,6 +599,7 @@ fn enterprise_settings(enterprise: &Enterprise) -> HashMap<String, OwnedValue> {
     eap
 }
 
+/// The connection profile for `ssid` with the given security and credentials.
 pub fn connection_settings(
     ssid: &str,
     security: WifiSecurity,
@@ -535,16 +670,26 @@ enum Event {
     Unavailable,
 }
 
+/// Observable state of the network service.
 #[derive(Clone)]
 pub struct NetworkState {
+    /// True once the first snapshot arrived.
     pub ready: Signal<bool>,
+    /// True when NetworkManager is reachable.
     pub available: Signal<bool>,
+    /// True when Wi-Fi is switched on.
     pub wifi_enabled: Signal<bool>,
+    /// True while scanning continuously.
     pub scanning: Signal<bool>,
+    /// Message of the last failure, empty when none.
     pub last_error: Signal<String>,
+    /// Open requests for passwords.
     pub secret_requests: Signal<Vec<SecretRequest>>,
+    /// Network devices.
     pub devices: Signal<Vec<NetworkDevice>>,
+    /// Wi-Fi networks in range.
     pub networks: Signal<Vec<WifiNetwork>>,
+    /// VPN profiles.
     pub vpns: Signal<Vec<VpnConnection>>,
 }
 
@@ -555,6 +700,7 @@ impl Default for NetworkState {
 }
 
 impl NetworkState {
+    /// State with nothing known.
     pub fn new() -> Self {
         NetworkState {
             ready: Signal::new(false),
@@ -569,6 +715,7 @@ impl NetworkState {
         }
     }
 
+    /// Copies a snapshot into the signals in one batch.
     pub fn apply(&self, snapshot: &NetworkSnapshot) {
         batch(|| {
             self.available.set(snapshot.available);
@@ -586,36 +733,43 @@ impl NetworkState {
         });
     }
 
+    /// The first device of this kind.
     pub fn device_of(&self, kind: DeviceKind) -> Option<NetworkDevice> {
         self.devices.with_untracked(|devices| devices.iter().find(|d| d.kind == kind).cloned())
     }
 
+    /// The Wi-Fi device.
     pub fn wifi_device(&self) -> Option<NetworkDevice> {
         self.device_of(DeviceKind::Wifi)
     }
 
+    /// The Ethernet device.
     pub fn ethernet_device(&self) -> Option<NetworkDevice> {
         self.device_of(DeviceKind::Wired)
     }
 
+    /// The Wi-Fi network that is connected.
     pub fn connected_network(&self) -> Option<WifiNetwork> {
         self.networks.with_untracked(|networks| networks.iter().find(|n| n.connected).cloned())
     }
 }
 
+/// Network control through NetworkManager, including the secret agent that asks the user for passwords.
 pub struct Network {
+    /// Its observable state.
     pub state: NetworkState,
     service: ServiceHandle<NetworkCommand>,
 }
 
 impl Network {
+    /// Connects to NetworkManager on `bus` on a helper thread; `app` names the secret agent.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, bus: BusKind, app: &str) -> Result<Network, IoError> {
         let app = app.to_owned();
         let state = NetworkState::new();
         let target = state.clone();
         let service = spawn_supervised(
             handle,
-            "serp-network",
+            "acanthus-network",
             move |event| match event {
                 Event::Snapshot(snapshot) => target.apply(&snapshot),
                 Event::SecretRequested(request) => target.secret_requests.update(|list| list.push(request)),
@@ -628,35 +782,43 @@ impl Network {
         Ok(Network { state, service })
     }
 
+    /// Sends a command; false when the service is gone.
     pub fn command(&self, command: NetworkCommand) -> bool {
         self.service.send(command)
     }
 
+    /// Switches Wi-Fi on or off.
     pub fn set_wifi_enabled(&self, enabled: bool) -> bool {
         self.command(NetworkCommand::SetWifiEnabled(enabled))
     }
 
+    /// Scans once.
     pub fn scan(&self) -> bool {
         self.command(NetworkCommand::Scan)
     }
 
+    /// Scans continuously or stops.
     pub fn set_scanning(&self, scanning: bool) -> bool {
         self.state.scanning.set(scanning);
         self.command(NetworkCommand::SetScanning(scanning))
     }
 
+    /// Connects to a network with a saved profile or an open one.
     pub fn connect(&self, ssid: &str) -> bool {
         self.connect_with(ssid, ConnectOptions::default())
     }
 
+    /// Connects with the given credentials.
     pub fn connect_with(&self, ssid: &str, options: ConnectOptions) -> bool {
         self.command(NetworkCommand::Connect { ssid: ssid.to_owned(), options: Box::new(options) })
     }
 
+    /// Connects with a pre-shared key.
     pub fn connect_with_psk(&self, ssid: &str, psk: &str) -> bool {
         self.connect_with(ssid, ConnectOptions { psk: Some(psk.to_owned()), ..Default::default() })
     }
 
+    /// Connects to a WEP network.
     pub fn connect_wep(&self, ssid: &str, key: &str, key_type: WepKeyType, shared: bool) -> bool {
         self.connect_with(
             ssid,
@@ -669,20 +831,24 @@ impl Network {
         )
     }
 
+    /// Connects to an enterprise network with identity and password.
     pub fn connect_enterprise(&self, ssid: &str, identity: &str, password: &str) -> bool {
         let enterprise =
             Enterprise { identity: identity.to_owned(), password: Some(password.to_owned()), ..Default::default() };
         self.connect_with(ssid, ConnectOptions { enterprise: Some(enterprise), ..Default::default() })
     }
 
+    /// Connects to a hidden network, with a key when it needs one.
     pub fn connect_hidden(&self, ssid: &str, psk: Option<&str>) -> bool {
         self.connect_with(ssid, ConnectOptions { psk: psk.map(str::to_owned), hidden: true, ..Default::default() })
     }
 
+    /// Imports a VPN or Wi-Fi profile file given as text and returns notes about what was ignored or guessed.
     pub fn import_profile(&self, name: &str, text: &str) -> Result<Vec<String>, ImportError> {
         self.import_profile_with(name, text, &ImportOptions::default())
     }
 
+    /// Like [`Network::import_profile`] with explicit import options.
     pub fn import_profile_with(
         &self,
         name: &str,
@@ -699,6 +865,7 @@ impl Network {
         Ok(notes)
     }
 
+    /// Imports a profile from a file, named after the file.
     pub fn import_profile_file(&self, path: &std::path::Path) -> Result<Vec<String>, ImportError> {
         let text = std::fs::read_to_string(path)?;
         let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("imported");
@@ -706,10 +873,12 @@ impl Network {
         self.import_profile_with(name, &text, &options)
     }
 
+    /// Connects the VPN at `path`.
     pub fn connect_vpn(&self, path: &str) -> bool {
         self.command(NetworkCommand::ConnectVpn(path.to_owned()))
     }
 
+    /// Answers a password request with a single secret.
     pub fn provide_secret(&self, id: u64, secret: &str) -> bool {
         let key =
             self.state.secret_requests.with_untracked(|list| list.iter().find(|r| r.id == id).map(|r| r.key.clone()));
@@ -717,28 +886,34 @@ impl Network {
         self.provide_secrets(id, HashMap::from([(key, secret.to_owned())]))
     }
 
+    /// Answers a password request with several secrets.
     pub fn provide_secrets(&self, id: u64, secrets: HashMap<String, String>) -> bool {
         self.state.secret_requests.update(|list| list.retain(|r| r.id != id));
         self.command(NetworkCommand::ProvideSecret { id, secrets: Some(secrets) })
     }
 
+    /// Cancels a password request.
     pub fn cancel_secret(&self, id: u64) -> bool {
         self.state.secret_requests.update(|list| list.retain(|r| r.id != id));
         self.command(NetworkCommand::ProvideSecret { id, secrets: None })
     }
 
+    /// Disconnects the VPN at `path`.
     pub fn disconnect_vpn(&self, path: &str) -> bool {
         self.command(NetworkCommand::DisconnectVpn(path.to_owned()))
     }
 
+    /// Disconnects the device at `device_path`.
     pub fn disconnect(&self, device_path: &str) -> bool {
         self.command(NetworkCommand::Disconnect(device_path.to_owned()))
     }
 
+    /// Activates the best saved connection of the device at `device_path`.
     pub fn activate(&self, device_path: &str) -> bool {
         self.command(NetworkCommand::Activate(device_path.to_owned()))
     }
 
+    /// Deletes the saved profiles of the network `ssid`.
     pub fn forget(&self, ssid: &str) -> bool {
         self.command(NetworkCommand::Forget(ssid.to_owned()))
     }
@@ -972,6 +1147,7 @@ type Pending = Arc<Mutex<HashMap<u64, async_channel::Sender<Option<HashMap<Strin
 
 const VPN_MESSAGE_PREFIX: &str = "x-vpn-message:";
 
+/// The secret keys to ask for a setting: the hints, else the usual key of the setting.
 pub fn secret_keys(setting: &str, hints: &[String], current: &HashMap<String, Properties>) -> Vec<String> {
     let mut keys: Vec<String> = hints.iter().filter(|h| !h.starts_with(VPN_MESSAGE_PREFIX)).cloned().collect();
     if keys.is_empty() {
@@ -987,10 +1163,12 @@ pub fn secret_keys(setting: &str, hints: &[String], current: &HashMap<String, Pr
     keys
 }
 
+/// The message NetworkManager sends with a VPN secret request.
 pub fn secret_message(hints: &[String]) -> String {
     hints.iter().find_map(|h| h.strip_prefix(VPN_MESSAGE_PREFIX)).map(|m| m.trim().to_owned()).unwrap_or_default()
 }
 
+/// The settings object that carries `secrets` for `setting`.
 pub fn secret_settings(
     setting: &str,
     secrets: &HashMap<String, String>,

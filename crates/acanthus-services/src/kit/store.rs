@@ -7,22 +7,34 @@ use serde_json::Value;
 
 use super::fsx;
 
+/// Data together with the key it was fetched for and the Unix time of the fetch.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Stored<K, D> {
+    /// The key.
     pub key: K,
+    /// The data.
     pub data: D,
+    /// Unix time in seconds.
     pub fetched_at: i64,
 }
 
+/// Converts stored data to and from JSON.
 pub trait Codec<K, D> {
+    /// The JSON form of `stored`.
     fn encode(&self, stored: &Stored<K, D>) -> Value;
+    /// The stored data in `value`, or `None` when it does not match.
     fn decode(&self, value: &Value) -> Option<Stored<K, D>>;
 }
 
+/// Where a feed keeps its last result.
 pub trait Store<K, D> {
+    /// The stored data, if any.
     fn load(&self) -> Option<Stored<K, D>>;
+    /// Replaces the stored data.
     fn save(&self, stored: &Stored<K, D>);
+    /// Time since the data was stored.
     fn age(&self) -> Option<Duration>;
+    /// Marks the data as freshly fetched without changing it.
     fn touch(&self);
 }
 
@@ -35,6 +47,7 @@ fn read_json(path: &Path) -> Option<Value> {
     serde_json::from_str(std::fs::read_to_string(path).ok()?.trim()).ok()
 }
 
+/// A [`Store`] backed by one JSON file.
 pub struct DiskStore<K, D> {
     service: &'static str,
     path: PathBuf,
@@ -42,10 +55,12 @@ pub struct DiskStore<K, D> {
 }
 
 impl<K, D> DiskStore<K, D> {
+    /// A store for the file `path`; failures are logged under `service`.
     pub fn new(service: &'static str, path: PathBuf, codec: Rc<dyn Codec<K, D>>) -> DiskStore<K, D> {
         DiskStore { service, path, codec }
     }
 
+    /// The file path.
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -69,6 +84,7 @@ impl<K, D> Store<K, D> for DiskStore<K, D> {
     }
 }
 
+/// A set of JSON files in one directory, one per key.
 pub struct KeyedDiskStore<K, D> {
     service: &'static str,
     dir: PathBuf,
@@ -77,6 +93,7 @@ pub struct KeyedDiskStore<K, D> {
 }
 
 impl<K, D> KeyedDiskStore<K, D> {
+    /// A store in `dir` whose files are named by `file_name`.
     pub fn new(
         service: &'static str,
         dir: PathBuf,
@@ -86,19 +103,23 @@ impl<K, D> KeyedDiskStore<K, D> {
         KeyedDiskStore { service, dir, file_name, codec }
     }
 
+    /// The file that holds `key`.
     pub fn path_for(&self, key: &K) -> PathBuf {
         self.dir.join((self.file_name)(key))
     }
 
+    /// The stored data for `key`.
     pub fn load_key(&self, key: &K) -> Option<Stored<K, D>> {
         self.codec.decode(&read_json(&self.path_for(key))?)
     }
 
+    /// Writes the data under its own key.
     pub fn save(&self, stored: &Stored<K, D>) {
         let path = self.path_for(&stored.key);
         fsx::write_atomic(self.service, &path, self.codec.encode(stored).to_string().as_bytes());
     }
 
+    /// Time since the data for `key` was stored.
     pub fn age_of(&self, key: &K) -> Option<Duration> {
         file_age(&self.path_for(key))
     }
@@ -107,6 +128,7 @@ impl<K, D> KeyedDiskStore<K, D> {
 type ReadSetting = Rc<dyn Fn() -> Value>;
 type WriteSetting = Rc<dyn Fn(Value)>;
 
+/// A [`Store`] backed by a settings value.
 pub struct ConfigStore<K, D> {
     read: ReadSetting,
     write: WriteSetting,
@@ -115,6 +137,7 @@ pub struct ConfigStore<K, D> {
 }
 
 impl<K, D> ConfigStore<K, D> {
+    /// A store reading and writing the setting through `read` and `write`, with ages computed from `clock`.
     pub fn new(
         read: ReadSetting,
         write: WriteSetting,
@@ -147,6 +170,7 @@ impl<K, D> Store<K, D> for ConfigStore<K, D> {
     }
 }
 
+/// An in-memory [`Store`] that counts its loads and saves; for tests.
 pub struct MemoryStore<K, D> {
     slot: RefCell<Option<Stored<K, D>>>,
     age: RefCell<Option<Duration>>,
@@ -166,6 +190,7 @@ impl<K, D> Default for MemoryStore<K, D> {
 }
 
 impl<K: Clone, D: Clone> MemoryStore<K, D> {
+    /// A store holding `stored`, reported as `age` old.
     pub fn with(stored: Stored<K, D>, age: Duration) -> MemoryStore<K, D> {
         let store = MemoryStore::default();
         *store.slot.borrow_mut() = Some(stored);
@@ -173,18 +198,22 @@ impl<K: Clone, D: Clone> MemoryStore<K, D> {
         store
     }
 
+    /// Sets the reported age.
     pub fn set_age(&self, age: Option<Duration>) {
         *self.age.borrow_mut() = age;
     }
 
+    /// How many times it was saved.
     pub fn saves(&self) -> usize {
         *self.saves.borrow()
     }
 
+    /// How many times it was loaded.
     pub fn loads(&self) -> usize {
         *self.loads.borrow()
     }
 
+    /// The data currently held.
     pub fn current(&self) -> Option<Stored<K, D>> {
         self.slot.borrow().clone()
     }

@@ -2,15 +2,20 @@ use std::rc::Rc;
 
 use super::{Cmd, Exec};
 
+/// How urgent a notification is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Urgency {
+    /// Can wait.
     Low,
+    /// Ordinary.
     #[default]
     Normal,
+    /// Needs attention now.
     Critical,
 }
 
 impl Urgency {
+    /// Maps a notification hint value (0, 1 or 2) to an urgency; unknown values are normal.
     pub fn from_hint(value: u8) -> Urgency {
         match value {
             0 => Urgency::Low,
@@ -19,6 +24,7 @@ impl Urgency {
         }
     }
 
+    /// The hint value of the urgency.
     pub fn as_number(self) -> u8 {
         match self {
             Urgency::Low => 0,
@@ -27,6 +33,7 @@ impl Urgency {
         }
     }
 
+    /// The name `notify-send` uses for the urgency.
     pub fn as_str(self) -> &'static str {
         match self {
             Urgency::Low => "low",
@@ -36,17 +43,26 @@ impl Urgency {
     }
 }
 
+/// A notification to show.
 pub struct Notice {
+    /// Name of the sending application.
     pub app_name: String,
+    /// Title.
     pub summary: String,
+    /// Body text.
     pub body: String,
+    /// Icon name or path; empty for none.
     pub icon: String,
+    /// Urgency.
     pub urgency: Urgency,
+    /// Action buttons as id and label.
     pub actions: Vec<(String, String)>,
+    /// Called with the id of the chosen action.
     pub on_action: Option<Box<dyn FnOnce(String)>>,
 }
 
 impl Notice {
+    /// A notice with the given sender, title and body.
     pub fn new(app_name: impl Into<String>, summary: impl Into<String>, body: impl Into<String>) -> Notice {
         Notice {
             app_name: app_name.into(),
@@ -59,31 +75,38 @@ impl Notice {
         }
     }
 
+    /// Sets the icon.
     pub fn icon(mut self, icon: impl Into<String>) -> Notice {
         self.icon = icon.into();
         self
     }
 
+    /// Sets the urgency.
     pub fn urgency(mut self, urgency: Urgency) -> Notice {
         self.urgency = urgency;
         self
     }
 
+    /// Adds an action button.
     pub fn action(mut self, id: impl Into<String>, text: impl Into<String>) -> Notice {
         self.actions.push((id.into(), text.into()));
         self
     }
 
+    /// Sets the callback run with the chosen action id.
     pub fn on_action(mut self, handler: impl FnOnce(String) + 'static) -> Notice {
         self.on_action = Some(Box::new(handler));
         self
     }
 }
 
+/// Shows notifications to the user.
 pub trait Notifier {
+    /// Shows `notice`.
     fn notify(&self, notice: Notice);
 }
 
+/// The `notify-send` command line for `notice`.
 pub fn notify_send_argv(notice: &Notice) -> Vec<String> {
     let mut argv: Vec<String> = ["notify-send", "-a", &notice.app_name, "-u", notice.urgency.as_str()]
         .iter()
@@ -100,11 +123,13 @@ pub fn notify_send_argv(notice: &Notice) -> Vec<String> {
     argv
 }
 
+/// A [`Notifier`] that calls the `notify-send` program.
 pub struct NotifySendNotifier {
     exec: Rc<dyn Exec>,
 }
 
 impl NotifySendNotifier {
+    /// Creates a notifier running `notify-send` through `exec`.
     pub fn new(exec: Rc<dyn Exec>) -> NotifySendNotifier {
         NotifySendNotifier { exec }
     }

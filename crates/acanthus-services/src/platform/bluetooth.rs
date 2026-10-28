@@ -21,80 +21,141 @@ fn agent_path(app: &str) -> String {
 }
 const AGENT_CAPABILITY: &str = "KeyboardDisplay";
 
+/// Properties of one D-Bus interface.
 pub type Properties = HashMap<String, OwnedValue>;
+/// Managed objects: interfaces and their properties by object path.
 pub type Objects = HashMap<String, HashMap<String, Properties>>;
 
+/// A Bluetooth device.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct BluetoothDevice {
+    /// D-Bus object path.
     pub path: String,
+    /// Hardware address.
     pub address: String,
+    /// Name the device reports.
     pub name: String,
+    /// Name the user chose.
     pub alias: String,
+    /// Icon name.
     pub icon: String,
+    /// True when paired.
     pub paired: bool,
+    /// True when trusted.
     pub trusted: bool,
+    /// True when connected.
     pub connected: bool,
+    /// True when the device reports a battery level.
     pub battery_available: bool,
+    /// Battery level from 0 to 100.
     pub battery: f64,
 }
 
 impl BluetoothDevice {
+    /// The best name to show: the name, the alias or the address.
     pub fn display_name(&self) -> &str {
         [&self.name, &self.alias, &self.address].into_iter().find(|s| !s.is_empty()).map_or("", |s| s.as_str())
     }
 }
 
+/// The adapter and its devices at one moment.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct BluetoothSnapshot {
+    /// Object path of the adapter, if any.
     pub adapter_path: Option<String>,
+    /// Name of the adapter.
     pub adapter_name: String,
+    /// True when the adapter is powered.
     pub enabled: bool,
+    /// True while scanning for devices.
     pub discovering: bool,
+    /// Known devices.
     pub devices: Vec<BluetoothDevice>,
 }
 
+/// A request to the Bluetooth service.
 #[derive(Debug, Clone, PartialEq)]
 pub enum BluetoothCommand {
+    /// Switches the adapter on or off.
     SetPowered(bool),
+    /// Starts or stops scanning.
     SetDiscovering(bool),
+    /// Connects the device at this object path.
     Connect(String),
+    /// Disconnects the device at this object path.
     Disconnect(String),
+    /// Pairs with the device at this object path.
     Pair(String),
+    /// Trusts or untrusts the device at this object path.
     SetTrusted(String, bool),
+    /// Removes the device at this object path.
     Forget(String),
-    PairingAnswer { id: u64, answer: Option<PairingAnswer> },
+    /// Answer to a pairing request.
+    PairingAnswer {
+        /// Id of the request.
+        id: u64,
+        /// The answer, `None` to cancel.
+        answer: Option<PairingAnswer>,
+    },
 }
 
+/// What a pairing request asks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PairingKind {
+    /// Enter a PIN code.
     PinCode,
+    /// Enter a passkey.
     Passkey,
-    Confirmation { passkey: u32 },
+    /// Confirm that the passkey shown matches.
+    Confirmation {
+        /// The passkey to compare.
+        passkey: u32,
+    },
+    /// Allow the pairing.
     Authorization,
-    AuthorizeService { uuid: String },
+    /// Allow a device to use a service.
+    AuthorizeService {
+        /// UUID of the service.
+        uuid: String,
+    },
 }
 
+/// A question from a device that is pairing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingRequest {
+    /// Identifier to answer with.
     pub id: u64,
+    /// Object path of the device.
     pub device_path: String,
+    /// Name of the device.
     pub device_name: String,
+    /// What is asked.
     pub kind: PairingKind,
 }
 
+/// A code to show while pairing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PairingDisplay {
+    /// Object path of the device.
     pub device_path: String,
+    /// Name of the device.
     pub device_name: String,
+    /// The code to show.
     pub code: String,
+    /// How many digits have been entered on the device.
     pub entered: u16,
 }
 
+/// The user's answer to a pairing request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PairingAnswer {
+    /// The PIN code entered.
     Pin(String),
+    /// The passkey entered.
     Passkey(u32),
+    /// Accept.
     Accept,
+    /// Reject.
     Reject,
 }
 
@@ -277,6 +338,7 @@ fn as_percentage(value: &OwnedValue) -> Option<f64> {
     }
 }
 
+/// Builds a snapshot from the managed objects of BlueZ.
 pub fn parse_objects(objects: &Objects) -> BluetoothSnapshot {
     let mut adapters: Vec<(&String, &Properties)> =
         objects.iter().filter_map(|(path, ifaces)| ifaces.get(ADAPTER_IFACE).map(|props| (path, props))).collect();
@@ -327,16 +389,26 @@ enum Event {
     Unavailable,
 }
 
+/// Observable state of the Bluetooth service.
 #[derive(Clone)]
 pub struct BluetoothState {
+    /// True once the first snapshot arrived.
     pub ready: Signal<bool>,
+    /// True when BlueZ and an adapter exist.
     pub available: Signal<bool>,
+    /// Name of the adapter.
     pub adapter_name: Signal<String>,
+    /// True when the adapter is powered.
     pub enabled: Signal<bool>,
+    /// True while scanning.
     pub discovering: Signal<bool>,
+    /// Known devices.
     pub devices: Signal<Vec<BluetoothDevice>>,
+    /// Open questions from pairing devices.
     pub pairing_requests: Signal<Vec<PairingRequest>>,
+    /// The code to show during pairing.
     pub pairing_display: Signal<Option<PairingDisplay>>,
+    /// True when the pairing agent is registered.
     pub agent_registered: Signal<bool>,
 }
 
@@ -347,6 +419,7 @@ impl Default for BluetoothState {
 }
 
 impl BluetoothState {
+    /// State with nothing known.
     pub fn new() -> Self {
         BluetoothState {
             ready: Signal::new(false),
@@ -361,6 +434,7 @@ impl BluetoothState {
         }
     }
 
+    /// Copies a snapshot into the signals in one batch.
     pub fn apply(&self, snapshot: &BluetoothSnapshot) {
         batch(|| {
             self.available.set(snapshot.adapter_path.is_some());
@@ -374,28 +448,33 @@ impl BluetoothState {
         });
     }
 
+    /// The device with this hardware address.
     pub fn device_by_address(&self, address: &str) -> Option<BluetoothDevice> {
         self.devices.with_untracked(|devices| devices.iter().find(|d| d.address == address).cloned())
     }
 
+    /// The connected devices.
     pub fn connected_devices(&self) -> Vec<BluetoothDevice> {
         self.devices.with_untracked(|devices| devices.iter().filter(|d| d.connected).cloned().collect())
     }
 }
 
+/// Bluetooth control through BlueZ, including a pairing agent.
 pub struct Bluetooth {
+    /// Its observable state.
     pub state: BluetoothState,
     service: ServiceHandle<BluetoothCommand>,
 }
 
 impl Bluetooth {
+    /// Connects to BlueZ on `bus` on a helper thread; `app` names the pairing agent.
     pub fn start<D: 'static>(handle: &LoopHandle<'static, D>, bus: BusKind, app: &str) -> Result<Bluetooth, IoError> {
         let app = app.to_owned();
         let state = BluetoothState::new();
         let target = state.clone();
         let service = spawn_supervised(
             handle,
-            "serp-bluetooth",
+            "acanthus-bluetooth",
             move |event| match event {
                 Event::Snapshot(snapshot) => target.apply(&snapshot),
                 Event::PairingRequested(request) => target.pairing_requests.update(|list| list.push(request)),
@@ -412,43 +491,53 @@ impl Bluetooth {
         Ok(Bluetooth { state, service })
     }
 
+    /// Sends a command; false when the service is gone.
     pub fn command(&self, command: BluetoothCommand) -> bool {
         self.service.send(command)
     }
 
+    /// Powers the adapter on or off.
     pub fn set_enabled(&self, enabled: bool) -> bool {
         self.command(BluetoothCommand::SetPowered(enabled))
     }
 
+    /// Starts or stops scanning.
     pub fn set_discovering(&self, discovering: bool) -> bool {
         self.command(BluetoothCommand::SetDiscovering(discovering))
     }
 
+    /// Connects the device at `path`.
     pub fn connect(&self, path: &str) -> bool {
         self.command(BluetoothCommand::Connect(path.to_owned()))
     }
 
+    /// Disconnects the device at `path`.
     pub fn disconnect(&self, path: &str) -> bool {
         self.command(BluetoothCommand::Disconnect(path.to_owned()))
     }
 
+    /// Pairs with the device at `path`.
     pub fn pair(&self, path: &str) -> bool {
         self.command(BluetoothCommand::Pair(path.to_owned()))
     }
 
+    /// Trusts or untrusts the device at `path`.
     pub fn set_trusted(&self, path: &str, trusted: bool) -> bool {
         self.command(BluetoothCommand::SetTrusted(path.to_owned(), trusted))
     }
 
+    /// Removes the device at `path`.
     pub fn forget(&self, path: &str) -> bool {
         self.command(BluetoothCommand::Forget(path.to_owned()))
     }
 
+    /// Answers a pairing request.
     pub fn answer_pairing(&self, id: u64, answer: PairingAnswer) -> bool {
         self.state.pairing_requests.update(|list| list.retain(|r| r.id != id));
         self.command(BluetoothCommand::PairingAnswer { id, answer: Some(answer) })
     }
 
+    /// Cancels a pairing request.
     pub fn cancel_pairing(&self, id: u64) -> bool {
         self.state.pairing_requests.update(|list| list.retain(|r| r.id != id));
         self.command(BluetoothCommand::PairingAnswer { id, answer: None })

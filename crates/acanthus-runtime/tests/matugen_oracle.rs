@@ -85,7 +85,7 @@ fn rendered_templates_match_installed_matugen_byte_for_byte() {
     let Ok(dir) = std::env::var("SERP_MATUGEN_WALLPAPERS") else { return };
     let image = images(&dir).into_iter().next().expect("a wallpaper");
     let assets = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/matugen");
-    let work = std::env::temp_dir().join(format!("serp-matugen-oracle-{}", std::process::id()));
+    let work = std::env::temp_dir().join(format!("acanthus-matugen-oracle-{}", std::process::id()));
     let (reference_out, native_out) = (work.join("reference"), work.join("native"));
     std::fs::create_dir_all(&reference_out).unwrap();
     std::fs::create_dir_all(&native_out).unwrap();

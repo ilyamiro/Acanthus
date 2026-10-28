@@ -6,15 +6,21 @@ use std::time::Duration;
 use acanthus_io::{ExitInfo, Process, ProcessHandle, TimerHandle, WeakHandle};
 use calloop::LoopHandle;
 
+/// A command to run: arguments with the program first, plus optional timeout, environment and working directory.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Cmd {
+    /// Program and arguments.
     pub argv: Vec<String>,
+    /// Kill the process after this long.
     pub timeout: Option<Duration>,
+    /// Extra environment variables.
     pub env: Vec<(String, String)>,
+    /// Working directory.
     pub cwd: Option<PathBuf>,
 }
 
 impl Cmd {
+    /// A command from its argument vector.
     pub fn new<I, S>(argv: I) -> Cmd
     where
         I: IntoIterator<Item = S>,
@@ -23,45 +29,60 @@ impl Cmd {
         Cmd { argv: argv.into_iter().map(Into::into).collect(), ..Cmd::default() }
     }
 
+    /// Sets a timeout after which the process is killed.
     pub fn timeout(mut self, timeout: Duration) -> Cmd {
         self.timeout = Some(timeout);
         self
     }
 
+    /// Adds an environment variable.
     pub fn env(mut self, key: impl Into<String>, value: impl Into<String>) -> Cmd {
         self.env.push((key.into(), value.into()));
         self
     }
 
+    /// Sets the working directory.
     pub fn cwd(mut self, dir: impl Into<PathBuf>) -> Cmd {
         self.cwd = Some(dir.into());
         self
     }
 }
 
+/// A handle to a running process.
 pub trait Running {
+    /// The process id while it runs.
     fn pid(&self) -> Option<u32>;
+    /// Kills the process.
     fn kill(&self);
 }
 
+/// Called once with the exit information of a finished process.
 pub type Done = Box<dyn FnOnce(ExitInfo)>;
 
+/// Runs external programs; applications use [`ProcessExec`] and tests a fake.
 pub trait Exec {
+    /// Runs `cmd` to completion and calls `done`, returning a handle that can kill it; `None` when it cannot start.
     fn run(&self, cmd: Cmd, done: Done) -> Option<Box<dyn Running>>;
+    /// Starts `cmd`, calls `on_line` for each output line and `on_exit` when it ends.
     fn spawn(&self, cmd: Cmd, on_line: Box<dyn FnMut(&str)>, on_exit: Done) -> Option<Box<dyn Running>>;
+    /// Starts `cmd` and forgets it.
     fn detached(&self, cmd: Cmd);
+    /// True when a program named `name` can be found.
     fn has_program(&self, name: &str) -> bool;
 }
 
+/// [`Exec`] implementation that spawns real processes on the event loop.
 pub struct ProcessExec<D: 'static> {
     handle: WeakHandle<D>,
 }
 
 impl<D: 'static> ProcessExec<D> {
+    /// Creates an executor on the loop behind `handle`.
     pub fn new(handle: &LoopHandle<'static, D>) -> ProcessExec<D> {
         ProcessExec { handle: WeakHandle::new(handle) }
     }
 
+    /// Creates an executor as a shared trait object.
     pub fn shared(handle: &LoopHandle<'static, D>) -> Rc<dyn Exec> {
         Rc::new(ProcessExec::new(handle))
     }
@@ -169,10 +190,12 @@ impl<D: 'static> Exec for ProcessExec<D> {
     }
 }
 
+/// Runs `cmd` synchronously and returns its exit information, or `None` when it cannot run.
 pub fn run_blocking(cmd: &Cmd) -> Option<ExitInfo> {
     acanthus_io::run_to_completion(&cmd.argv).ok()
 }
 
+/// True when `name` is an existing file path or a program found on `PATH`.
 pub fn program_in_path(name: &str) -> bool {
     if name.contains('/') {
         return std::path::Path::new(name).is_file();
@@ -234,7 +257,7 @@ mod tests {
         let result = Rc::new(RefCell::new(None));
         let sink = result.clone();
         let running =
-            exec.run(Cmd::new(["serp-no-such-program"]), Box::new(move |info| *sink.borrow_mut() = Some(info)));
+            exec.run(Cmd::new(["acanthus-no-such-program"]), Box::new(move |info| *sink.borrow_mut() = Some(info)));
         assert!(running.is_none());
         assert!(!result.borrow().clone().expect("immediate failure").success());
         let empty = exec.run(Cmd::default(), Box::new(|info| assert!(!info.success())));
@@ -308,7 +331,7 @@ mod tests {
         let event_loop: TestLoop = EventLoop::try_new().unwrap();
         let exec = ProcessExec::shared(&event_loop.handle());
         assert!(exec.has_program("sh"));
-        assert!(!exec.has_program("serp-no-such-program"));
+        assert!(!exec.has_program("acanthus-no-such-program"));
         assert!(exec.has_program("/bin/sh") || exec.has_program("/usr/bin/sh"));
     }
 }

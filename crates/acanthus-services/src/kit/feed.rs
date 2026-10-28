@@ -8,15 +8,23 @@ use acanthus_io::TimerHandle;
 
 use super::{Ctx, Running, Store, Stored};
 
+/// Called by a fetch with its result, `None` on failure.
 pub type FetchDone<D> = Box<dyn FnOnce(Option<D>)>;
 
+/// When and how a feed refreshes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Policy {
+    /// Refresh periodically at this interval.
     pub interval: Option<Duration>,
+    /// Cached data younger than this is not refetched.
     pub fresh_for: Duration,
+    /// Minimum wait before retrying after a failure.
     pub retry_after_failure: Duration,
+    /// Data older than this counts as stale: it is shown as offline and replaced by the spec's fallback when a fetch fails.
     pub stale_after: Option<Duration>,
+    /// Wait after a key change before fetching, so quick changes collapse into one fetch.
     pub debounce: Duration,
+    /// When true, fetching only happens while a [`Subscription`] exists.
     pub gated: bool,
 }
 
@@ -33,21 +41,33 @@ impl Default for Policy {
     }
 }
 
+/// Where a feed stands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeedStatus {
+    /// Nothing requested yet.
     Idle,
+    /// A fetch is running.
     Loading,
+    /// Data is available.
     Ready,
+    /// Showing stale or fallback data because the latest fetch failed.
     Offline,
+    /// The fetch failed and there is no data to show.
     Failed,
 }
 
+/// Observable state of a feed.
 #[derive(Clone)]
 pub struct FeedState<D> {
+    /// The latest data.
     pub data: Signal<Option<D>>,
+    /// The status.
     pub status: Signal<FeedStatus>,
+    /// True while a fetch runs.
     pub loading: Signal<bool>,
+    /// Unix time in seconds of the last successful fetch.
     pub fetched_at: Signal<Option<i64>>,
+    /// Counter increased on every successful fetch.
     pub revision: Signal<u64>,
 }
 
@@ -63,15 +83,23 @@ impl<D: 'static> FeedState<D> {
     }
 }
 
+/// What a feed fetches: a key, a policy and how to get the data.
 pub trait FeedSpec: 'static {
+    /// Identifies the requested data; a change triggers a fetch.
     type Key: Clone + PartialEq + Debug + 'static;
+    /// The fetched data.
     type Data: Clone + PartialEq + 'static;
+    /// Name used in log messages.
     const NAME: &'static str;
 
+    /// The current key, read reactively; `None` means nothing is wanted.
     fn key(&self) -> Option<Self::Key>;
+    /// The current policy, read reactively.
     fn policy(&self) -> Policy;
+    /// Starts fetching for `key` and calls `done` with the result; returns a handle to cancel it.
     fn fetch(&self, ctx: &Ctx, key: &Self::Key, done: FetchDone<Self::Data>) -> Option<Box<dyn Running>>;
 
+    /// Data to use when a fetch fails and the cached data is missing or stale.
     fn fallback(&self, _ctx: &Ctx, _key: &Self::Key) -> Option<Self::Data> {
         None
     }
@@ -82,6 +110,7 @@ struct Gate {
     wake: RefCell<Option<Rc<dyn Fn()>>>,
 }
 
+/// Keeps a gated feed fetching while it lives.
 pub struct Subscription {
     gate: Rc<Gate>,
 }
@@ -321,6 +350,7 @@ impl<S: FeedSpec> Drop for Inner<S> {
     }
 }
 
+/// A cached, periodically refreshed data source driven by a [`FeedSpec`], persisted through a [`Store`].
 pub struct Feed<S: FeedSpec> {
     inner: Rc<Inner<S>>,
     _key_effect: Effect,
@@ -328,6 +358,7 @@ pub struct Feed<S: FeedSpec> {
 }
 
 impl<S: FeedSpec> Feed<S> {
+    /// Creates a feed from `spec` persisted in `store`; fetching starts when the key becomes available.
     pub fn new(ctx: &Ctx, spec: S, store: Box<dyn Store<S::Key, S::Data>>) -> Feed<S> {
         let inner = Rc::new(Inner {
             spec,
@@ -368,18 +399,22 @@ impl<S: FeedSpec> Feed<S> {
         Feed { inner, _key_effect: key_effect, _policy_effect: policy_effect }
     }
 
+    /// The observable state.
     pub fn state(&self) -> &FeedState<S::Data> {
         &self.inner.state
     }
 
+    /// The spec the feed was built from.
     pub fn spec(&self) -> &S {
         &self.inner.spec
     }
 
+    /// Fetches now; without `force`, fresh cached data is kept.
     pub fn refresh(&self, force: bool) {
         self.inner.fetch(force);
     }
 
+    /// Cancels pending and running fetches.
     pub fn cancel(&self) {
         let inner = &self.inner;
         for slot in [&inner.debounce, &inner.retry] {
@@ -391,6 +426,7 @@ impl<S: FeedSpec> Feed<S> {
         inner.state.loading.set(false);
     }
 
+    /// Registers interest; a gated feed fetches while at least one subscription exists.
     pub fn subscribe(&self) -> Subscription {
         let gate = self.inner.gate.clone();
         let previous = gate.count.get();

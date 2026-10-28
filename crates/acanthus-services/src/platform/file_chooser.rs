@@ -16,27 +16,39 @@ const INTERFACE: &str = "org.freedesktop.portal.FileChooser";
 const SKI_BACKEND: &str = "org.freedesktop.impl.portal.desktop.ski";
 const REQUEST: &str = "org.freedesktop.portal.Request";
 
+/// What the file dialog is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PickMode {
+    /// Choose one existing file.
     OpenFile,
+    /// Choose several existing files.
     OpenFiles,
+    /// Choose a folder.
     Folder,
+    /// Choose a name and place to save a file.
     Save,
 }
 
+/// One way to select files in a dialog filter.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern {
+    /// A glob such as `*.png`.
     Glob(String),
+    /// A MIME type such as `image/png`.
     Mime(String),
 }
 
+/// A named group of patterns offered in the dialog.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Filter {
+    /// Name shown to the user.
     pub name: String,
+    /// The patterns it accepts.
     pub patterns: Vec<Pattern>,
 }
 
 impl Filter {
+    /// A filter called `name` accepting the given globs.
     pub fn globs(name: &str, globs: &[&str]) -> Filter {
         Filter { name: name.to_owned(), patterns: globs.iter().map(|g| Pattern::Glob((*g).to_owned())).collect() }
     }
@@ -54,48 +66,64 @@ impl Filter {
     }
 }
 
+/// Everything the dialog needs to know.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PickSpec {
+    /// What to choose.
     pub mode: PickMode,
+    /// Dialog title.
     pub title: String,
+    /// Filters offered.
     pub filters: Vec<Filter>,
+    /// Folder to start in.
     pub folder: Option<PathBuf>,
+    /// Suggested file name when saving.
     pub name: Option<String>,
 }
 
 impl PickSpec {
+    /// A specification for `mode` with a `title` and nothing else.
     pub fn new(mode: PickMode, title: &str) -> PickSpec {
         PickSpec { mode, title: title.to_owned(), filters: Vec::new(), folder: None, name: None }
     }
 
+    /// Adds a filter.
     pub fn filter(mut self, filter: Filter) -> PickSpec {
         self.filters.push(filter);
         self
     }
 
+    /// Sets the starting folder.
     pub fn folder(mut self, folder: PathBuf) -> PickSpec {
         self.folder = Some(folder);
         self
     }
 
+    /// Sets the suggested file name.
     pub fn name(mut self, name: &str) -> PickSpec {
         self.name = Some(name.to_owned());
         self
     }
 }
 
+/// How a dialog ended.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outcome {
+    /// The user chose these paths.
     Picked(Vec<PathBuf>),
+    /// The user closed the dialog without choosing.
     Cancelled,
+    /// No file chooser portal could be used.
     Unavailable,
 }
 
+/// The object path the portal uses for the request of a caller with this unique bus name and handle token.
 pub fn request_path(unique_name: &str, token: &str) -> String {
     let sender = unique_name.trim_start_matches(':').replace('.', "_");
     format!("/org/freedesktop/portal/desktop/request/{sender}/{token}")
 }
 
+/// Decodes percent escapes in `text`.
 pub fn percent_decode(text: &str) -> String {
     let bytes = text.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
@@ -116,12 +144,14 @@ pub fn percent_decode(text: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
+/// The path in a `file://` URI, `None` for other URIs.
 pub fn uri_to_path(uri: &str) -> Option<PathBuf> {
     let rest = uri.strip_prefix("file://")?;
     let path = rest.find('/').map_or("", |slash| &rest[slash..]);
     if path.is_empty() { None } else { Some(PathBuf::from(percent_decode(path))) }
 }
 
+/// A `file://` URI for `path`.
 pub fn path_to_uri(path: &std::path::Path) -> String {
     use std::os::unix::ffi::OsStrExt;
     let mut out = String::from("file://");
@@ -134,6 +164,7 @@ pub fn path_to_uri(path: &std::path::Path) -> String {
     out
 }
 
+/// The outcome for the portal's response code and chosen URIs.
 pub fn outcome(code: u32, uris: &[String]) -> Outcome {
     match code {
         0 => {
@@ -151,6 +182,7 @@ fn byte_string(path: &std::path::Path) -> Vec<u8> {
     bytes
 }
 
+/// The options of the portal call for `spec`.
 pub fn options<'a>(spec: &'a PickSpec, token: &'a str) -> HashMap<&'static str, Variant<'a>> {
     let mut options: HashMap<&'static str, Variant<'a>> = HashMap::new();
     options.insert("handle_token", Variant::from(token));
@@ -178,14 +210,19 @@ pub fn options<'a>(spec: &'a PickSpec, token: &'a str) -> HashMap<&'static str, 
     options
 }
 
+/// Which file chooser portal backend is installed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Backend {
+    /// No portal is available.
     Missing,
+    /// The portal is available with the Ski backend.
     Ski,
+    /// The portal is available with another backend.
     Other,
 }
 
 impl Backend {
+    /// The backend, from whether the portal runs and the names that can be activated or are owned on the bus.
     pub fn from_names(portal_running: bool, activatable: &[String], owned: &[String]) -> Backend {
         let has = |name: &str| activatable.iter().chain(owned).any(|n| n == name);
         if !portal_running && !has(SERVICE) {
@@ -194,6 +231,7 @@ impl Backend {
         if has(SKI_BACKEND) { Backend::Ski } else { Backend::Other }
     }
 
+    /// A sentence describing the backend, for logs.
     pub fn describe(self) -> &'static str {
         match self {
             Backend::Missing => "no file chooser portal (xdg-desktop-portal is not available)",
@@ -203,6 +241,7 @@ impl Backend {
     }
 }
 
+/// Asks the bus which file chooser backend exists.
 pub async fn probe(bus: &BusKind) -> Backend {
     let Ok(connection) = bus.connect().await else {
         return Backend::Missing;
@@ -217,8 +256,9 @@ pub async fn probe(bus: &BusKind) -> Backend {
     Backend::from_names(portal_running, &activatable, &owned)
 }
 
+/// Probes the backend on a helper thread and logs the result.
 pub fn log_backend(bus: BusKind) {
-    let spawned = std::thread::Builder::new().name("serp-portal-probe".to_owned()).spawn(move || {
+    let spawned = std::thread::Builder::new().name("acanthus-portal-probe".to_owned()).spawn(move || {
         let backend = async_io::block_on(probe(&bus));
         match backend {
             Backend::Missing => tracing::warn!("{}", backend.describe()),
@@ -283,10 +323,12 @@ async fn run(bus: BusKind, spec: PickSpec, events: EventSink<Outcome>, commands:
     events.send(result);
 }
 
+/// Keeps a running file dialog alive; dropping it abandons the request.
 pub struct Pick {
     _service: ServiceHandle<()>,
 }
 
+/// Opens a file dialog through the portal and calls `on_done` once with the outcome.
 pub fn pick<D: 'static>(
     handle: &LoopHandle<'static, D>,
     bus: BusKind,
@@ -296,7 +338,7 @@ pub fn pick<D: 'static>(
     let mut on_done = Some(on_done);
     let service = spawn_worker(
         handle,
-        "serp-file-chooser",
+        "acanthus-file-chooser",
         move |outcome: Outcome| {
             if let Some(done) = on_done.take() {
                 done(outcome);

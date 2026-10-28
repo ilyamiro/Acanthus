@@ -1,34 +1,42 @@
+/// A JSON file used as a cache, written atomically.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CacheFile {
     path: std::path::PathBuf,
 }
 
 impl CacheFile {
+    /// A cache at `path`.
     pub fn new(path: std::path::PathBuf) -> CacheFile {
         CacheFile { path }
     }
 
+    /// The file path.
     pub fn path(&self) -> &std::path::Path {
         &self.path
     }
 
+    /// The parsed content, or `None` when the file is missing or invalid.
     pub fn read_json(&self) -> Option<serde_json::Value> {
         serde_json::from_str(std::fs::read_to_string(&self.path).ok()?.trim()).ok()
     }
 
+    /// Writes `value` atomically.
     pub fn write_json(&self, value: &serde_json::Value) {
         crate::kit::fsx::write_atomic("cache", &self.path, value.to_string().as_bytes());
     }
 
+    /// Marks the cache as fresh without changing it.
     pub fn touch(&self) {
         crate::kit::fsx::touch("cache", &self.path);
     }
 
+    /// Seconds since the file was last modified, or `None` when it does not exist.
     pub fn age_seconds(&self) -> Option<u64> {
         let modified = std::fs::metadata(&self.path).ok()?.modified().ok()?;
         Some(std::time::SystemTime::now().duration_since(modified).map(|d| d.as_secs()).unwrap_or(0))
     }
 
+    /// True when the file exists.
     pub fn exists(&self) -> bool {
         self.path.exists()
     }

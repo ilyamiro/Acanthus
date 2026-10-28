@@ -25,6 +25,7 @@ struct Inner {
     exec: Rc<dyn Exec>,
 }
 
+/// The installed applications, rescanned when the application directories change.
 pub struct DesktopEntries {
     inner: Rc<Inner>,
     _watches: Vec<Watch>,
@@ -44,6 +45,7 @@ impl Inner {
 }
 
 impl DesktopEntries {
+    /// Scans the application directories and watches them for changes; `env` supplies environment variables and `exec` launches applications.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         env: impl Fn(&str) -> Option<String>,
@@ -91,29 +93,35 @@ impl DesktopEntries {
         Ok(DesktopEntries { inner, _watches: watches })
     }
 
+    /// A counter that increases whenever the application list changes.
     pub fn revision(&self) -> Signal<u64> {
         self.inner.revision.clone()
     }
 
+    /// All desktop entries; tracks the revision.
     pub fn entries(&self) -> Vec<Rc<DesktopEntry>> {
         self.inner.revision.get();
         self.inner.entries.borrow().clone()
     }
 
+    /// A matcher built from the current entries; tracks the revision.
     pub fn matcher(&self) -> Rc<AppMatcher> {
         self.inner.revision.get();
         self.inner.matcher.borrow().clone()
     }
 
+    /// The entry matching `id`, if any.
     pub fn find(&self, id: &str) -> Option<Rc<DesktopEntry>> {
         self.matcher().entry(id)
     }
 
+    /// Launches `entry` with `files` as arguments, in the configured terminal when it needs one.
     pub fn launch(&self, entry: &DesktopEntry, files: &[String]) {
         let terminal = (!self.inner.terminal.is_empty()).then_some(self.inner.terminal.as_str());
         self.inner.exec.detached(Cmd::new(entry.launch_command(files, terminal)));
     }
 
+    /// Rescans the directories now.
     pub fn rescan_now(&self) {
         self.inner.rescan();
     }

@@ -8,20 +8,26 @@ use chrono::{DateTime, Local, TimeZone};
 
 use super::{Clock, Cmd, Done, Exec, Notice, Notifier, Running, Translator};
 
+/// A timer callback; it returns the delay of its next run, or `None` when done.
 pub type TimerFn = Box<dyn FnMut() -> Option<Duration>>;
+/// A registered timer: empty once cancelled or finished.
 pub type TimerSlot = Rc<RefCell<Option<TimerFn>>>;
+/// The timers registered with a manual scheduler, with their delay in milliseconds.
 pub type TimerList = Rc<RefCell<Vec<(u64, TimerSlot)>>>;
 
+/// A scheduler that never fires by itself: tests fire timers on demand.
 #[derive(Clone, Default)]
 pub struct ManualScheduler {
     timers: TimerList,
 }
 
 impl ManualScheduler {
+    /// A scheduler with no timers.
     pub fn new() -> ManualScheduler {
         ManualScheduler::default()
     }
 
+    /// The scheduler to hand to code under test.
     pub fn scheduler(&self) -> Scheduler {
         let registry = self.timers.clone();
         Rc::new(move |delay, f| {
@@ -33,37 +39,45 @@ impl ManualScheduler {
         })
     }
 
+    /// The registry of timers.
     pub fn timers(&self) -> TimerList {
         self.timers.clone()
     }
 
+    /// The number of timers ever registered, fired or not.
     pub fn registered(&self) -> usize {
         self.timers.borrow().len()
     }
 
+    /// The number of timers that can still fire.
     pub fn live(&self) -> usize {
         self.timers.borrow().iter().filter(|(_, slot)| slot.borrow().is_some()).count()
     }
 
+    /// The number of live timers registered with this delay in milliseconds.
     pub fn live_with_delay(&self, delay_ms: u64) -> usize {
         self.timers.borrow().iter().filter(|(d, slot)| *d == delay_ms && slot.borrow().is_some()).count()
     }
 
+    /// The delays of all registered timers in milliseconds.
     pub fn delays(&self) -> Vec<u64> {
         self.timers.borrow().iter().map(|(delay, _)| *delay).collect()
     }
 
+    /// Fires the timer at `index` and returns its next delay if it repeats.
     pub fn fire_at(&self, index: usize) -> Option<Duration> {
         let slot = self.timers.borrow().get(index).map(|(_, slot)| slot.clone())?;
         run_slot(&slot).flatten()
     }
 
+    /// Fires every live timer with this delay and returns how many fired.
     pub fn fire_with_delay(&self, delay_ms: u64) -> usize {
         let slots: Vec<TimerSlot> =
             self.timers.borrow().iter().filter(|(d, _)| *d == delay_ms).map(|(_, slot)| slot.clone()).collect();
         slots.iter().filter(|slot| fire_slot(slot)).count()
     }
 
+    /// Fires every live timer once, forgetting the registry, and returns how many fired.
     pub fn fire_all(&self) -> usize {
         let pending: Vec<TimerSlot> = self.timers.borrow_mut().drain(..).map(|(_, slot)| slot).collect();
         pending.iter().filter(|slot| fire_slot(slot)).count()
@@ -83,39 +97,48 @@ fn fire_slot(slot: &TimerSlot) -> bool {
     run_slot(slot).is_some()
 }
 
+/// A clock that only moves when told.
 pub struct FakeClock {
     ms: Cell<f64>,
 }
 
 impl FakeClock {
+    /// A clock at `ms` Unix milliseconds.
     pub fn from_ms(ms: f64) -> FakeClock {
         FakeClock { ms: Cell::new(ms) }
     }
 
+    /// A clock at `secs` Unix seconds.
     pub fn from_secs(secs: f64) -> FakeClock {
         FakeClock::from_ms(secs * 1000.0)
     }
 
+    /// A clock at `time`.
     pub fn at(time: DateTime<Local>) -> FakeClock {
         FakeClock::from_ms(time.timestamp_millis() as f64)
     }
 
+    /// The current time in Unix milliseconds.
     pub fn get(&self) -> f64 {
         self.ms.get()
     }
 
+    /// Sets the time in Unix milliseconds.
     pub fn set(&self, ms: f64) {
         self.ms.set(ms);
     }
 
+    /// Sets the time in Unix seconds.
     pub fn set_secs(&self, secs: f64) {
         self.ms.set(secs * 1000.0);
     }
 
+    /// Sets the time.
     pub fn set_time(&self, time: DateTime<Local>) {
         self.ms.set(time.timestamp_millis() as f64);
     }
 
+    /// Moves the time forward by `ms` milliseconds.
     pub fn advance_ms(&self, ms: f64) {
         self.ms.set(self.ms.get() + ms);
     }
@@ -133,15 +156,18 @@ impl Clock for FakeClock {
 
 type Translate = Box<dyn Fn(&str, &[(&str, &str)]) -> String>;
 
+/// A translator driven by a function.
 pub struct FakeTranslator {
     translate: Translate,
 }
 
 impl FakeTranslator {
+    /// A translator calling `translate` with the key and the arguments.
     pub fn from_fn(translate: impl Fn(&str, &[(&str, &str)]) -> String + 'static) -> FakeTranslator {
         FakeTranslator { translate: Box::new(translate) }
     }
 
+    /// A translator returning the key followed by `|name=value` for every argument.
     pub fn echo() -> FakeTranslator {
         FakeTranslator::from_fn(|key, args| {
             let mut text = key.to_owned();
@@ -152,10 +178,12 @@ impl FakeTranslator {
         })
     }
 
+    /// A translator returning the last dot-separated segment of the key.
     pub fn last_segment() -> FakeTranslator {
         FakeTranslator::from_fn(|key, _| key.rsplit('.').next().unwrap_or(key).to_owned())
     }
 
+    /// The translator as a shared trait object.
     pub fn rc(self) -> Rc<dyn Translator> {
         Rc::new(self)
     }
@@ -200,6 +228,7 @@ struct ExecState {
 
 type Responder = Box<dyn Fn(&[String]) -> Option<ExitInfo>>;
 
+/// An [`Exec`] that records commands and answers them from rules, queued replies or a responder, without starting processes.
 pub struct FakeExec {
     state: Rc<RefCell<ExecState>>,
     immediate: Cell<bool>,
@@ -234,6 +263,7 @@ impl Drop for FakeRunning {
 }
 
 impl FakeExec {
+    /// A fake that holds started commands until released.
     pub fn new() -> Rc<FakeExec> {
         Rc::new(FakeExec {
             state: Rc::new(RefCell::new(ExecState::default())),
@@ -242,84 +272,104 @@ impl FakeExec {
         })
     }
 
+    /// A fake that answers commands as soon as they start.
     pub fn immediate() -> Rc<FakeExec> {
         let fake = FakeExec::new();
         fake.immediate.set(true);
         fake
     }
 
+    /// The fake as a shared [`Exec`].
     pub fn exec(self: &Rc<FakeExec>) -> Rc<dyn Exec> {
         self.clone()
     }
 
+    /// Sets whether commands are answered as soon as they start.
     pub fn set_immediate(&self, immediate: bool) {
         self.immediate.set(immediate);
     }
 
+    /// Queues a reply for the next command no rule matches.
     pub fn reply(&self, info: ExitInfo) {
         self.state.borrow_mut().replies.push_back(info);
     }
 
+    /// Answers commands whose arguments start with `prefix` with `info`.
     pub fn rule(&self, prefix: &[&str], info: ExitInfo) {
         self.state.borrow_mut().rules.push((prefix.iter().map(|part| (*part).to_owned()).collect(), info));
     }
 
+    /// Answers commands starting with `prefix` with a successful run printing `stdout`.
     pub fn rule_ok(&self, prefix: &[&str], stdout: &str) {
         self.rule(prefix, ExitInfo { code: Some(0), stdout: stdout.to_owned(), ..Default::default() });
     }
 
+    /// Queues a successful reply printing `stdout`.
     pub fn reply_ok(&self, stdout: &str) {
         self.reply(ExitInfo { code: Some(0), stdout: stdout.to_owned(), ..Default::default() });
     }
 
+    /// Queues a failed reply.
     pub fn reply_fail(&self) {
         self.reply(ExitInfo { code: Some(22), ..Default::default() });
     }
 
+    /// The commands started so far.
     pub fn cmds(&self) -> Vec<Cmd> {
         self.state.borrow().calls.clone()
     }
 
+    /// The argument vectors of the commands started so far.
     pub fn calls(&self) -> Vec<Vec<String>> {
         self.state.borrow().calls.iter().map(|cmd| cmd.argv.clone()).collect()
     }
 
+    /// The number of commands started so far.
     pub fn call_count(&self) -> usize {
         self.state.borrow().calls.len()
     }
 
+    /// Forgets the recorded commands.
     pub fn clear_calls(&self) {
         self.state.borrow_mut().calls.clear();
     }
 
+    /// The last argument of every command, which is the URL for HTTP requests.
     pub fn urls(&self) -> Vec<String> {
         self.calls().iter().filter_map(|argv| argv.last().cloned()).collect()
     }
 
+    /// The commands started detached.
     pub fn detached(&self) -> Vec<Vec<String>> {
         self.state.borrow().detached.iter().map(|cmd| cmd.argv.clone()).collect()
     }
 
+    /// The number of commands waiting to be released.
     pub fn pending(&self) -> usize {
         self.state.borrow().pending.len()
     }
 
+    /// The number of commands that were killed.
     pub fn killed(&self) -> usize {
         self.state.borrow().killed_runs
     }
 
+    /// Makes the program names count as not installed.
     pub fn missing(&self, names: &[&str]) {
         self.state.borrow_mut().missing.extend(names.iter().map(|name| (*name).to_owned()));
     }
 
+    /// Makes the program name count as installed again.
     pub fn present(&self, name: &str) {
         self.state.borrow_mut().missing.remove(name);
     }
 
+    /// Makes starting commands fail when `refuse` is true.
     pub fn refuse_spawn(&self, refuse: bool) {
         self.state.borrow_mut().refuse_spawn = refuse;
     }
 
+    /// Adds a function that answers commands; the first function that returns a reply wins over rules and queued replies.
     pub fn responder(&self, respond: impl Fn(&[String]) -> Option<ExitInfo> + 'static) {
         self.responders.borrow_mut().push(Box::new(respond));
     }
@@ -335,6 +385,7 @@ impl FakeExec {
         matched.or_else(|| state.replies.pop_front()).unwrap_or(ExitInfo { code: Some(7), ..Default::default() })
     }
 
+    /// Finishes the oldest waiting command; false when none waits.
     pub fn release_next(&self) -> bool {
         let run = {
             let mut state = self.state.borrow_mut();
@@ -352,6 +403,7 @@ impl FakeExec {
         true
     }
 
+    /// Finishes all waiting commands and returns how many.
     pub fn release(&self) -> usize {
         let mut released = 0;
         while self.release_next() {
@@ -360,14 +412,17 @@ impl FakeExec {
         released
     }
 
+    /// The number of streaming commands started.
     pub fn streams(&self) -> usize {
         self.state.borrow().streams.len()
     }
 
+    /// The number of streaming commands still running.
     pub fn streams_alive(&self) -> usize {
         self.state.borrow().streams.iter().filter(|stream| !stream.stopped.get()).count()
     }
 
+    /// Delivers a line of output to the streaming command at `index`.
     pub fn send_line(&self, index: usize, text: &str) {
         let taken = self.state.borrow_mut().streams.get_mut(index).and_then(|stream| stream.on_line.take());
         if let Some(mut on_line) = taken {
@@ -378,6 +433,7 @@ impl FakeExec {
         }
     }
 
+    /// Ends the streaming command at `index` with a successful exit.
     pub fn end_stream(&self, index: usize) {
         let taken = self.state.borrow_mut().streams.get_mut(index).and_then(|stream| stream.on_exit.take());
         if let Some(on_exit) = taken {
@@ -620,32 +676,39 @@ mod tests {
     }
 }
 
+/// A [`Notifier`] that records the notices it receives.
 #[derive(Default)]
 pub struct FakeNotifier {
     sent: RefCell<Vec<Notice>>,
 }
 
 impl FakeNotifier {
+    /// A notifier with nothing recorded.
     pub fn new() -> Rc<FakeNotifier> {
         Rc::new(FakeNotifier::default())
     }
 
+    /// The notifier as a shared trait object.
     pub fn notifier(self: &Rc<FakeNotifier>) -> Rc<dyn Notifier> {
         self.clone()
     }
 
+    /// The number of notices received.
     pub fn count(&self) -> usize {
         self.sent.borrow().len()
     }
 
+    /// The summaries of the notices received.
     pub fn summaries(&self) -> Vec<String> {
         self.sent.borrow().iter().map(|notice| notice.summary.clone()).collect()
     }
 
+    /// Reads the notice at `index`.
     pub fn with<R>(&self, index: usize, read: impl FnOnce(&Notice) -> R) -> R {
         read(&self.sent.borrow()[index])
     }
 
+    /// Runs the action handler of the notice at `index` with the action id.
     pub fn choose(&self, index: usize, action: &str) {
         let handler = self.sent.borrow_mut()[index].on_action.take();
         if let Some(handler) = handler {
@@ -660,15 +723,22 @@ impl Notifier for FakeNotifier {
     }
 }
 
+/// A complete [`Ctx`] built from fakes, plus handles to the fakes.
 pub struct TestCtx {
+    /// The context to hand to code under test.
     pub ctx: super::Ctx,
+    /// The fake executor.
     pub exec: Rc<FakeExec>,
+    /// The manual scheduler.
     pub scheduler: ManualScheduler,
+    /// The fake clock.
     pub clock: Rc<FakeClock>,
+    /// The recorded notifications.
     pub notices: Rc<FakeNotifier>,
 }
 
 impl TestCtx {
+    /// Builds a context whose directories are below `root`.
     pub fn new(root: &std::path::Path) -> TestCtx {
         let exec = FakeExec::new();
         let scheduler = ManualScheduler::new();

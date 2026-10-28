@@ -12,40 +12,56 @@ use crate::kit::{Cmd, Exec};
 use crate::platform::bridge::{EventSink, ServiceHandle, spawn_supervised};
 use crate::platform::dbus::BusKind;
 
+/// Default change of the raise and lower actions, in percent.
 pub const STEP: i32 = 5;
+/// Directory of the kernel's backlight devices.
 pub const BACKLIGHT_ROOT: &str = "/sys/class/backlight";
+/// Directory of the kernel's LED devices.
 pub const LEDS_ROOT: &str = "/sys/class/leds";
 const DDC_TIMEOUT: Duration = Duration::from_secs(5);
 const DDC_DETECT_TIMEOUT: Duration = Duration::from_secs(15);
 
+/// Where brightness is controlled.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Backend {
+    /// Not determined yet.
     #[default]
     Unknown,
+    /// A kernel backlight device with this name, set through logind.
     Backlight(String),
+    /// An external monitor over DDC/CI.
     Ddc,
+    /// No way to control brightness.
     None,
 }
 
+/// A kernel backlight device.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BacklightDevice {
+    /// Device name.
     pub name: String,
+    /// Directory of the device.
     pub path: PathBuf,
+    /// Current raw value.
     pub current: u64,
+    /// Largest raw value.
     pub max: u64,
 }
 
 impl BacklightDevice {
+    /// The brightness from 0 to 100, rounded.
     pub fn percent(&self) -> u32 {
         (self.current * 100 + self.max / 2).checked_div(self.max).map_or(0, |p| p.min(100) as u32)
     }
 }
 
+/// The raw value for `percent` (clamped to 0 to 100) on a device with the largest value `max`.
 pub fn raw_for_percent(percent: i32, max: u64) -> u64 {
     let percent = percent.clamp(0, 100) as u64;
     (percent * max + 50) / 100
 }
 
+/// The backlight devices below `root`, the one with the largest range first.
 pub fn read_backlights(root: &Path) -> Vec<BacklightDevice> {
     let mut devices: Vec<BacklightDevice> = std::fs::read_dir(root)
         .into_iter()
@@ -67,6 +83,7 @@ pub fn read_backlights(root: &Path) -> Vec<BacklightDevice> {
     devices
 }
 
+/// The I2C bus number in the output of the DDC detect command.
 pub fn parse_ddc_bus(detect_output: &str) -> Option<u32> {
     detect_output.lines().find(|l| l.contains("I2C bus:")).and_then(|l| {
         let path = l.split_whitespace().nth(2)?;
@@ -74,6 +91,7 @@ pub fn parse_ddc_bus(detect_output: &str) -> Option<u32> {
     })
 }
 
+/// The current and maximum value in the output of a DDC read command.
 pub fn parse_vcp(output: &str) -> Option<(u32, u32)> {
     let fields: Vec<&str> = output.split_whitespace().collect();
     let (current, maximum) = (fields.get(3)?.parse::<u32>().ok()?, fields.get(4)?.parse::<u32>().ok()?);
@@ -95,6 +113,7 @@ struct DdcState {
     busy: bool,
 }
 
+/// Brightness control of an external monitor through a DDC/CI program; operations are queued and run one at a time.
 pub struct Ddc {
     exec: Rc<dyn Exec>,
     program: String,
@@ -103,6 +122,7 @@ pub struct Ddc {
 }
 
 impl Ddc {
+    /// Creates a controller running `program` through `exec` and publishing the level into `percent`.
     pub fn new(exec: Rc<dyn Exec>, program: &str, percent: Signal<Option<u32>>) -> Rc<Ddc> {
         Rc::new(Ddc { exec, program: program.to_owned(), state: RefCell::default(), percent })
     }
@@ -112,6 +132,7 @@ impl Ddc {
             .run(Cmd::new(argv).timeout(timeout), Box::new(move |info| done(info.success().then_some(info.stdout))));
     }
 
+    /// Queues an operation; a new `Set` replaces queued ones.
     pub fn submit(self: &Rc<Self>, op: DdcOpPublic) {
         let op = match op {
             DdcOpPublic::Get => DdcOp::Get,
@@ -255,10 +276,14 @@ impl Ddc {
     }
 }
 
+/// An operation on a DDC monitor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DdcOpPublic {
+    /// Read the current level.
     Get,
+    /// Set the level in percent.
     Set(i32),
+    /// Change the level by this many percent.
     Adjust(i32),
 }
 
@@ -296,8 +321,11 @@ async fn run(bus: BusKind, events: EventSink<Event>, commands: async_channel::Re
     }
 }
 
+/// Screen brightness from the best available backend, as signals.
 pub struct Brightness {
+    /// Brightness from 0 to 100, `None` while unknown.
     pub percent: Signal<Option<u32>>,
+    /// The backend in use.
     pub backend: Signal<Backend>,
     root: PathBuf,
     service: ServiceHandle<Command>,
@@ -315,6 +343,7 @@ fn pick_backend(root: &Path, ddc_available: bool) -> Backend {
 }
 
 impl Brightness {
+    /// Picks a backlight device below `backlight_root`, or DDC when `ddc_exec` names a program, and starts the logind worker on `bus`.
     pub fn start<D: 'static>(
         handle: &LoopHandle<'static, D>,
         bus: BusKind,
@@ -326,7 +355,7 @@ impl Brightness {
         let error_target = last_error.clone();
         let service = spawn_supervised(
             handle,
-            "serp-brightness",
+            "acanthus-brightness",
             move |event| match event {
                 Event::SetFailed(message) => error_target.set(message),
             },
@@ -358,6 +387,7 @@ impl Brightness {
         Ok(brightness)
     }
 
+    /// Rereads the level from the device.
     pub fn refresh(&self) {
         match self.backend.get_untracked() {
             Backend::Backlight(name) => {
@@ -374,6 +404,7 @@ impl Brightness {
         }
     }
 
+    /// Sets the level in percent, clamped to 0 to 100.
     pub fn set(&self, percent: i32) {
         let target = percent.clamp(0, 100);
         match self.backend.get_untracked() {
@@ -391,6 +422,7 @@ impl Brightness {
         }
     }
 
+    /// Changes the level by `delta` percent.
     pub fn adjust(&self, delta: i32) {
         match self.backend.get_untracked() {
             Backend::Backlight(_) => self.set(self.percent.get_untracked().map_or(0, |p| p as i32) + delta),
@@ -403,14 +435,17 @@ impl Brightness {
         }
     }
 
+    /// Raises the level by [`STEP`].
     pub fn raise(&self) {
         self.adjust(STEP);
     }
 
+    /// Lowers the level by [`STEP`].
     pub fn lower(&self) {
         self.adjust(-STEP);
     }
 
+    /// Message of the last failed change, empty when none failed.
     pub fn last_error(&self) -> Signal<String> {
         self.last_error.clone()
     }

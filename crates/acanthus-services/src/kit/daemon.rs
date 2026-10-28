@@ -7,35 +7,52 @@ use acanthus_io::{Scheduler, TimerHandle};
 
 use super::{Cmd, Exec};
 
+/// Starts the child process, given a line callback and an exit callback, and returns a guard that stops it when dropped.
 pub type DaemonSpawn = Rc<dyn Fn(Box<dyn FnMut(&str)>, Box<dyn FnOnce()>) -> Option<Box<dyn std::any::Any>>>;
 
+/// What a daemon does when its process exits unexpectedly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Restart {
+    /// Leave it stopped.
     Never,
+    /// Start it again after the delay.
     After(Duration),
 }
 
+/// Behaviour options of a daemon.
 #[derive(Debug, Clone, Copy)]
 pub struct DaemonOptions {
+    /// Restart policy.
     pub restart: Restart,
+    /// Restart the process when it has produced no line for this long.
     pub watchdog: Option<Duration>,
 }
 
+/// Description of a daemon's process and policy.
 pub struct DaemonSpec {
+    /// Name used in log messages.
     pub name: &'static str,
+    /// The command to run.
     pub cmd: Cmd,
+    /// Restart policy.
     pub restart: Restart,
+    /// Silence limit before a restart.
     pub watchdog: Option<Duration>,
+    /// Runs before every start; an error prevents the start.
     pub prepare: Option<Rc<dyn Fn() -> std::io::Result<()>>>,
 }
 
+/// Observable state of a daemon.
 #[derive(Clone)]
 pub struct DaemonState {
+    /// True while the process is alive.
     pub running: Signal<bool>,
+    /// True during the delay before a restart.
     pub restarting: Signal<bool>,
 }
 
 impl DaemonState {
+    /// State with nothing running.
     pub fn new() -> DaemonState {
         DaemonState { running: Signal::new(false), restarting: Signal::new(false) }
     }
@@ -47,6 +64,7 @@ impl Default for DaemonState {
     }
 }
 
+/// Turns a spec into a spawn function that runs it through `exec`, and its options.
 pub fn spawn_for(exec: Rc<dyn Exec>, spec: DaemonSpec) -> (DaemonSpawn, DaemonOptions) {
     let DaemonSpec { name, cmd, restart, watchdog, prepare } = spec;
     let spawn: DaemonSpawn = Rc::new(move |on_line, on_exit| {
@@ -79,8 +97,10 @@ struct DaemonInner {
     watchdog_armed: Cell<bool>,
 }
 
+/// A supervised child process whose output lines are delivered to a callback: started and stopped on demand, restarted per policy and watched for silence.
 pub struct Daemon {
     inner: Rc<DaemonInner>,
+    /// Its observable state.
     pub state: DaemonState,
 }
 
@@ -196,6 +216,7 @@ impl DaemonInner {
 }
 
 impl Daemon {
+    /// Creates a daemon running `spec` through `exec`; `on_line` receives each output line and `on_stop` runs when the daemon is stopped on purpose.
     pub fn new(
         exec: Rc<dyn Exec>,
         schedule: Scheduler,
@@ -208,6 +229,7 @@ impl Daemon {
         Daemon::with_spawn(spawn, schedule, options, state, on_line, on_stop)
     }
 
+    /// Creates a daemon from a custom spawn function.
     pub fn with_spawn(
         spawn: DaemonSpawn,
         schedule: Scheduler,
@@ -235,11 +257,13 @@ impl Daemon {
         Daemon { inner, state }
     }
 
+    /// Starts the process when `enabled` is true and stops it when false.
     pub fn set_enabled(&self, enabled: bool) {
         self.inner.wanted.set(enabled);
         self.inner.sync();
     }
 
+    /// Sets whether somebody is watching the output; the silence watchdog only runs while watched.
     pub fn set_watching(&self, watching: bool) {
         self.inner.watching.set(watching);
         self.inner.sync();
