@@ -65,3 +65,37 @@ pub struct Tokens {
     /// Radius scale.
     pub radii: RadiusTokens,
 }
+
+impl Tokens {
+    /// The spacing or radius entry named `name` (`spacing.xs` to `spacing.xl`, `radii.sm` to `radii.pill`); `None` for any other name.
+    pub fn scale(&self, name: &str) -> Option<f32> {
+        let (group, step) = name.split_once('.')?;
+        match (group, step) {
+            ("spacing", "xs") => Some(self.spacing.xs),
+            ("spacing", "sm") => Some(self.spacing.sm),
+            ("spacing", "md") => Some(self.spacing.md),
+            ("spacing", "lg") => Some(self.spacing.lg),
+            ("spacing", "xl") => Some(self.spacing.xl),
+            ("radii", "sm") => Some(self.radii.sm),
+            ("radii", "md") => Some(self.radii.md),
+            ("radii", "lg") => Some(self.radii.lg),
+            ("radii", "pill") => Some(self.radii.pill),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod scale_tests {
+    use super::*;
+
+    #[test]
+    fn scale_names_resolve_to_the_token_values() {
+        let tokens = Tokens::default();
+        assert_eq!(tokens.scale("spacing.md"), Some(12.0));
+        assert_eq!(tokens.scale("radii.pill"), Some(999.0));
+        assert_eq!(tokens.scale("radii.xl"), None);
+        assert_eq!(tokens.scale("motion.fast"), None);
+        assert_eq!(tokens.scale("spacing"), None);
+    }
+}

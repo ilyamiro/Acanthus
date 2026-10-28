@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `Tokens::scale`, `PropSpec::scaled` and `Registry::with_scales`: component props (button and dropdown radius, search field padding and gap) follow the spacing and radius scales when not given.
 - `acanthus_app::Keybindings`: key chords mapped onto `Actions` (verb, target, argument); registered with the compositor or the portal, and reachable over IPC through `serve`.
 - `acanthus_scene::{DropArea, DragSource, DragData, DragOffer, DropEvent, DropAction, DropActions}`, `Node::drop_area`, `Node::drag_source` and `Scene::{drag_enter, drag_motion, drag_leave, drag_drop, drag_cancel, drag_active}`: drag and drop inside the scene and from other applications; `acanthus_wayland::{AppHandle::start_drag, DragOutcome}` and the `wl_data_device` drop target.
 - `acanthus_wayland::{Capture, CaptureConfig, CaptureState, CaptureError}`, `App::capture` and `App::can_capture`: output capture over `ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1` with shared memory, one-shot or live up to a frame rate ceiling; `acanthus_widgets::screencopy::screencopy_view` shows the frames; `acanthus_image::MemorySlot` keeps one frame of a live source in memory.

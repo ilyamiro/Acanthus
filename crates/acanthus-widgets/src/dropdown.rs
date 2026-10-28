@@ -749,7 +749,7 @@ impl Component for DropdownComponent {
             PropSpec::number("width", || Prop::number(200.0)),
             PropSpec::number("height", || Prop::number(36.0)),
             PropSpec::number("scale", || Prop::number(1.0)),
-            PropSpec::number("radius", || Prop::number(10.0)),
+            PropSpec::scaled("radius", "radii.md", || Prop::number(10.0)),
             PropSpec::number("font_size", || Prop::number(14.0)),
             PropSpec::number("icon_size", || Prop::number(16.0)),
             PropSpec::number("overlay_width", || Prop::number(0.0)),

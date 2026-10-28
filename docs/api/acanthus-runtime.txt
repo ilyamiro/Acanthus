@@ -214,6 +214,7 @@ acanthus_runtime::Tokens.motion: MotionTokens
 acanthus_runtime::Tokens.radii: RadiusTokens
 acanthus_runtime::Tokens.spacing: SpacingTokens
 acanthus_runtime::Tokens: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_runtime::Tokens::scale: fn scale (& self , name : & str) -> Option < f32 >
 acanthus_runtime::WRITE_DEBOUNCE: const WRITE_DEBOUNCE: Duration
 acanthus_runtime::apply_templates: fn apply_templates (specs : & [TemplateSpec] , table : & ColorTable) -> Result < Vec < PathBuf > , ColorGenError >
 acanthus_runtime::clamp_border_radius: fn clamp_border_radius (radius : i64) -> i64

@@ -267,7 +267,7 @@ impl Component for IconButtonComponent {
         const PROPS: &[PropSpec] = &[
             PropSpec::number("width", || Prop::number(32.0)),
             PropSpec::number("height", || Prop::number(32.0)),
-            PropSpec::number("radius", || Prop::number(8.0)),
+            PropSpec::scaled("radius", "radii.md", || Prop::number(8.0)),
             PropSpec::text("glyph", || Prop::text("")),
             PropSpec::number("glyph_size", || Prop::number(16.0)),
             PropSpec::text("font", || Prop::text("")),

@@ -151,77 +151,108 @@ pub struct PropSpec {
     pub default: Option<fn() -> Prop>,
     /// Theme colour role a colour prop follows when it is not given.
     pub role: Option<&'static str>,
+    /// Design scale entry (`spacing.md`, `radii.lg`) a number prop follows when it is not given.
+    pub scale: Option<&'static str>,
 }
 
 impl PropSpec {
     /// An optional number prop.
     pub const fn number(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Number, default: Some(default), role: None }
+        PropSpec { name, kind: Kind::Number, default: Some(default), role: None, scale: None }
     }
 
     /// An optional text prop.
     pub const fn text(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Text, default: Some(default), role: None }
+        PropSpec { name, kind: Kind::Text, default: Some(default), role: None, scale: None }
     }
 
     /// An optional colour prop.
     pub const fn color(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Color, default: Some(default), role: None }
+        PropSpec { name, kind: Kind::Color, default: Some(default), role: None, scale: None }
     }
 
     /// An optional boolean prop.
     pub const fn bool(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Bool, default: Some(default), role: None }
+        PropSpec { name, kind: Kind::Bool, default: Some(default), role: None, scale: None }
     }
 
     /// An optional callback without arguments; it does nothing by default.
     pub const fn event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::Event, default: Some(|| Prop::Event(Rc::new(|| {}))), role: None }
+        PropSpec { name, kind: Kind::Event, default: Some(|| Prop::Event(Rc::new(|| {}))), role: None, scale: None }
     }
 
     /// An optional callback receiving a number; it does nothing by default.
     pub const fn number_event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::NumberEvent, default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))), role: None }
+        PropSpec {
+            name,
+            kind: Kind::NumberEvent,
+            default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))),
+            role: None,
+            scale: None,
+        }
     }
 
     /// An optional point prop.
     pub const fn point(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Point, default: Some(default), role: None }
+        PropSpec { name, kind: Kind::Point, default: Some(default), role: None, scale: None }
     }
 
     /// An optional index prop.
     pub const fn index(name: &'static str, default: fn() -> Prop) -> PropSpec {
-        PropSpec { name, kind: Kind::Index, default: Some(default), role: None }
+        PropSpec { name, kind: Kind::Index, default: Some(default), role: None, scale: None }
     }
 
     /// An optional list of texts; empty by default.
     pub const fn text_list(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::TextList, default: Some(|| Prop::TextList(Signal::new(Vec::new()))), role: None }
+        PropSpec {
+            name,
+            kind: Kind::TextList,
+            default: Some(|| Prop::TextList(Signal::new(Vec::new()))),
+            role: None,
+            scale: None,
+        }
     }
 
     /// An optional row of text signals; empty by default.
     pub const fn text_slots(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::TextSlots, default: Some(|| Prop::TextSlots(Vec::new())), role: None }
+        PropSpec { name, kind: Kind::TextSlots, default: Some(|| Prop::TextSlots(Vec::new())), role: None, scale: None }
     }
 
     /// An optional callback receiving an index; it does nothing by default.
     pub const fn index_event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::IndexEvent, default: Some(|| Prop::IndexEvent(Rc::new(|_| {}))), role: None }
+        PropSpec {
+            name,
+            kind: Kind::IndexEvent,
+            default: Some(|| Prop::IndexEvent(Rc::new(|_| {}))),
+            role: None,
+            scale: None,
+        }
     }
 
     /// An optional callback receiving a boolean; it does nothing by default.
     pub const fn bool_event(name: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::BoolEvent, default: Some(|| Prop::BoolEvent(Rc::new(|_| {}))), role: None }
+        PropSpec {
+            name,
+            kind: Kind::BoolEvent,
+            default: Some(|| Prop::BoolEvent(Rc::new(|_| {}))),
+            role: None,
+            scale: None,
+        }
     }
 
     /// A colour prop that follows the theme colour `role` (a palette slot or `primary`) when it is not given; without a theme in the registry it must be given.
     pub const fn themed(name: &'static str, role: &'static str) -> PropSpec {
-        PropSpec { name, kind: Kind::Color, default: None, role: Some(role) }
+        PropSpec { name, kind: Kind::Color, default: None, role: Some(role), scale: None }
+    }
+
+    /// A number prop that follows the design scale entry `scale` (`spacing.sm`, `radii.md`, ...) when it is not given, and is `fallback` when the registry has no scales.
+    pub const fn scaled(name: &'static str, scale: &'static str, fallback: fn() -> Prop) -> PropSpec {
+        PropSpec { name, kind: Kind::Number, default: Some(fallback), role: None, scale: Some(scale) }
     }
 
     /// A prop of `kind` that must be given.
     pub const fn required(name: &'static str, kind: Kind) -> PropSpec {
-        PropSpec { name, kind, default: None, role: None }
+        PropSpec { name, kind, default: None, role: None, scale: None }
     }
 }
 
@@ -514,7 +545,11 @@ fn edit_distance(a: &str, b: &str) -> usize {
 pub struct Registry {
     components: HashMap<&'static str, Rc<dyn Component>>,
     colors: Option<ColorSource>,
+    scales: Option<ScaleSource>,
 }
+
+/// Looks up a design scale entry such as `spacing.md` or `radii.lg`, in logical pixels.
+pub type ScaleSource = Rc<dyn Fn(&str) -> Option<f32>>;
 
 /// Looks up the colour signal of a theme role such as `primary` or `surface0`.
 pub type ColorSource = Rc<dyn Fn(&str) -> Option<Signal<Color>>>;
@@ -528,6 +563,12 @@ impl Registry {
     /// Supplies the colours that themed props follow when they are not given.
     pub fn with_colors(mut self, colors: impl Fn(&str) -> Option<Signal<Color>> + 'static) -> Registry {
         self.colors = Some(Rc::new(colors));
+        self
+    }
+
+    /// Supplies the spacing and radius values that scaled props follow when they are not given.
+    pub fn with_scales(mut self, scales: impl Fn(&str) -> Option<f32> + 'static) -> Registry {
+        self.scales = Some(Rc::new(scales));
         self
     }
 
@@ -582,6 +623,11 @@ impl Registry {
                 let themed = spec.role.zip(self.colors.as_ref()).and_then(|(role, colors)| colors(role));
                 if let Some(signal) = themed {
                     values.insert(spec.name, Prop::Color(signal));
+                    continue;
+                }
+                let scaled = spec.scale.zip(self.scales.as_ref()).and_then(|(scale, scales)| scales(scale));
+                if let Some(value) = scaled {
+                    values.insert(spec.name, Prop::number(value));
                     continue;
                 }
                 let Some(default) = spec.default else {
@@ -678,6 +724,33 @@ mod tests {
         assert_eq!(err, BuildError::Missing { component: "Swatch", name: "fill" });
         let err = r.resolve("Swatch", vec![fill(), fill()]).err().unwrap();
         assert_eq!(err.to_string(), "`Swatch.fill` is given twice");
+    }
+
+    #[test]
+    fn scaled_props_follow_the_scales_and_fall_back_without_them() {
+        struct Card;
+        impl Component for Card {
+            fn name(&self) -> &'static str {
+                "Card"
+            }
+            fn props(&self) -> &'static [PropSpec] {
+                const PROPS: &[PropSpec] = &[PropSpec::scaled("radius", "radii.md", || Prop::number(5.0))];
+                PROPS
+            }
+            fn build(&self, scene: &mut Scene, parent: NodeId, _: &Props) -> NodeId {
+                scene.add(parent, Node::rect())
+            }
+        }
+        let radius = |registry: &Registry, given: Vec<(String, Prop)>| {
+            registry.resolve("Card", given).ok().map(|(_, props)| props.number("radius").get_untracked())
+        };
+        let mut plain = Registry::new();
+        plain.register(Card);
+        assert_eq!(radius(&plain, vec![]), Some(5.0));
+        let mut scaled = Registry::new().with_scales(|name| (name == "radii.md").then_some(9.0));
+        scaled.register(Card);
+        assert_eq!(radius(&scaled, vec![]), Some(9.0));
+        assert_eq!(radius(&scaled, vec![("radius".to_owned(), Prop::number(2.0))]), Some(2.0));
     }
 
     #[test]

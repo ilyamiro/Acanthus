@@ -83,6 +83,7 @@ acanthus_widgets::component::PropSpec.default: Option < fn () -> Prop >
 acanthus_widgets::component::PropSpec.kind: Kind
 acanthus_widgets::component::PropSpec.name: & 'static str
 acanthus_widgets::component::PropSpec.role: Option < & 'static str >
+acanthus_widgets::component::PropSpec.scale: Option < & 'static str >
 acanthus_widgets::component::PropSpec: struct
 acanthus_widgets::component::PropSpec::bool: const fn bool (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::bool_event: const fn bool_event (name : & 'static str) -> PropSpec
@@ -94,6 +95,7 @@ acanthus_widgets::component::PropSpec::number: const fn number (name : & 'static
 acanthus_widgets::component::PropSpec::number_event: const fn number_event (name : & 'static str) -> PropSpec
 acanthus_widgets::component::PropSpec::point: const fn point (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::required: const fn required (name : & 'static str , kind : Kind) -> PropSpec
+acanthus_widgets::component::PropSpec::scaled: const fn scaled (name : & 'static str , scale : & 'static str , fallback : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::text: const fn text (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::text_list: const fn text_list (name : & 'static str) -> PropSpec
 acanthus_widgets::component::PropSpec::text_slots: const fn text_slots (name : & 'static str) -> PropSpec
@@ -121,6 +123,8 @@ acanthus_widgets::component::Registry::new: fn new () -> Registry
 acanthus_widgets::component::Registry::register: fn register (& mut self , component : impl Component + 'static)
 acanthus_widgets::component::Registry::resolve: fn resolve (& self , name : & str , given : Vec < (String , Prop) >) -> Result < (Rc < dyn Component > , Props) , BuildError >
 acanthus_widgets::component::Registry::with_colors: fn with_colors (mut self , colors : impl Fn (& str) -> Option < Signal < Color > > + 'static) -> Registry
+acanthus_widgets::component::Registry::with_scales: fn with_scales (mut self , scales : impl Fn (& str) -> Option < f32 > + 'static) -> Registry
+acanthus_widgets::component::ScaleSource: type ScaleSource = Rc < dyn Fn (& str) -> Option < f32 > >
 acanthus_widgets::component::nearest: fn nearest < 'a > (word : & str , candidates : impl IntoIterator < Item = & 'a str >) -> Option < & 'a str >
 acanthus_widgets::dropdown::CLICK_SOUND: const CLICK_SOUND: & str
 acanthus_widgets::dropdown::DropdownComponent: struct
