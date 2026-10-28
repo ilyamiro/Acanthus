@@ -115,7 +115,7 @@ impl GlyphAtlas {
     fn new_page(&self, device: &wgpu::Device, color: bool) -> Page {
         let format = if color { wgpu::TextureFormat::Rgba8Unorm } else { wgpu::TextureFormat::R8Unorm };
         let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("serp glyph page"),
+            label: Some("acanthus glyph page"),
             size: wgpu::Extent3d { width: PAGE_SIZE, height: PAGE_SIZE, depth_or_array_layers: 1 },
             mip_level_count: 1,
             sample_count: 1,
@@ -126,7 +126,7 @@ impl GlyphAtlas {
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("serp glyph page"),
+            label: Some("acanthus glyph page"),
             layout: &self.layout,
             entries: &[wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&view) }],
         });

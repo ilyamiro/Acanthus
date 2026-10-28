@@ -13,7 +13,7 @@ pub struct GpuImages {
 impl GpuImages {
     pub fn new(device: &wgpu::Device, store: ImageStore) -> Self {
         let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("serp image"),
+            label: Some("acanthus image"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -41,7 +41,7 @@ impl GpuImages {
         });
         let sampler = |mode| {
             device.create_sampler(&wgpu::SamplerDescriptor {
-                label: Some("serp image"),
+                label: Some("acanthus image"),
                 address_mode_u: mode,
                 address_mode_v: mode,
                 address_mode_w: mode,
@@ -70,7 +70,7 @@ impl GpuImages {
 
     pub fn bind_view(&self, device: &wgpu::Device, view: &wgpu::TextureView) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("serp layer"),
+            label: Some("acanthus layer"),
             layout: &self.layout,
             entries: &[
                 wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(view) },
@@ -100,7 +100,7 @@ impl GpuImages {
             let decoded = self.store.get(id)?;
             let size = wgpu::Extent3d { width: decoded.width, height: decoded.height, depth_or_array_layers: 1 };
             let texture = device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("serp image"),
+                label: Some("acanthus image"),
                 size,
                 mip_level_count: 1,
                 sample_count: 1,
@@ -126,7 +126,7 @@ impl GpuImages {
             );
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("serp image"),
+                label: Some("acanthus image"),
                 layout: &self.layout,
                 entries: &[
                     wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&view) },

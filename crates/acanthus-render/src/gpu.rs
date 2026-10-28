@@ -4,25 +4,35 @@ use acanthus_scene::ImageStore;
 
 use crate::renderer::GpuContext;
 
+/// Why the GPU could not be set up.
 #[derive(Debug, thiserror::Error)]
 pub enum GpuError {
+    /// No adapter satisfies the request.
     #[error("no compatible GPU adapter: {0}")]
     Adapter(#[from] wgpu::RequestAdapterError),
+    /// The device could not be opened.
     #[error("failed to open GPU device: {0}")]
     Device(#[from] wgpu::RequestDeviceError),
+    /// The window surface could not be created.
     #[error("failed to create surface: {0}")]
     Surface(#[from] wgpu::CreateSurfaceError),
 }
 
+/// The GPU connection of a process: instance, adapter, device and queue, plus the render contexts shared between renderers.
 pub struct Gpu {
+    /// The wgpu instance.
     pub instance: wgpu::Instance,
+    /// The selected adapter.
     pub adapter: wgpu::Adapter,
+    /// The opened device.
     pub device: wgpu::Device,
+    /// The command queue.
     pub queue: wgpu::Queue,
     contexts: RefCell<Vec<GpuContext>>,
 }
 
 impl Gpu {
+    /// Creates an instance on Vulkan, or on the backends named by `WGPU_BACKEND`.
     pub fn instance() -> wgpu::Instance {
         let mut desc = wgpu::InstanceDescriptor::new_without_display_handle_from_env();
         if std::env::var_os("WGPU_BACKEND").is_none() {
@@ -31,6 +41,7 @@ impl Gpu {
         wgpu::Instance::new(desc)
     }
 
+    /// Picks a low-power adapter compatible with `surface` when one is given and opens a device on it.
     pub async fn new(instance: wgpu::Instance, surface: Option<&wgpu::Surface<'_>>) -> Result<Self, GpuError> {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -43,7 +54,7 @@ impl Gpu {
         tracing::info!(name = %info.name, backend = ?info.backend, "selected GPU adapter");
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
-                label: Some("serp device"),
+                label: Some("acanthus device"),
                 required_limits: wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
                 ..Default::default()
             })
@@ -51,6 +62,7 @@ impl Gpu {
         Ok(Gpu { instance, adapter, device, queue, contexts: RefCell::new(Vec::new()) })
     }
 
+    /// The shared render context for `format` and `images`, created on first use and reused by later renderers.
     pub fn context(&self, format: wgpu::TextureFormat, images: &ImageStore) -> GpuContext {
         let mut contexts = self.contexts.borrow_mut();
         if let Some(found) = contexts.iter().find(|c| c.matches(format, images)) {
@@ -61,6 +73,7 @@ impl Gpu {
         context
     }
 
+    /// A surface configuration of the given size, preferring an 8-bit RGBA or BGRA format and premultiplied alpha when the compositor supports it.
     pub fn surface_config(&self, surface: &wgpu::Surface<'_>, width: u32, height: u32) -> wgpu::SurfaceConfiguration {
         let caps = surface.get_capabilities(&self.adapter);
         let format = caps

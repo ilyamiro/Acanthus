@@ -1,3 +1,5 @@
+//! GPU renderer for scene display lists: wgpu setup, glyph atlas, image textures, layer compositing and shader effects.
+
 #![deny(missing_docs)]
 
 mod atlas;

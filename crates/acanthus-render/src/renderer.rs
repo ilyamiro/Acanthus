@@ -220,13 +220,13 @@ impl UniformRing {
         item: u64,
     ) -> (wgpu::Buffer, wgpu::BindGroup) {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("serp globals"),
+            label: Some("acanthus globals"),
             size: align * capacity,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("serp globals"),
+            label: Some("acanthus globals"),
             layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
@@ -272,13 +272,13 @@ impl DataBuffer {
         capacity: usize,
     ) -> (wgpu::Buffer, wgpu::BindGroup) {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("serp effect data"),
+            label: Some("acanthus effect data"),
             size: (capacity * 16) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("serp effect data"),
+            label: Some("acanthus effect data"),
             layout,
             entries: &[wgpu::BindGroupEntry { binding: 0, resource: buffer.as_entire_binding() }],
         });
@@ -346,20 +346,24 @@ pub(crate) struct Shared {
     atlas: GlyphAtlas,
 }
 
+/// Pipelines, glyph atlas and image textures shared by renderers that draw to the same texture format with the same image store. Cloning shares them.
 #[derive(Clone)]
 pub struct GpuContext(Rc<RefCell<Shared>>);
 
 impl GpuContext {
+    /// Builds the pipelines for `format` on `device`, with images resolved through `images`.
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat, images: ImageStore) -> Self {
         GpuContext(Rc::new(RefCell::new(Shared::new(device, format, images))))
     }
 
+    /// True when the context was built for this `format` and this image store.
     pub fn matches(&self, format: wgpu::TextureFormat, images: &ImageStore) -> bool {
         let shared = self.0.borrow();
         shared.format == format && shared.images.store().ptr_eq(images)
     }
 }
 
+/// Draws display lists of a [`Scene`](acanthus_scene::Scene) to a texture, caching unchanged layers between frames.
 pub struct Renderer {
     ctx: GpuContext,
     fonts: Fonts,
@@ -388,7 +392,7 @@ impl Shared {
     fn new(device: &wgpu::Device, format: wgpu::TextureFormat, images: ImageStore) -> Self {
         let images = GpuImages::new(device, images);
         let globals_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("serp globals"),
+            label: Some("acanthus globals"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
@@ -401,7 +405,7 @@ impl Shared {
             }],
         });
         let blur_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("serp blur"),
+            label: Some("acanthus blur"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -414,7 +418,7 @@ impl Shared {
             }],
         });
         let atlas_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("serp glyph atlas"),
+            label: Some("acanthus glyph atlas"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -428,12 +432,12 @@ impl Shared {
         });
 
         let quad_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("serp quad"),
+            label: Some("acanthus quad"),
             bind_group_layouts: &[Some(&globals_layout)],
             immediate_size: 0,
         });
         let data_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("serp effect data"),
+            label: Some("acanthus effect data"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -446,7 +450,7 @@ impl Shared {
             }],
         });
         let effect_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("serp effect"),
+            label: Some("acanthus effect"),
             bind_group_layouts: &[
                 Some(&globals_layout),
                 Some(images.layout()),
@@ -457,24 +461,24 @@ impl Shared {
         });
         let blank = make_layer(device, format, &images, (1, 1));
         let glyph_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("serp glyph"),
+            label: Some("acanthus glyph"),
             bind_group_layouts: &[Some(&globals_layout), Some(&atlas_layout)],
             immediate_size: 0,
         });
 
         let image_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("serp image"),
+            label: Some("acanthus image"),
             bind_group_layouts: &[Some(&globals_layout), Some(images.layout())],
             immediate_size: 0,
         });
-        let image_shader = shader(device, "serp image", include_str!("shaders/image.wgsl"));
+        let image_shader = shader(device, "acanthus image", include_str!("shaders/image.wgsl"));
         let image_attrs = wgpu::vertex_attr_array![
             0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4,
             5 => Float32x4, 6 => Float32x4, 7 => Float32x4, 8 => Float32x4
         ];
         let image_pipeline = pipeline(
             device,
-            "serp image",
+            "acanthus image",
             &image_layout,
             &image_shader,
             format,
@@ -486,16 +490,16 @@ impl Shared {
         );
 
         let blur_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("serp blur"),
+            label: Some("acanthus blur"),
             bind_group_layouts: &[Some(&blur_layout), Some(images.layout())],
             immediate_size: 0,
         });
         let blur_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("serp blur"),
+            label: Some("acanthus blur"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/blur.wgsl").into()),
         });
         let blur_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("serp blur"),
+            label: Some("acanthus blur"),
             layout: Some(&blur_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &blur_module,
@@ -517,16 +521,16 @@ impl Shared {
         });
 
         let adjust_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("serp adjust"),
+            label: Some("acanthus adjust"),
             bind_group_layouts: &[Some(&blur_layout), Some(images.layout()), Some(images.layout())],
             immediate_size: 0,
         });
         let adjust_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("serp adjust"),
+            label: Some("acanthus adjust"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/adjust.wgsl").into()),
         });
         let adjust_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("serp adjust"),
+            label: Some("acanthus adjust"),
             layout: Some(&adjust_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &adjust_module,
@@ -547,8 +551,8 @@ impl Shared {
             cache: None,
         });
 
-        let quad_shader = shader(device, "serp quad", include_str!("shaders/quad.wgsl"));
-        let glyph_shader = shader(device, "serp glyph", include_str!("shaders/glyph.wgsl"));
+        let quad_shader = shader(device, "acanthus quad", include_str!("shaders/quad.wgsl"));
+        let glyph_shader = shader(device, "acanthus glyph", include_str!("shaders/glyph.wgsl"));
 
         let quad_attrs = wgpu::vertex_attr_array![
             0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4, 5 => Float32x4,
@@ -561,7 +565,7 @@ impl Shared {
 
         let quad_pipeline = pipeline(
             device,
-            "serp quad",
+            "acanthus quad",
             &quad_layout,
             &quad_shader,
             format,
@@ -599,7 +603,7 @@ impl Shared {
             .collect();
         let glyph_pipeline = pipeline(
             device,
-            "serp glyph",
+            "acanthus glyph",
             &glyph_layout,
             &glyph_shader,
             format,
@@ -629,10 +633,12 @@ impl Shared {
 }
 
 impl Renderer {
+    /// Creates a renderer with a context of its own.
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat, fonts: Fonts, images: ImageStore) -> Self {
         Renderer::with_context(device, GpuContext::new(device, format, images), fonts)
     }
 
+    /// Creates a renderer on a shared context, so several surfaces share one atlas and one set of pipelines.
     pub fn with_context(device: &wgpu::Device, ctx: GpuContext, fonts: Fonts) -> Self {
         let (globals_layout, blur_layout, data_layout, generation) = {
             let shared = ctx.0.borrow();
@@ -654,13 +660,13 @@ impl Renderer {
             spare: Vec::new(),
             cache: HashMap::new(),
             reused: 0,
-            effect_buffer: InstanceBuffer::new(device, std::mem::size_of::<EffectInstance>(), "serp effects"),
+            effect_buffer: InstanceBuffer::new(device, std::mem::size_of::<EffectInstance>(), "acanthus effects"),
             effect_instances: Vec::new(),
             effect_data: Vec::new(),
             data_buffer: DataBuffer::new(device, data_layout),
-            quad_buffer: InstanceBuffer::new(device, std::mem::size_of::<QuadInstance>(), "serp quads"),
-            glyph_buffer: InstanceBuffer::new(device, std::mem::size_of::<GlyphInstance>(), "serp glyphs"),
-            image_buffer: InstanceBuffer::new(device, std::mem::size_of::<ImageInstance>(), "serp images"),
+            quad_buffer: InstanceBuffer::new(device, std::mem::size_of::<QuadInstance>(), "acanthus quads"),
+            glyph_buffer: InstanceBuffer::new(device, std::mem::size_of::<GlyphInstance>(), "acanthus glyphs"),
+            image_buffer: InstanceBuffer::new(device, std::mem::size_of::<ImageInstance>(), "acanthus images"),
             image_instances: Vec::new(),
             quads: Vec::new(),
             glyphs: Vec::new(),
@@ -668,6 +674,7 @@ impl Renderer {
         }
     }
 
+    /// Renders `primitives` into `target` of `size` pixels after clearing it to `clear`, and submits the commands.
     pub fn render(
         &mut self,
         device: &wgpu::Device,
@@ -719,7 +726,8 @@ impl Renderer {
         self.glyph_buffer.upload(device, queue, bytemuck::cast_slice(&self.glyphs));
         self.image_buffer.upload(device, queue, bytemuck::cast_slice(&self.image_instances));
 
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("serp frame") });
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("acanthus frame") });
         for index in (0..self.segments.len()).rev() {
             if self.segments[index].cached {
                 continue;
@@ -794,6 +802,7 @@ impl Renderer {
         self.store_cache();
     }
 
+    /// The number of layers the last frame reused from the cache.
     pub fn reused_layers(&self) -> usize {
         self.reused
     }
@@ -1130,30 +1139,36 @@ fn quad_instance(q: &Quad) -> QuadInstance {
 
 fn effect_source(effect: ShaderEffect) -> (&'static str, &'static str) {
     match effect {
-        ShaderEffect::GridPattern => ("serp grid pattern", include_str!("shaders/effects/grid_pattern.wgsl")),
-        ShaderEffect::DashedEllipse => ("serp dashed ellipse", include_str!("shaders/effects/dashed_ellipse.wgsl")),
-        ShaderEffect::Vignette => ("serp vignette", include_str!("shaders/effects/vignette.wgsl")),
-        ShaderEffect::CornerCutout => ("serp corner cutout", include_str!("shaders/effects/corner_cutout.wgsl")),
-        ShaderEffect::RoundedMask => ("serp rounded mask", include_str!("shaders/effects/rounded_mask.wgsl")),
-        ShaderEffect::MarqueeScroll => ("serp marquee scroll", include_str!("shaders/effects/marquee_scroll.wgsl")),
-        ShaderEffect::WallpaperBlend => ("serp wallpaper blend", include_str!("shaders/effects/wallpaper_blend.wgsl")),
-        ShaderEffect::Ghost => ("serp ghost", include_str!("shaders/effects/ghost.wgsl")),
-        ShaderEffect::BorderCharge => ("serp border_charge", include_str!("shaders/effects/border_charge.wgsl")),
-        ShaderEffect::WidgetOutline => ("serp widget_outline", include_str!("shaders/effects/widget_outline.wgsl")),
-        ShaderEffect::SeekbarWave => ("serp seekbar_wave", include_str!("shaders/effects/seekbar_wave.wgsl")),
-        ShaderEffect::CurtainWipe => ("serp curtain_wipe", include_str!("shaders/effects/curtain_wipe.wgsl")),
-        ShaderEffect::ScreenWipe => ("serp screen_wipe", include_str!("shaders/effects/screen_wipe.wgsl")),
-        ShaderEffect::FluidWave => ("serp fluid_wave", include_str!("shaders/effects/fluid_wave.wgsl")),
+        ShaderEffect::GridPattern => ("acanthus grid pattern", include_str!("shaders/effects/grid_pattern.wgsl")),
+        ShaderEffect::DashedEllipse => ("acanthus dashed ellipse", include_str!("shaders/effects/dashed_ellipse.wgsl")),
+        ShaderEffect::Vignette => ("acanthus vignette", include_str!("shaders/effects/vignette.wgsl")),
+        ShaderEffect::CornerCutout => ("acanthus corner cutout", include_str!("shaders/effects/corner_cutout.wgsl")),
+        ShaderEffect::RoundedMask => ("acanthus rounded mask", include_str!("shaders/effects/rounded_mask.wgsl")),
+        ShaderEffect::MarqueeScroll => ("acanthus marquee scroll", include_str!("shaders/effects/marquee_scroll.wgsl")),
+        ShaderEffect::WallpaperBlend => {
+            ("acanthus wallpaper blend", include_str!("shaders/effects/wallpaper_blend.wgsl"))
+        }
+        ShaderEffect::Ghost => ("acanthus ghost", include_str!("shaders/effects/ghost.wgsl")),
+        ShaderEffect::BorderCharge => ("acanthus border_charge", include_str!("shaders/effects/border_charge.wgsl")),
+        ShaderEffect::WidgetOutline => ("acanthus widget_outline", include_str!("shaders/effects/widget_outline.wgsl")),
+        ShaderEffect::SeekbarWave => ("acanthus seekbar_wave", include_str!("shaders/effects/seekbar_wave.wgsl")),
+        ShaderEffect::CurtainWipe => ("acanthus curtain_wipe", include_str!("shaders/effects/curtain_wipe.wgsl")),
+        ShaderEffect::ScreenWipe => ("acanthus screen_wipe", include_str!("shaders/effects/screen_wipe.wgsl")),
+        ShaderEffect::FluidWave => ("acanthus fluid_wave", include_str!("shaders/effects/fluid_wave.wgsl")),
         ShaderEffect::CircularWaveGauge => {
-            ("serp circular_wave_gauge", include_str!("shaders/effects/circular_wave_gauge.wgsl"))
+            ("acanthus circular_wave_gauge", include_str!("shaders/effects/circular_wave_gauge.wgsl"))
         }
         ShaderEffect::CircularWaveGaugeSmooth => {
-            ("serp circular_wave_gauge_smooth", include_str!("shaders/effects/circular_wave_gauge_smooth.wgsl"))
+            ("acanthus circular_wave_gauge_smooth", include_str!("shaders/effects/circular_wave_gauge_smooth.wgsl"))
         }
-        ShaderEffect::VisualizerBars => ("serp visualizer_bars", include_str!("shaders/effects/visualizer_bars.wgsl")),
-        ShaderEffect::VisualizerWave => ("serp visualizer_wave", include_str!("shaders/effects/visualizer_wave.wgsl")),
+        ShaderEffect::VisualizerBars => {
+            ("acanthus visualizer_bars", include_str!("shaders/effects/visualizer_bars.wgsl"))
+        }
+        ShaderEffect::VisualizerWave => {
+            ("acanthus visualizer_wave", include_str!("shaders/effects/visualizer_wave.wgsl"))
+        }
         ShaderEffect::VisualizerRingWave => {
-            ("serp visualizer_ring_wave", include_str!("shaders/effects/visualizer_ring_wave.wgsl"))
+            ("acanthus visualizer_ring_wave", include_str!("shaders/effects/visualizer_ring_wave.wgsl"))
         }
         ShaderEffect::App(_) => ("", ""),
     }
@@ -1166,7 +1181,7 @@ fn make_layer(
     size: (u32, u32),
 ) -> LayerTexture {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("serp layer"),
+        label: Some("acanthus layer"),
         size: wgpu::Extent3d { width: size.0, height: size.1, depth_or_array_layers: 1 },
         mip_level_count: 1,
         sample_count: 1,
@@ -1226,7 +1241,7 @@ fn begin_pass<'a>(
 ) -> wgpu::RenderPass<'a> {
     let [r, g, b, a] = clear.premultiplied();
     encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("serp frame"),
+        label: Some("acanthus frame"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view,
             depth_slice: None,
