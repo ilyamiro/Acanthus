@@ -13,16 +13,23 @@ pub use {
     tone_delta_pair::ToneDeltaPair, tone_delta_pair::TonePolarity, variant::Variant,
 };
 
+/// Contrast curves interpolated by contrast level.
 pub mod contrast_curve;
+/// Scheme that resolves dynamic colours.
 pub mod dynamic_scheme;
+/// The Material 3 colour roles.
 pub mod material_dynamic_colors;
+/// Tone separation constraints between two colours.
 pub mod tone_delta_pair;
+/// Scheme variants.
 pub mod variant;
 
 type DynamicSchemeFn<T> = fn(&DynamicScheme) -> T;
 type DynamicSchemeFnRef<T> = fn(&DynamicScheme) -> &T;
 
+/// A colour role defined as a function of a [`DynamicScheme`].
 pub struct DynamicColor {
+    /// Name of the role.
     pub name: String,
     palette: Box<DynamicSchemeFnRef<TonalPalette>>,
     tone: Box<fn(&DynamicScheme) -> f64>,
@@ -35,6 +42,7 @@ pub struct DynamicColor {
 }
 
 impl DynamicColor {
+    /// Creates a role from its palette, tone and optional background, contrast curve and tone-delta pair.
     pub fn new<T: Into<String>>(
         name: T,
         palette: fn(&DynamicScheme) -> &TonalPalette,
@@ -58,10 +66,12 @@ impl DynamicColor {
         }
     }
 
+    /// ARGB of the role in `scheme`.
     pub fn get_argb(&mut self, scheme: &DynamicScheme) -> Argb {
         self.get_hct(scheme).into()
     }
 
+    /// HCT of the role in `scheme`, cached per scheme.
     pub fn get_hct(&mut self, scheme: &DynamicScheme) -> Hct {
         if let Some(cached_answer) = self._hct_cache.get(scheme) {
             return *cached_answer;
@@ -78,6 +88,7 @@ impl DynamicColor {
         answer
     }
 
+    /// Tone of the role in `scheme` after contrast and tone-delta adjustments.
     pub fn get_tone(&self, scheme: &DynamicScheme) -> f64 {
         let decreasing_contrast = scheme.contrast_level < 0.0;
 
@@ -231,6 +242,7 @@ impl DynamicColor {
         }
     }
 
+    /// Tone of a foreground that reaches `ratio` against `bg_tone`, preferring the lighter side when neither works.
     pub fn foreground_tone(bg_tone: f64, ratio: f64) -> f64 {
         let lighter_tone = lighter_unsafe(bg_tone, ratio);
         let darker_tone = darker_unsafe(bg_tone, ratio);
@@ -254,6 +266,7 @@ impl DynamicColor {
         }
     }
 
+    /// Raises tones 50 to 59 to 60 so light foregrounds stay legible; other tones are unchanged.
     pub fn enable_light_foreground(tone: f64) -> f64 {
         if Self::tone_prefers_light_foreground(tone) && !Self::tone_allows_light_foreground(tone) {
             return 49.0;
@@ -262,10 +275,12 @@ impl DynamicColor {
         tone
     }
 
+    /// Whether a light foreground is preferred on `tone` (rounded tone below 60).
     pub fn tone_prefers_light_foreground(tone: f64) -> bool {
         tone.round() < 60.0
     }
 
+    /// Whether a light foreground still reaches contrast on `tone` (rounded tone of at most 49 or at least 60).
     pub fn tone_allows_light_foreground(tone: f64) -> bool {
         tone.round() <= 49.0
     }

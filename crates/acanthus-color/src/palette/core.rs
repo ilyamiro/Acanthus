@@ -2,19 +2,28 @@ use super::TonalPalette;
 use crate::{color::Argb, hct::Cam16};
 use core::fmt;
 
+/// The six tonal palettes of a legacy Material 3 scheme.
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct CorePalette {
+    /// Primary accent palette.
     pub primary: TonalPalette,
+    /// Secondary accent palette.
     pub secondary: TonalPalette,
+    /// Tertiary accent palette.
     pub tertiary: TonalPalette,
+    /// Neutral palette.
     pub neutral: TonalPalette,
+    /// Neutral variant palette.
     pub neutral_variant: TonalPalette,
+    /// Error palette.
     pub error: TonalPalette,
 }
 
 impl CorePalette {
+    /// Number of accent palettes derived from a source colour.
     pub const SIZE: usize = 5;
 
+    /// Builds the palettes from explicit hue and chroma values.
     pub fn new(
         primary: TonalPalette,
         secondary: TonalPalette,
@@ -33,6 +42,7 @@ impl CorePalette {
         }
     }
 
+    /// Palettes for the standard scheme derived from `argb`.
     pub fn of(argb: Argb) -> Self {
         let cam = Cam16::from(argb);
 
@@ -50,6 +60,7 @@ impl CorePalette {
         )
     }
 
+    /// Palettes for the content scheme derived from `argb`, keeping the source chroma.
     pub fn content_of(argb: Argb) -> Self {
         let cam = Cam16::from(argb);
 

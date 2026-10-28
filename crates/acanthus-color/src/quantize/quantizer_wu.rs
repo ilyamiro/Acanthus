@@ -12,6 +12,7 @@ const BITS_TO_REMOVE: u8 = 8 - INDEX_BITS;
 const SIDE_LENGTH: usize = (1 << INDEX_BITS) + 1;
 const TOTAL_SIZE: usize = SIDE_LENGTH.pow(3);
 
+/// Wu quantizer: repeatedly splits the RGB histogram box with the largest variance.
 pub struct QuantizerWu {
     weights: Vec<i64>,
     moments_r: Vec<i64>,
@@ -53,6 +54,7 @@ impl Quantizer for QuantizerWu {
 }
 
 impl QuantizerWu {
+    /// Flat histogram index of the bin `(r, g, b)`.
     pub fn get_index<T: Into<usize>>(r: T, g: T, b: T) -> usize {
         let r: usize = r.into();
         let g: usize = g.into();
@@ -61,6 +63,7 @@ impl QuantizerWu {
         (r << (INDEX_BITS * 2)) + (r << (INDEX_BITS + 1)) + (g << INDEX_BITS) + r + g + b
     }
 
+    /// Fills the histogram and moment tables from pixel populations.
     pub fn construct_histogram(&mut self, pixels: IndexMap<Argb, u32>) {
         for (pixel, count) in pixels {
             let red = pixel.red;
@@ -87,6 +90,7 @@ impl QuantizerWu {
         }
     }
 
+    /// Turns the histogram into cumulative moment tables.
     pub fn compute_moments(&mut self) {
         for r in 1..SIDE_LENGTH {
             let mut area = [0; SIDE_LENGTH];
@@ -129,6 +133,7 @@ impl QuantizerWu {
         }
     }
 
+    /// Splits boxes until `max_color_count` boxes exist or no split helps.
     pub fn create_boxes(&mut self, max_color_count: usize) -> CreateBoxesResult {
         self.cubes[0] = Cube {
             pixels: [Rgb::default(), Rgb::new(SIDE_LENGTH as u8 - 1, SIDE_LENGTH as u8 - 1, SIDE_LENGTH as u8 - 1)],
@@ -178,6 +183,7 @@ impl QuantizerWu {
         CreateBoxesResult { requested_count: max_color_count, result_count: generated_color_count }
     }
 
+    /// Average colour and population of the first `color_count` boxes.
     pub fn create_result(&self, color_count: usize) -> IndexMap<Argb, u32> {
         let mut result = IndexMap::default();
 
@@ -199,6 +205,7 @@ impl QuantizerWu {
         result
     }
 
+    /// Variance of the colours inside `cube`.
     pub fn variance(&self, cube: &Cube) -> f64 {
         let dr = Self::volume(cube, &self.moments_r) as f64;
         let dg = Self::volume(cube, &self.moments_g) as f64;
@@ -219,6 +226,7 @@ impl QuantizerWu {
         xx - (hypotenuse / volume)
     }
 
+    /// Splits box `i` into `i` and `next`; false when no useful cut exists.
     pub fn cut(&mut self, next: usize, i: usize) -> bool {
         let (mut one, mut two) = (self.cubes[next].clone(), self.cubes[i].clone());
 
@@ -314,6 +322,7 @@ impl QuantizerWu {
         true
     }
 
+    /// Best cut position of `cube` along `direction` between `first` and `last`, given the totals of the whole box.
     pub fn maximize(
         &self,
         cube: &Cube,
@@ -369,6 +378,7 @@ impl QuantizerWu {
         MaximizeResult { cut_location: cut, maximum: max }
     }
 
+    /// Sum of `moment` over `cube`.
     pub fn volume(cube: &Cube, moment: &[i64]) -> i64 {
         moment[Self::get_index::<u8>(cube.r(1), cube.g(1), cube.b(1))]
             - moment[Self::get_index::<u8>(cube.r(1), cube.g(1), cube.b(0))]
@@ -380,6 +390,7 @@ impl QuantizerWu {
             - moment[Self::get_index::<u8>(cube.r(0), cube.g(0), cube.b(0))]
     }
 
+    /// Part of the sum of `moment` that lies below the lower face of `cube` along `direction`.
     pub fn bottom(cube: &Cube, direction: &Direction, moment: &[i64]) -> i64 {
         match direction {
             Direction::Red => {
@@ -403,6 +414,7 @@ impl QuantizerWu {
         }
     }
 
+    /// Part of the sum of `moment` up to `position` along `direction`.
     pub fn top(cube: &Cube, direction: &Direction, position: i32, moment: &[i64]) -> i64 {
         match direction {
             Direction::Red => {
@@ -427,38 +439,54 @@ impl QuantizerWu {
     }
 }
 
+/// Axis of the RGB cube.
 pub enum Direction {
+    /// The red axis.
     Red,
+    /// The green axis.
     Green,
+    /// The blue axis.
     Blue,
 }
 
+/// Best cut found along one axis.
 #[derive(Debug)]
 pub struct MaximizeResult {
+    /// Position of the cut.
     pub cut_location: i32,
+    /// Variance gain of the cut.
     pub maximum: f64,
 }
 
+/// Outcome of box creation.
 pub struct CreateBoxesResult {
+    /// Number of boxes requested.
     pub requested_count: usize,
+    /// Number of boxes created.
     pub result_count: usize,
 }
 
+/// A box in the RGB histogram.
 #[derive(Debug, Clone)]
 pub struct Cube {
+    /// Lower and upper corner of the box.
     pub pixels: [Rgb; 2],
+    /// Volume of the box.
     pub vol: i32,
 }
 
 impl Cube {
+    /// Red coordinate of corner `pixel`.
     pub fn r<T: From<u8>>(&self, pixel: usize) -> T {
         self.pixels[pixel].red.into()
     }
 
+    /// Green coordinate of corner `pixel`.
     pub fn g<T: From<u8>>(&self, pixel: usize) -> T {
         self.pixels[pixel].green.into()
     }
 
+    /// Blue coordinate of corner `pixel`.
     pub fn b<T: From<u8>>(&self, pixel: usize) -> T {
         self.pixels[pixel].blue.into()
     }

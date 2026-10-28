@@ -1,6 +1,7 @@
 use super::{Quantizer, QuantizerResult};
 use crate::{IndexMap, color::Argb};
 
+/// Counts every distinct colour exactly, without reducing the palette.
 #[derive(Default)]
 pub struct QuantizerMap;
 

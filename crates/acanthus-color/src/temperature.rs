@@ -6,6 +6,7 @@ use crate::{
 };
 use core::cmp::Ordering;
 
+/// Warm and cool relationships of a colour, cached per input.
 pub struct TemperatureCache {
     input: Hct,
 
@@ -17,18 +18,21 @@ pub struct TemperatureCache {
 }
 
 impl TemperatureCache {
+    /// Warmest colour among the hues at the input chroma and tone.
     pub fn warmest(&mut self) -> Hct {
         let hcts = self.hcts_by_temp();
 
         *hcts.last().unwrap()
     }
 
+    /// Coldest colour among the hues at the input chroma and tone.
     pub fn coldest(&mut self) -> Hct {
         let hcts = self.hcts_by_temp();
 
         *hcts.first().unwrap()
     }
 
+    /// Cache for `input`.
     pub fn new(input: Hct) -> Self {
         Self {
             input,
@@ -40,6 +44,7 @@ impl TemperatureCache {
         }
     }
 
+    /// Colours around the input hue that are `count` (default 5) steps of `divisions` (default 12) apart in temperature.
     pub fn analogous(&mut self, count: Option<i32>, divisions: Option<i32>) -> Vec<Hct> {
         let count = count.unwrap_or(5);
         let divisions = divisions.unwrap_or(12);
@@ -138,6 +143,7 @@ impl TemperatureCache {
         answers
     }
 
+    /// Colour opposite the input on the temperature axis.
     pub fn complement(&mut self) -> Hct {
         if let Some(_complement) = &self._complement {
             return *_complement;
@@ -186,6 +192,7 @@ impl TemperatureCache {
         self._complement.unwrap()
     }
 
+    /// Relative temperature of `hct`, from 0.0 (coldest) to 1.0 (warmest).
     pub fn relative_temperature(&mut self, hct: &Hct) -> f64 {
         let coldest = self.coldest();
         let warmest = self.warmest();
@@ -202,6 +209,7 @@ impl TemperatureCache {
         difference_from_coldest / range
     }
 
+    /// Relative temperature of the input.
     pub fn input_relative_temperature(&mut self) -> f64 {
         if self._input_relative_temperature >= 0.0 {
             return self._input_relative_temperature;
@@ -224,6 +232,7 @@ impl TemperatureCache {
         self._input_relative_temperature
     }
 
+    /// Hues at the input chroma and tone, coldest first.
     pub fn hcts_by_temp(&mut self) -> &[Hct] {
         if !self._hcts_by_temp.is_empty() {
             return &self._hcts_by_temp;
@@ -246,6 +255,7 @@ impl TemperatureCache {
         a.partial_cmp(&b).unwrap()
     }
 
+    /// Temperature of every hue at the input chroma and tone.
     pub fn temps_by_hct(&mut self) -> &Map<Hct, f64> {
         if !self._temps_by_hct.is_empty() {
             return &self._temps_by_hct;
@@ -266,6 +276,7 @@ impl TemperatureCache {
         &self._temps_by_hct
     }
 
+    /// One colour per degree of hue at the input chroma and tone.
     pub fn hcts_by_hue(&mut self) -> Vec<Hct> {
         if !self._hcts_by_hue.is_empty() {
             return self._hcts_by_hue.clone();
@@ -284,10 +295,12 @@ impl TemperatureCache {
         self._hcts_by_hue.clone()
     }
 
+    /// Whether `angle` lies on the arc from `a` to `b`.
     pub fn is_between(angle: f64, a: f64, b: f64) -> bool {
         if a < b { a <= angle && angle <= b } else { a <= angle || angle <= b }
     }
 
+    /// Raw (unscaled) temperature of `color`: negative is cool, positive is warm.
     pub fn raw_temperature(color: Hct) -> f64 {
         let lab = Lab::from(Argb::from(color));
         let hue = sanitize_degrees_double(lab.b.atan2(lab.a).to_degrees());

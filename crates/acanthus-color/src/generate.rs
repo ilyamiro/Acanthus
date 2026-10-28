@@ -5,27 +5,41 @@ use crate::quantize::{Quantizer, QuantizerCelebi};
 use crate::scheme::Scheme;
 use crate::score::Score;
 
+/// Edge length in pixels images are downsampled to before extracting colours.
 pub const IMAGE_SAMPLE_SIZE: u32 = 112;
+/// Edge length in pixels of the thumbnail used to pick a variant automatically.
 pub const SMART_THUMBNAIL_SIZE: u32 = 128;
 const MAX_COLORS: usize = 128;
 const MIN_CHROMA: f64 = 5.0;
 
+/// Scheme variant selectable by name, including automatic choice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SchemeType {
+    /// See [`Variant::Content`].
     Content,
+    /// See [`Variant::Expressive`].
     Expressive,
+    /// See [`Variant::Fidelity`].
     Fidelity,
+    /// See [`Variant::FruitSalad`].
     FruitSalad,
+    /// See [`Variant::Monochrome`].
     Monochrome,
+    /// See [`Variant::Neutral`].
     Neutral,
+    /// See [`Variant::Rainbow`].
     Rainbow,
+    /// See [`Variant::TonalSpot`]; the default.
     #[default]
     TonalSpot,
+    /// See [`Variant::Vibrant`].
     Vibrant,
+    /// Variant chosen from the colourfulness of the image, see [`detect_variant`].
     Smart,
 }
 
 impl SchemeType {
+    /// Parses a variant name, case-insensitively.
     pub fn parse(name: &str) -> Option<SchemeType> {
         let name = name.trim().to_lowercase();
         let name = name.strip_prefix("scheme-").unwrap_or(&name);
@@ -44,6 +58,7 @@ impl SchemeType {
         })
     }
 
+    /// The concrete variant; [`SchemeType::Smart`] maps to tonal spot.
     pub fn variant(self) -> Variant {
         match self {
             SchemeType::Content => Variant::Content,
@@ -59,6 +74,7 @@ impl SchemeType {
     }
 }
 
+/// Source-colour candidates of an image, best first; transparent pixels are ignored.
 pub fn ranked_source_colors(pixels: &[Argb]) -> Vec<Argb> {
     let opaque: Vec<Argb> = pixels.iter().copied().filter(|p| p.alpha == 255).collect();
     let mut quantized = QuantizerCelebi::quantize(&opaque, MAX_COLORS);
@@ -66,18 +82,22 @@ pub fn ranked_source_colors(pixels: &[Argb]) -> Vec<Argb> {
     Score::score(&quantized.color_to_count, None, None, None)
 }
 
+/// Scheme for `source` in the given variant, polarity and optional contrast level.
 pub fn scheme(source: Argb, kind: SchemeType, dark: bool, contrast: Option<f64>) -> Scheme {
     Scheme::from(DynamicScheme::by_variant(source, &kind.variant(), dark, contrast))
 }
 
+/// Role names and colours of `scheme`.
 pub fn roles(scheme: Scheme) -> Vec<(String, Argb)> {
     scheme.into_iter().collect()
 }
 
+/// Colour as lowercase `#rrggbb`.
 pub fn hex(color: Argb) -> String {
     format!("#{:02x}{:02x}{:02x}", color.red, color.green, color.blue)
 }
 
+/// Hasler and Suesstrunk colourfulness metric of RGB samples.
 pub fn colorfulness(rgb: &[[u8; 3]]) -> f64 {
     if rgb.is_empty() {
         return 0.0;
@@ -102,6 +122,7 @@ pub fn colorfulness(rgb: &[[u8; 3]]) -> f64 {
     (std_rg.powi(2) + std_yb.powi(2)).sqrt() + 0.3 * (mean_rg.powi(2) + mean_yb.powi(2)).sqrt()
 }
 
+/// Variant matching a colourfulness value.
 pub fn detect_variant(colorfulness: f64) -> SchemeType {
     match colorfulness {
         ..6.0 => SchemeType::Monochrome,
@@ -111,6 +132,7 @@ pub fn detect_variant(colorfulness: f64) -> SchemeType {
     }
 }
 
+/// Whether the average colour is light (tone above 60).
 pub fn is_light_average(rgb: [u8; 3]) -> bool {
     Hct::new(Argb::new(255, rgb[0], rgb[1], rgb[2])).get_tone() > 60.0
 }

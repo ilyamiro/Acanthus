@@ -5,17 +5,23 @@ use crate::{
     utils::math::sanitize_degrees_double,
 };
 
+/// Material 3 expressive scheme.
 pub struct SchemeExpressive {
+    /// The generated scheme.
     pub scheme: DynamicScheme,
 }
 
 impl SchemeExpressive {
+    /// Source hue anchors for the rotations.
     pub const HUES: [f64; 9] = [0.0, 21.0, 51.0, 121.0, 151.0, 191.0, 271.0, 321.0, 360.0];
 
+    /// Hue rotations of the secondary palette, one per hue anchor.
     pub const SECONDARY_ROTATIONS: [f64; 9] = [45.0, 95.0, 45.0, 20.0, 45.0, 90.0, 45.0, 45.0, 45.0];
 
+    /// Hue rotations of the tertiary palette, one per hue anchor.
     pub const TERTIARY_ROTATIONS: [f64; 9] = [120.0, 120.0, 20.0, 45.0, 20.0, 15.0, 20.0, 120.0, 120.0];
 
+    /// Scheme for a source colour, polarity and optional contrast level (default 0.0).
     pub fn new(source_color_hct: Hct, is_dark: bool, contrast_level: Option<f64>) -> Self {
         Self {
             scheme: DynamicScheme::new(
@@ -34,6 +40,7 @@ impl SchemeExpressive {
         }
     }
 
+    /// Tonal palette for `variant` derived from `source_color_hct`.
     pub fn palette(source_color_hct: &Hct, variant: &Palette) -> TonalPalette {
         match variant {
             Palette::Primary => TonalPalette::of(sanitize_degrees_double(source_color_hct.get_hue() + 240.0), 40.0),

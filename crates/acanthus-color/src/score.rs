@@ -11,6 +11,7 @@ struct ScoredHCT {
     score: f64,
 }
 
+/// Ranks quantized image colours into source-colour candidates.
 pub struct Score;
 
 impl Score {
@@ -20,6 +21,7 @@ impl Score {
     const WEIGHT_CHROMA_BELOW: f64 = 0.1;
     const CUTOFF_CHROMA: f64 = 5.0;
     const CUTOFF_EXCITED_PROPORTION: f64 = 0.01;
+    /// Returns up to `desired` (default 4) suitable source colours from a colour-to-population map, best first; `filter` (default true) drops dull and rare hues and `fallback_color_argb` (default blue) is returned when none qualify.
     pub fn score(
         colors_to_population: &IndexMap<Argb, u32>,
         desired: Option<i32>,

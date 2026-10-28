@@ -13,6 +13,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+/// A hue and chroma pair that yields a colour for every tone.
 #[derive(Clone, Copy, Debug)]
 pub struct TonalPalette {
     _hue: f64,
@@ -23,18 +24,22 @@ pub struct TonalPalette {
 impl TonalPalette {
     const COMMON_TONES: [i32; 13] = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100];
 
+    /// Number of common tones in a palette.
     pub const fn common_size() -> usize {
         Self::COMMON_TONES.len()
     }
 
+    /// Hue of the palette in degrees.
     pub const fn hue(&self) -> f64 {
         self._hue
     }
 
+    /// Chroma of the palette.
     pub const fn chroma(&self) -> f64 {
         self._chroma
     }
 
+    /// Colour at which the palette reaches its maximum chroma.
     pub const fn key_color(&self) -> Hct {
         self._key_color
     }
@@ -43,10 +48,12 @@ impl TonalPalette {
         Self { _hue, _chroma, _key_color }
     }
 
+    /// Palette whose hue and chroma are those of `hct`, with `hct` as key colour.
     pub const fn from_hct(hct: Hct) -> Self {
         Self::new(hct.get_hue(), hct.get_chroma(), hct)
     }
 
+    /// Palette for `variant` as defined by the scheme `scheme` for `source_hct`.
     pub fn by_variant(source_hct: &Hct, scheme: &Variant, variant: &Palette) -> Self {
         match scheme {
             Variant::Monochrome => SchemeMonochrome::palette(source_hct, variant),
@@ -61,14 +68,17 @@ impl TonalPalette {
         }
     }
 
+    /// Palette from a hue and chroma.
     pub fn from_hue_and_chroma(hue: f64, chroma: f64) -> Self {
         Self::new(hue, chroma, Self::create_key_color(hue, chroma))
     }
 
+    /// Alias of [`TonalPalette::from_hue_and_chroma`].
     pub fn of(hue: f64, chroma: f64) -> Self {
         Self::from_hue_and_chroma(hue, chroma)
     }
 
+    /// Finds the key colour for a hue and chroma: the tone where the requested chroma is reachable, or the one with the most chroma.
     pub fn create_key_color(hue: f64, chroma: f64) -> Hct {
         let start_tone = 50.0;
         let mut smallest_delta_hct = Hct::from(hue, chroma, start_tone);
@@ -99,10 +109,12 @@ impl TonalPalette {
         smallest_delta_hct
     }
 
+    /// Colour at `tone` (0 to 100) as ARGB.
     pub fn tone(&self, tone: i32) -> Argb {
         Hct::from(self.hue(), self.chroma(), f64::from(tone)).into()
     }
 
+    /// Colour at `tone` as HCT.
     pub fn get_hct(&self, tone: f64) -> Hct {
         Hct::from(self.hue(), self.chroma(), tone)
     }

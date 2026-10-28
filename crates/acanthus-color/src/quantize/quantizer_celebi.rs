@@ -2,6 +2,7 @@ use super::{Quantizer, QuantizerResult, QuantizerWsmeans, QuantizerWu};
 use crate::color::Argb;
 use std::vec::Vec;
 
+/// Wu quantization followed by weighted k-means refinement.
 #[derive(Default)]
 pub struct QuantizerCelebi;
 

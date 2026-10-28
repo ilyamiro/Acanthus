@@ -4,11 +4,14 @@ use crate::{
     palette::{Palette, TonalPalette},
 };
 
+/// Material 3 monochrome scheme.
 pub struct SchemeMonochrome {
+    /// The generated scheme.
     pub scheme: DynamicScheme,
 }
 
 impl SchemeMonochrome {
+    /// Scheme for a source colour, polarity and optional contrast level (default 0.0).
     pub fn new(source_color_hct: Hct, is_dark: bool, contrast_level: Option<f64>) -> Self {
         Self {
             scheme: DynamicScheme::new(
@@ -27,6 +30,7 @@ impl SchemeMonochrome {
         }
     }
 
+    /// Tonal palette for `variant` derived from `source_color_hct`.
     pub fn palette(source_color_hct: &Hct, variant: &Palette) -> TonalPalette {
         match variant {
             Palette::Primary | Palette::Secondary | Palette::Tertiary | Palette::Neutral | Palette::NeutralVariant => {

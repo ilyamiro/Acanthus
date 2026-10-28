@@ -1,6 +1,8 @@
+/// Linear congruential generator that reproduces `java.util.Random` for a seed.
 pub struct Random(i64);
 
 impl Random {
+    /// Creates a generator from `seed`.
     pub const fn new(seed: i64) -> Self {
         Self((seed ^ 0x5DEECE66Di64) & ((1i64 << 48) - 1))
     }
@@ -11,6 +13,7 @@ impl Random {
         ((self.0 as u64) >> (48 - bits)) as i32
     }
 
+    /// Next pseudo-random value in `0..range`.
     pub fn next_range(&mut self, range: i32) -> i32 {
         if range.isolate_lowest_one() == range {
             return (i64::from(range).wrapping_mul(i64::from(self._next(31))) >> 31) as i32;

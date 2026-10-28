@@ -4,37 +4,57 @@ use crate::{
 };
 use core::f64::consts::PI;
 
+/// Environment parameters of the CAM16 model.
 #[derive(Debug, Clone)]
 pub struct ViewingConditions {
+    /// XYZ of the white point.
     pub white_point: [f64; 3],
+    /// Adapting luminance in cd/m².
     pub adapting_luminance: f64,
+    /// L* of the background.
     pub background_lstar: f64,
+    /// Surround factor from 0 (dark) to 2 (average).
     pub surround: f64,
+    /// Whether the illuminant is fully discounted.
     pub discounting_illuminant: bool,
 
+    /// Background luminance relative to the white point.
     pub background_ytowhite_point_y: f64,
+    /// Achromatic response of white.
     pub aw: f64,
+    /// Background induction factor.
     pub nbb: f64,
+    /// Chromatic induction factor.
     pub ncb: f64,
+    /// Impact of the surround.
     pub c: f64,
+    /// Chromatic induction factor of the surround.
     pub n_c: f64,
+    /// Inverse of the degree-of-adaptation factors.
     pub drgb_inverse: [f64; 3],
+    /// Degree-of-adaptation factors per channel.
     pub rgb_d: [f64; 3],
+    /// Luminance-level adaptation factor.
     pub fl: f64,
+    /// Fourth root of the luminance-level adaptation factor.
     pub f_lroot: f64,
+    /// Base exponential nonlinearity.
     pub z: f64,
 }
 
 impl ViewingConditions {
+    /// The default conditions, equal to [`ViewingConditions::s_rgb`].
     pub fn standard() -> Self {
         Self::s_rgb()
     }
 
+    /// Conditions of the sRGB reference environment.
     pub fn s_rgb() -> Self {
         static STANDARD: std::sync::OnceLock<ViewingConditions> = std::sync::OnceLock::new();
         STANDARD.get_or_init(|| Self::make(None, None, None, None, None)).clone()
     }
 
+    /// Builds conditions; every `None` takes the sRGB default.
     pub fn make(
         white_point: Option<[f64; 3]>,
         adapting_luminance: Option<f64>,

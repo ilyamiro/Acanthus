@@ -1,5 +1,6 @@
 use crate::color::{lstar_from_y, y_from_lstar};
 
+/// Contrast ratio between two tones; both are clamped to `0.0..=100.0`.
 pub fn ratio_of_tones(tone_a: f64, tone_b: f64) -> f64 {
     let tone_a = tone_a.clamp(0.0, 100.0);
     let tone_b = tone_b.clamp(0.0, 100.0);
@@ -14,6 +15,7 @@ fn ratio_of_ys(y1: f64, y2: f64) -> f64 {
     (lighter + 5.0) / (darker + 5.0)
 }
 
+/// Lowest tone lighter than `tone` that reaches `ratio`, or `-1.0` when no tone in range does.
 pub fn lighter(tone: f64, ratio: f64) -> f64 {
     if !(0.0..=100.0).contains(&tone) {
         return -1.0;
@@ -37,6 +39,7 @@ pub fn lighter(tone: f64, ratio: f64) -> f64 {
     return_value
 }
 
+/// Highest tone darker than `tone` that reaches `ratio`, or `-1.0` when no tone in range does.
 pub fn darker(tone: f64, ratio: f64) -> f64 {
     if !(0.0..=100.0).contains(&tone) {
         return -1.0;
@@ -61,12 +64,14 @@ pub fn darker(tone: f64, ratio: f64) -> f64 {
     return_value
 }
 
+/// Like [`lighter`], but returns `100.0` when the ratio cannot be reached.
 pub fn lighter_unsafe(tone: f64, ratio: f64) -> f64 {
     let lighter_safe = lighter(tone, ratio);
 
     if lighter_safe < 0.0 { 100.0 } else { lighter_safe }
 }
 
+/// Like [`darker`], but returns `0.0` when the ratio cannot be reached.
 pub fn darker_unsafe(tone: f64, ratio: f64) -> f64 {
     let darker_safe = darker(tone, ratio);
 

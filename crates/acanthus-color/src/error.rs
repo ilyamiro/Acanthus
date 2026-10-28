@@ -1,7 +1,9 @@
 use core::fmt;
 
+/// Errors from parsing colours.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
+    /// The string was not an RGB hex value.
     ParseRGB,
 }
 

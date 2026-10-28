@@ -5,10 +5,14 @@ use core::{
 };
 pub use {cam16::Cam16, solver::HctSolver, viewing_conditions::ViewingConditions};
 
+/// CAM16 colour appearance model.
 pub mod cam16;
+/// Solver that finds the sRGB colour for a hue, chroma and tone.
 pub mod solver;
+/// Viewing conditions for CAM16.
 pub mod viewing_conditions;
 
+/// Hue, chroma and tone: a colour space whose tone is L* and whose hue and chroma follow CAM16, clamped to sRGB.
 #[derive(Clone, Copy, Debug)]
 pub struct Hct {
     _hue: f64,
@@ -18,10 +22,12 @@ pub struct Hct {
 }
 
 impl Hct {
+    /// Hue in degrees.
     pub const fn get_hue(&self) -> f64 {
         self._hue
     }
 
+    /// Sets the hue, keeping chroma and tone as far as sRGB allows.
     pub fn set_hue(&mut self, value: f64) {
         self._argb = HctSolver::solve_to_argb(value, self.get_chroma(), self.get_tone());
 
@@ -32,10 +38,12 @@ impl Hct {
         self._tone = self._argb.as_lstar();
     }
 
+    /// Chroma.
     pub const fn get_chroma(&self) -> f64 {
         self._chroma
     }
 
+    /// Sets the chroma, keeping hue and tone as far as sRGB allows.
     pub fn set_chroma(&mut self, value: f64) {
         self._argb = HctSolver::solve_to_argb(self.get_hue(), value, self.get_tone());
 
@@ -46,10 +54,12 @@ impl Hct {
         self._tone = self._argb.as_lstar();
     }
 
+    /// Tone (L*, 0 to 100).
     pub const fn get_tone(&self) -> f64 {
         self._tone
     }
 
+    /// Sets the tone, keeping hue and chroma as far as sRGB allows.
     pub fn set_tone(&mut self, value: f64) {
         self._argb = HctSolver::solve_to_argb(self.get_hue(), self.get_chroma(), value);
 
@@ -60,18 +70,21 @@ impl Hct {
         self._tone = self._argb.as_lstar();
     }
 
+    /// HCT of an ARGB colour.
     pub fn new(argb: Argb) -> Self {
         let cam16 = Cam16::from(argb);
 
         Self { _hue: cam16.hue, _chroma: cam16.chroma, _tone: argb.as_lstar(), _argb: argb }
     }
 
+    /// Nearest in-gamut colour for a hue, chroma and tone.
     pub fn from(hue: f64, chroma: f64, tone: f64) -> Self {
         let argb = HctSolver::solve_to_argb(hue, chroma, tone);
 
         Self::new(argb)
     }
 
+    /// The colour as it would appear under `vc` when viewed under the standard conditions.
     #[must_use]
     pub fn in_viewing_conditions(self, vc: &ViewingConditions) -> Self {
         let cam16 = Cam16::from(Argb::from(self));

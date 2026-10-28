@@ -1,6 +1,7 @@
 use super::PointProvider;
 use crate::color::{Argb, Lab};
 
+/// Point provider in CIE Lab space.
 pub struct PointProviderLab;
 
 impl PointProvider for PointProviderLab {

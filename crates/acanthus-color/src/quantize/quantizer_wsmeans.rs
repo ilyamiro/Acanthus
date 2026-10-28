@@ -52,6 +52,7 @@ impl PartialOrd for DistanceAndIndex {
     }
 }
 
+/// Weighted k-means over Lab points.
 pub struct QuantizerWsmeans;
 
 impl QuantizerWsmeans {
@@ -65,6 +66,7 @@ impl QuantizerWsmeans {
         }
     }
 
+    /// Clusters `input_pixels` into at most `max_colors` colours, starting from `starting_clusters`.
     pub fn quantize(input_pixels: &[Argb], max_colors: usize, starting_clusters: &[Argb]) -> QuantizerResult {
         let mut pixel_to_count: IndexMap<Argb, u32> = IndexMap::default();
         let mut points: Vec<Lab> = vec![];

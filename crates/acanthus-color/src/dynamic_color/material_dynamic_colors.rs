@@ -11,6 +11,7 @@ const fn _is_monochrome(scheme: &DynamicScheme) -> bool {
 
 macro_rules! define_key {
     ($name:ident => $palette:ident; [tone, $scheme_argument:ident] => $tone:expr;) => {
+        #[doc = concat!("Dynamic colour role `", stringify!($name), "`.")]
         pub fn $name() -> DynamicColor {
             DynamicColor::new(
                 stringify!($name),
@@ -41,6 +42,7 @@ macro_rules! define_key {
     };
 
     ($name:ident => $palette:ident; [tone, $tone_scheme_argument:ident] => $tone:expr; [background, $background_scheme_argument:ident] => $background:expr; [contrast_curve] => $contrast_curve:expr;) => {
+        #[doc = concat!("Dynamic colour role `", stringify!($name), "`.")]
         pub fn $name() -> DynamicColor {
             DynamicColor::new(
                 stringify!($name),
@@ -56,6 +58,7 @@ macro_rules! define_key {
     };
 
     ($name:ident => $palette:ident; [tone, $tone_scheme_argument:ident] => $tone:expr; [background, $background_scheme_argument:ident] => $background:expr; [second_background, $second_background_scheme_argument:ident] => $second_background:expr; [contrast_curve] => $contrast_curve:expr;) => {
+        #[doc = concat!("Dynamic colour role `", stringify!($name), "`.")]
         pub fn $name() -> DynamicColor {
             DynamicColor::new(
                 stringify!($name),
@@ -86,6 +89,7 @@ macro_rules! define_key {
     };
 
     (background $name:ident => $palette:ident; [tone, $tone_scheme_argument:ident] => $tone:expr; [background, $background_scheme_argument:ident] => $background:expr; [contrast_curve] => $contrast_curve:expr; [tone_delta_pair, $tone_delta_pair_argument:ident] => $tone_delta_pair:expr;) => {
+        #[doc = concat!("Dynamic colour role `", stringify!($name), "`.")]
         pub fn $name() -> DynamicColor {
             DynamicColor::new(
                 stringify!($name),
@@ -101,6 +105,7 @@ macro_rules! define_key {
     };
 
     (background $name:ident => $palette:ident; [tone, $scheme_argument:ident] => $tone:expr;) => {
+        #[doc = concat!("Dynamic colour role `", stringify!($name), "`.")]
         pub fn $name() -> DynamicColor {
             DynamicColor::new(
                 stringify!($name),
@@ -116,9 +121,11 @@ macro_rules! define_key {
     };
 }
 
+/// The Material 3 dynamic colour roles.
 pub struct MaterialDynamicColors;
 
 impl MaterialDynamicColors {
+    /// Chroma-preserving tone shift applied to content-variant accents.
     pub const CONTENT_ACCENT_TONE_DELTA: f64 = 15.0;
 
     fn highest_surface(scheme: &DynamicScheme) -> DynamicColor {

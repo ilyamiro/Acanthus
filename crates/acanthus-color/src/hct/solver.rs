@@ -277,6 +277,7 @@ const CRITICAL_PLANES: [f64; 255] = [
     99.55452497210776,
 ];
 
+/// Finds the in-gamut colour for a hue, chroma and tone.
 pub struct HctSolver;
 
 impl HctSolver {
@@ -532,6 +533,7 @@ impl HctSolver {
         Argb::default()
     }
 
+    /// ARGB for the hue, chroma and L* (clamped to sRGB; grayscale when chroma is near zero or tone extreme).
     pub fn solve_to_argb(hue_degrees: f64, chroma: f64, lstar: f64) -> Argb {
         if chroma < 0.0001 || !(0.0001..=99.9999).contains(&lstar) {
             return Argb::from_lstar(lstar);
@@ -555,6 +557,7 @@ impl HctSolver {
         linrgb.into()
     }
 
+    /// CAM16 appearance of [`HctSolver::solve_to_argb`].
     pub fn solve_to_cam(hue_degrees: f64, chroma: f64, lstar: f64) -> Cam16 {
         Cam16::from(Self::solve_to_argb(hue_degrees, chroma, lstar))
     }

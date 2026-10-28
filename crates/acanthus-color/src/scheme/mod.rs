@@ -3,58 +3,109 @@ use crate::{Map, color::Argb, dynamic_color::DynamicScheme, palette::CorePalette
 use core::{array::IntoIter, fmt};
 use std::string::String;
 
+/// Per-variant scheme constructors.
 pub mod variant;
 
+/// The fixed Material 3 colour set of a scheme, one colour per role.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Scheme {
+    /// Primary accent colour for prominent components.
     pub primary: Argb,
+    /// Content colour drawn on `primary`.
     pub on_primary: Argb,
+    /// Fill colour of primary containers.
     pub primary_container: Argb,
+    /// Content colour drawn on `primary_container`.
     pub on_primary_container: Argb,
+    /// Primary accent drawn on `inverse_surface`.
     pub inverse_primary: Argb,
+    /// Primary accent that keeps its tone in light and dark schemes.
     pub primary_fixed: Argb,
+    /// Dimmer variant of `primary_fixed`.
     pub primary_fixed_dim: Argb,
+    /// Content colour drawn on `primary_fixed`.
     pub on_primary_fixed: Argb,
+    /// Lower-emphasis content colour drawn on `primary_fixed`.
     pub on_primary_fixed_variant: Argb,
+    /// Secondary accent colour for less prominent components.
     pub secondary: Argb,
+    /// Content colour drawn on `secondary`.
     pub on_secondary: Argb,
+    /// Fill colour of secondary containers.
     pub secondary_container: Argb,
+    /// Content colour drawn on `secondary_container`.
     pub on_secondary_container: Argb,
+    /// Secondary accent that keeps its tone in light and dark schemes.
     pub secondary_fixed: Argb,
+    /// Dimmer variant of `secondary_fixed`.
     pub secondary_fixed_dim: Argb,
+    /// Content colour drawn on `secondary_fixed`.
     pub on_secondary_fixed: Argb,
+    /// Lower-emphasis content colour drawn on `secondary_fixed`.
     pub on_secondary_fixed_variant: Argb,
+    /// Tertiary accent colour that balances primary and secondary.
     pub tertiary: Argb,
+    /// Content colour drawn on `tertiary`.
     pub on_tertiary: Argb,
+    /// Fill colour of tertiary containers.
     pub tertiary_container: Argb,
+    /// Content colour drawn on `tertiary_container`.
     pub on_tertiary_container: Argb,
+    /// Tertiary accent that keeps its tone in light and dark schemes.
     pub tertiary_fixed: Argb,
+    /// Dimmer variant of `tertiary_fixed`.
     pub tertiary_fixed_dim: Argb,
+    /// Content colour drawn on `tertiary_fixed`.
     pub on_tertiary_fixed: Argb,
+    /// Lower-emphasis content colour drawn on `tertiary_fixed`.
     pub on_tertiary_fixed_variant: Argb,
+    /// Colour of error states.
     pub error: Argb,
+    /// Content colour drawn on `error`.
     pub on_error: Argb,
+    /// Fill colour of error containers.
     pub error_container: Argb,
+    /// Content colour drawn on `error_container`.
     pub on_error_container: Argb,
+    /// Surface colour that stays dim in light and dark schemes.
     pub surface_dim: Argb,
+    /// Default colour of component surfaces.
     pub surface: Argb,
+    /// Tint overlaid on elevated surfaces.
     pub surface_tint: Argb,
+    /// Surface colour that stays bright in light and dark schemes.
     pub surface_bright: Argb,
+    /// Surface container with the lowest emphasis.
     pub surface_container_lowest: Argb,
+    /// Surface container with low emphasis.
     pub surface_container_low: Argb,
+    /// Surface container with default emphasis.
     pub surface_container: Argb,
+    /// Surface container with high emphasis.
     pub surface_container_high: Argb,
+    /// Surface container with the highest emphasis.
     pub surface_container_highest: Argb,
+    /// Content colour drawn on `surface`.
     pub on_surface: Argb,
+    /// Lower-emphasis content colour drawn on `surface_variant`.
     pub on_surface_variant: Argb,
+    /// Outline colour for borders and dividers that need contrast.
     pub outline: Argb,
+    /// Decorative outline colour with lower contrast.
     pub outline_variant: Argb,
+    /// Surface of inverted polarity, used for snack bars and tooltips.
     pub inverse_surface: Argb,
+    /// Content colour drawn on `inverse_surface`.
     pub inverse_on_surface: Argb,
+    /// Alternative surface colour for containers and dividers.
     pub surface_variant: Argb,
+    /// Background colour behind scrollable content.
     pub background: Argb,
+    /// Content colour drawn on `background`.
     pub on_background: Argb,
+    /// Colour of drop shadows.
     pub shadow: Argb,
+    /// Colour of the scrim behind modal surfaces.
     pub scrim: Argb,
 }
 
@@ -115,6 +166,7 @@ impl fmt::Display for Scheme {
 }
 
 impl Scheme {
+    /// Creates a scheme from every role colour.
     pub const fn new(
         primary: Argb,
         on_primary: Argb,
@@ -345,40 +397,71 @@ impl From<Scheme> for Map<String, String> {
     }
 }
 
+/// The smaller legacy Material 3 colour set, built directly from a [`CorePalette`].
 #[derive(PartialEq, Eq, Debug)]
 pub struct SchemeFromPalette {
+    /// Primary accent colour for prominent components.
     pub primary: Argb,
+    /// Content colour drawn on `primary`.
     pub on_primary: Argb,
+    /// Fill colour of primary containers.
     pub primary_container: Argb,
+    /// Content colour drawn on `primary_container`.
     pub on_primary_container: Argb,
+    /// Secondary accent colour for less prominent components.
     pub secondary: Argb,
+    /// Content colour drawn on `secondary`.
     pub on_secondary: Argb,
+    /// Fill colour of secondary containers.
     pub secondary_container: Argb,
+    /// Content colour drawn on `secondary_container`.
     pub on_secondary_container: Argb,
+    /// Tertiary accent colour that balances primary and secondary.
     pub tertiary: Argb,
+    /// Content colour drawn on `tertiary`.
     pub on_tertiary: Argb,
+    /// Fill colour of tertiary containers.
     pub tertiary_container: Argb,
+    /// Content colour drawn on `tertiary_container`.
     pub on_tertiary_container: Argb,
+    /// Colour of error states.
     pub error: Argb,
+    /// Content colour drawn on `error`.
     pub on_error: Argb,
+    /// Fill colour of error containers.
     pub error_container: Argb,
+    /// Content colour drawn on `error_container`.
     pub on_error_container: Argb,
+    /// Default colour of component surfaces.
     pub surface: Argb,
+    /// Content colour drawn on `surface`.
     pub on_surface: Argb,
+    /// Alternative surface colour for containers and dividers.
     pub surface_variant: Argb,
+    /// Lower-emphasis content colour drawn on `surface_variant`.
     pub on_surface_variant: Argb,
+    /// Outline colour for borders and dividers that need contrast.
     pub outline: Argb,
+    /// Decorative outline colour with lower contrast.
     pub outline_variant: Argb,
+    /// Background colour behind scrollable content.
     pub background: Argb,
+    /// Content colour drawn on `background`.
     pub on_background: Argb,
+    /// Colour of drop shadows.
     pub shadow: Argb,
+    /// Colour of the scrim behind modal surfaces.
     pub scrim: Argb,
+    /// Surface of inverted polarity, used for snack bars and tooltips.
     pub inverse_surface: Argb,
+    /// Content colour drawn on `inverse_surface`.
     pub inverse_on_surface: Argb,
+    /// Primary accent drawn on `inverse_surface`.
     pub inverse_primary: Argb,
 }
 
 impl SchemeFromPalette {
+    /// Light scheme from `palette`.
     pub fn light_from_palette(palette: &CorePalette) -> Self {
         Self {
             primary: palette.primary.tone(40),
@@ -413,6 +496,7 @@ impl SchemeFromPalette {
         }
     }
 
+    /// Dark scheme from `palette`.
     pub fn dark_from_palette(palette: &CorePalette) -> Self {
         Self {
             primary: palette.primary.tone(80),
@@ -447,18 +531,22 @@ impl SchemeFromPalette {
         }
     }
 
+    /// Light scheme for `argb`.
     pub fn light(argb: Argb) -> Self {
         Self::light_from_palette(&CorePalette::of(argb))
     }
 
+    /// Light scheme for `argb` using the content palettes.
     pub fn light_content(argb: Argb) -> Self {
         Self::light_from_palette(&CorePalette::content_of(argb))
     }
 
+    /// Dark scheme for `argb`.
     pub fn dark(argb: Argb) -> Self {
         Self::dark_from_palette(&CorePalette::of(argb))
     }
 
+    /// Dark scheme for `argb` using the content palettes.
     pub fn dark_content(argb: Argb) -> Self {
         Self::dark_from_palette(&CorePalette::content_of(argb))
     }

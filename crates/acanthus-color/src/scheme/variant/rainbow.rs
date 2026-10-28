@@ -5,11 +5,14 @@ use crate::{
     utils::math::sanitize_degrees_double,
 };
 
+/// Material 3 rainbow scheme.
 pub struct SchemeRainbow {
+    /// The generated scheme.
     pub scheme: DynamicScheme,
 }
 
 impl SchemeRainbow {
+    /// Scheme for a source colour, polarity and optional contrast level (default 0.0).
     pub fn new(source_color_hct: Hct, is_dark: bool, contrast_level: Option<f64>) -> Self {
         Self {
             scheme: DynamicScheme::new(
@@ -28,6 +31,7 @@ impl SchemeRainbow {
         }
     }
 
+    /// Tonal palette for `variant` derived from `source_color_hct`.
     pub fn palette(source_color_hct: &Hct, variant: &Palette) -> TonalPalette {
         match variant {
             Palette::Primary => TonalPalette::of(source_color_hct.get_hue(), 48.0),
