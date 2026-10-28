@@ -28,7 +28,7 @@ step layers "scripts/check-layers.sh"
 step build "cargo build ${scope[*]} --all-targets"
 if [ "$mode" = full ]; then
   step deny "cargo deny check licenses bans sources"
-  step features "cargo check -p acanthus-services --no-default-features"
+  step features "cargo clippy -p acanthus-services --no-default-features --all-targets -- -D warnings && cargo clippy -p acanthus-services --no-default-features --features mpris,tray,network --all-targets -- -D warnings"
   step doc "RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace"
 fi
 step clippy "cargo clippy ${scope[*]} --all-targets -- -D warnings"

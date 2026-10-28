@@ -18,22 +18,51 @@ serde.workspace = true
 serde_json.workspace = true
 rustix.workspace = true
 chrono.workspace = true
-image.workspace = true
-regex.workspace = true
 pipewire = { workspace = true, optional = true }
 libloading = { workspace = true, optional = true }
-wayland-client.workspace = true
-wayland-protocols.workspace = true
-wayland-protocols-wlr.workspace = true
-calloop-wayland-source.workspace = true
+wayland-client = { workspace = true, optional = true }
+wayland-protocols = { workspace = true, optional = true }
+wayland-protocols-wlr = { workspace = true, optional = true }
+calloop-wayland-source = { workspace = true, optional = true }
 thiserror.workspace = true
 tracing.workspace = true
 
 [features]
-default = ["pipewire", "pam", "polkit"]
+default = [
+    "pipewire",
+    "pam",
+    "polkit",
+    "bluetooth",
+    "brightness",
+    "file-chooser",
+    "gamma",
+    "idle",
+    "mpris",
+    "network",
+    "notifications",
+    "power-profiles",
+    "screensaver",
+    "toplevels",
+    "tray",
+    "upower",
+]
 pipewire = ["dep:pipewire"]
 pam = ["dep:libloading"]
 polkit = []
+bluetooth = []
+brightness = []
+file-chooser = []
+gamma = ["wayland", "dep:wayland-protocols-wlr"]
+idle = ["wayland", "dep:wayland-protocols"]
+mpris = []
+network = []
+notifications = []
+power-profiles = []
+screensaver = []
+toplevels = ["wayland", "dep:wayland-protocols-wlr"]
+tray = []
+upower = []
+wayland = ["dep:wayland-client", "dep:calloop-wayland-source"]
 testing = []
 
 [dev-dependencies]

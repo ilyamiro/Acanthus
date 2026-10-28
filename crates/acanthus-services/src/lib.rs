@@ -12,9 +12,12 @@ pub mod prelude {
     pub use crate::kit::{Clock, Ctx, Notice, Notifier, Translator};
     pub use crate::platform::compositor::Compositor;
     pub use crate::platform::desktop_service::DesktopEntries;
+    #[cfg(feature = "mpris")]
     pub use crate::platform::mpris::Mpris;
     #[cfg(feature = "pipewire")]
     pub use crate::platform::pipewire::Pipewire;
+    #[cfg(feature = "toplevels")]
     pub use crate::platform::toplevels::Toplevels;
+    #[cfg(feature = "upower")]
     pub use crate::platform::upower::UPower;
 }
