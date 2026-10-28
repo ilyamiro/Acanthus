@@ -1,0 +1,479 @@
+acanthus_color::color::Argb.alpha: u8
+acanthus_color::color::Argb.blue: u8
+acanthus_color::color::Argb.green: u8
+acanthus_color::color::Argb.red: u8
+acanthus_color::color::Argb: struct [Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd]
+acanthus_color::color::Argb::as_lstar: fn as_lstar (& self) -> f64
+acanthus_color::color::Argb::from_lstar: fn from_lstar (lstar : f64) -> Self
+acanthus_color::color::Argb::from_u32: const fn from_u32 (value : u32) -> Self
+acanthus_color::color::Argb::new: const fn new (alpha : u8 , red : u8 , green : u8 , blue : u8) -> Self
+acanthus_color::color::Argb::to_hex: fn to_hex (& self) -> String
+acanthus_color::color::Argb::to_hex_with_pound: fn to_hex_with_pound (& self) -> String
+acanthus_color::color::Lab.a: f64
+acanthus_color::color::Lab.b: f64
+acanthus_color::color::Lab.l: f64
+acanthus_color::color::Lab: struct [Clone, Copy, Debug, Default]
+acanthus_color::color::Lab::new: const fn new (l : f64 , a : f64 , b : f64) -> Self
+acanthus_color::color::LinearRgb.blue: f64
+acanthus_color::color::LinearRgb.green: f64
+acanthus_color::color::LinearRgb.red: f64
+acanthus_color::color::LinearRgb: struct [Clone, Copy, Debug, Default]
+acanthus_color::color::Rgb.blue: u8
+acanthus_color::color::Rgb.green: u8
+acanthus_color::color::Rgb.red: u8
+acanthus_color::color::Rgb: struct [Clone, Copy, Debug, Default]
+acanthus_color::color::Rgb::new: const fn new (red : u8 , green : u8 , blue : u8) -> Self
+acanthus_color::color::SRGB_TO_XYZ: const SRGB_TO_XYZ: [[f64 ; 3] ; 3]
+acanthus_color::color::WHITE_POINT_D65: const WHITE_POINT_D65: [f64 ; 3]
+acanthus_color::color::XYZ_TO_SRGB: const XYZ_TO_SRGB: [[f64 ; 3] ; 3]
+acanthus_color::color::Xyz.x: f64
+acanthus_color::color::Xyz.y: f64
+acanthus_color::color::Xyz.z: f64
+acanthus_color::color::Xyz: struct [Clone, Copy, Debug, Default]
+acanthus_color::color::Xyz::new: const fn new (x : f64 , y : f64 , z : f64) -> Self
+acanthus_color::color::delinearized: fn delinearized (rgb_component : f64) -> u8
+acanthus_color::color::linearized: fn linearized (rgb_component : u8) -> f64
+acanthus_color::color::lstar_from_y: fn lstar_from_y (y : f64) -> f64
+acanthus_color::color::y_from_lstar: fn y_from_lstar (lstar : f64) -> f64
+acanthus_color::contrast::darker: fn darker (tone : f64 , ratio : f64) -> f64
+acanthus_color::contrast::darker_unsafe: fn darker_unsafe (tone : f64 , ratio : f64) -> f64
+acanthus_color::contrast::lighter: fn lighter (tone : f64 , ratio : f64) -> f64
+acanthus_color::contrast::lighter_unsafe: fn lighter_unsafe (tone : f64 , ratio : f64) -> f64
+acanthus_color::contrast::ratio_of_tones: fn ratio_of_tones (tone_a : f64 , tone_b : f64) -> f64
+acanthus_color::dislike::fix_if_disliked: fn fix_if_disliked (hct : Hct) -> Hct
+acanthus_color::dislike::is_disliked: fn is_disliked (hct : & Hct) -> bool
+acanthus_color::dynamic_color::DynamicColor.name: String
+acanthus_color::dynamic_color::DynamicColor: struct
+acanthus_color::dynamic_color::DynamicColor::enable_light_foreground: fn enable_light_foreground (tone : f64) -> f64
+acanthus_color::dynamic_color::DynamicColor::foreground_tone: fn foreground_tone (bg_tone : f64 , ratio : f64) -> f64
+acanthus_color::dynamic_color::DynamicColor::get_argb: fn get_argb (& mut self , scheme : & DynamicScheme) -> Argb
+acanthus_color::dynamic_color::DynamicColor::get_hct: fn get_hct (& mut self , scheme : & DynamicScheme) -> Hct
+acanthus_color::dynamic_color::DynamicColor::get_tone: fn get_tone (& self , scheme : & DynamicScheme) -> f64
+acanthus_color::dynamic_color::DynamicColor::new: fn new < T : Into < String > > (name : T , palette : fn (& DynamicScheme) -> & TonalPalette , tone : fn (& DynamicScheme) -> f64 , is_background : bool , background : Option < fn (& DynamicScheme) -> Self > , second_background : Option < fn (& DynamicScheme) -> Self > , contrast_curve : Option < ContrastCurve > , tone_delta_pair : Option < fn (& DynamicScheme) -> ToneDeltaPair > ,) -> Self
+acanthus_color::dynamic_color::DynamicColor::tone_allows_light_foreground: fn tone_allows_light_foreground (tone : f64) -> bool
+acanthus_color::dynamic_color::DynamicColor::tone_prefers_light_foreground: fn tone_prefers_light_foreground (tone : f64) -> bool
+acanthus_color::dynamic_color::contrast_curve::ContrastCurve.high: f64
+acanthus_color::dynamic_color::contrast_curve::ContrastCurve.low: f64
+acanthus_color::dynamic_color::contrast_curve::ContrastCurve.medium: f64
+acanthus_color::dynamic_color::contrast_curve::ContrastCurve.normal: f64
+acanthus_color::dynamic_color::contrast_curve::ContrastCurve: struct
+acanthus_color::dynamic_color::contrast_curve::ContrastCurve::get: fn get (& self , contrast_level : f64) -> f64
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.contrast_level: f64
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.error_palette: TonalPalette
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.is_dark: bool
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.neutral_palette: TonalPalette
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.neutral_variant_palette: TonalPalette
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.primary_palette: TonalPalette
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.secondary_palette: TonalPalette
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.source_color_argb: Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.source_color_hct: Hct
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.tertiary_palette: TonalPalette
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme.variant: Variant
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme: struct [Clone]
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::background: fn background (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::by_variant: fn by_variant (source : Argb , variant : & Variant , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::error: fn error (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::error_container: fn error_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::get_rotated_hue: fn get_rotated_hue (source_hue : f64 , hues : & [f64] , rotations : & [f64]) -> f64
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::inverse_on_surface: fn inverse_on_surface (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::inverse_primary: fn inverse_primary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::inverse_surface: fn inverse_surface (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::neutral_palette_key_color: fn neutral_palette_key_color (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::neutral_variant_palette_key_color: fn neutral_variant_palette_key_color (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::new: fn new (source_color_argb : Argb , source_color_hct : Option < Hct > , variant : Variant , is_dark : bool , contrast_level : Option < f64 > , primary_palette : TonalPalette , secondary_palette : TonalPalette , tertiary_palette : TonalPalette , neutral_palette : TonalPalette , neutral_variant_palette : TonalPalette , error_palette : Option < TonalPalette > ,) -> Self
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_background: fn on_background (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_error: fn on_error (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_error_container: fn on_error_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_primary: fn on_primary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_primary_container: fn on_primary_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_primary_fixed: fn on_primary_fixed (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_primary_fixed_variant: fn on_primary_fixed_variant (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_secondary: fn on_secondary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_secondary_container: fn on_secondary_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_secondary_fixed: fn on_secondary_fixed (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_secondary_fixed_variant: fn on_secondary_fixed_variant (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_surface: fn on_surface (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_surface_variant: fn on_surface_variant (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_tertiary: fn on_tertiary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_tertiary_container: fn on_tertiary_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_tertiary_fixed: fn on_tertiary_fixed (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::on_tertiary_fixed_variant: fn on_tertiary_fixed_variant (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::outline: fn outline (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::outline_variant: fn outline_variant (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::primary: fn primary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::primary_container: fn primary_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::primary_fixed: fn primary_fixed (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::primary_fixed_dim: fn primary_fixed_dim (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::primary_palette_key_color: fn primary_palette_key_color (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::scrim: fn scrim (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::secondary: fn secondary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::secondary_container: fn secondary_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::secondary_fixed: fn secondary_fixed (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::secondary_fixed_dim: fn secondary_fixed_dim (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::secondary_palette_key_color: fn secondary_palette_key_color (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::shadow: fn shadow (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface: fn surface (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_bright: fn surface_bright (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_container: fn surface_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_container_high: fn surface_container_high (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_container_highest: fn surface_container_highest (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_container_low: fn surface_container_low (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_container_lowest: fn surface_container_lowest (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_dim: fn surface_dim (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_tint: fn surface_tint (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::surface_variant: fn surface_variant (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::tertiary: fn tertiary (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::tertiary_container: fn tertiary_container (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::tertiary_fixed: fn tertiary_fixed (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::tertiary_fixed_dim: fn tertiary_fixed_dim (& self) -> Argb
+acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme::tertiary_palette_key_color: fn tertiary_palette_key_color (& self) -> Argb
+acanthus_color::dynamic_color::material_dynamic_colors::MaterialDynamicColors: struct
+acanthus_color::dynamic_color::material_dynamic_colors::MaterialDynamicColors::CONTENT_ACCENT_TONE_DELTA: const f64
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair.basis: DynamicColor
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair.delta: f64
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair.polarity: TonePolarity
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair.stay_together: bool
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair.subject: DynamicColor
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair: struct
+acanthus_color::dynamic_color::tone_delta_pair::ToneDeltaPair::new: const fn new (subject : DynamicColor , basis : DynamicColor , delta : f64 , polarity : TonePolarity , stay_together : bool ,) -> Self
+acanthus_color::dynamic_color::tone_delta_pair::TonePolarity: enum [Eq, PartialEq]
+acanthus_color::dynamic_color::tone_delta_pair::TonePolarity::Darker: variant 
+acanthus_color::dynamic_color::tone_delta_pair::TonePolarity::Farther: variant 
+acanthus_color::dynamic_color::tone_delta_pair::TonePolarity::Lighter: variant 
+acanthus_color::dynamic_color::tone_delta_pair::TonePolarity::Nearer: variant 
+acanthus_color::dynamic_color::variant::Variant: enum [Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd]
+acanthus_color::dynamic_color::variant::Variant::Content: variant 
+acanthus_color::dynamic_color::variant::Variant::Expressive: variant 
+acanthus_color::dynamic_color::variant::Variant::Fidelity: variant 
+acanthus_color::dynamic_color::variant::Variant::FruitSalad: variant 
+acanthus_color::dynamic_color::variant::Variant::Monochrome: variant 
+acanthus_color::dynamic_color::variant::Variant::Neutral: variant 
+acanthus_color::dynamic_color::variant::Variant::Rainbow: variant 
+acanthus_color::dynamic_color::variant::Variant::TonalSpot: variant 
+acanthus_color::dynamic_color::variant::Variant::Vibrant: variant 
+acanthus_color::error::Error: enum [Clone, Debug, Eq, PartialEq]
+acanthus_color::error::Error::ParseRGB: variant 
+acanthus_color::generate::IMAGE_SAMPLE_SIZE: const IMAGE_SAMPLE_SIZE: u32
+acanthus_color::generate::SMART_THUMBNAIL_SIZE: const SMART_THUMBNAIL_SIZE: u32
+acanthus_color::generate::SchemeType: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_color::generate::SchemeType::Content: variant 
+acanthus_color::generate::SchemeType::Expressive: variant 
+acanthus_color::generate::SchemeType::Fidelity: variant 
+acanthus_color::generate::SchemeType::FruitSalad: variant 
+acanthus_color::generate::SchemeType::Monochrome: variant 
+acanthus_color::generate::SchemeType::Neutral: variant 
+acanthus_color::generate::SchemeType::Rainbow: variant 
+acanthus_color::generate::SchemeType::Smart: variant 
+acanthus_color::generate::SchemeType::TonalSpot: variant 
+acanthus_color::generate::SchemeType::Vibrant: variant 
+acanthus_color::generate::SchemeType::parse: fn parse (name : & str) -> Option < SchemeType >
+acanthus_color::generate::SchemeType::variant: fn variant (self) -> Variant
+acanthus_color::generate::colorfulness: fn colorfulness (rgb : & [[u8 ; 3]]) -> f64
+acanthus_color::generate::detect_variant: fn detect_variant (colorfulness : f64) -> SchemeType
+acanthus_color::generate::hex: fn hex (color : Argb) -> String
+acanthus_color::generate::is_light_average: fn is_light_average (rgb : [u8 ; 3]) -> bool
+acanthus_color::generate::ranked_source_colors: fn ranked_source_colors (pixels : & [Argb]) -> Vec < Argb >
+acanthus_color::generate::roles: fn roles (scheme : Scheme) -> Vec < (String , Argb) >
+acanthus_color::generate::scheme: fn scheme (source : Argb , kind : SchemeType , dark : bool , contrast : Option < f64 >) -> Scheme
+acanthus_color::hct::Hct: struct [Clone, Copy, Debug]
+acanthus_color::hct::Hct::from: fn from (hue : f64 , chroma : f64 , tone : f64) -> Self
+acanthus_color::hct::Hct::get_chroma: const fn get_chroma (& self) -> f64
+acanthus_color::hct::Hct::get_hue: const fn get_hue (& self) -> f64
+acanthus_color::hct::Hct::get_tone: const fn get_tone (& self) -> f64
+acanthus_color::hct::Hct::in_viewing_conditions: fn in_viewing_conditions (self , vc : & ViewingConditions) -> Self
+acanthus_color::hct::Hct::new: fn new (argb : Argb) -> Self
+acanthus_color::hct::Hct::set_chroma: fn set_chroma (& mut self , value : f64)
+acanthus_color::hct::Hct::set_hue: fn set_hue (& mut self , value : f64)
+acanthus_color::hct::Hct::set_tone: fn set_tone (& mut self , value : f64)
+acanthus_color::hct::cam16::Cam16.astar: f64
+acanthus_color::hct::cam16::Cam16.bstar: f64
+acanthus_color::hct::cam16::Cam16.chroma: f64
+acanthus_color::hct::cam16::Cam16.hue: f64
+acanthus_color::hct::cam16::Cam16.j: f64
+acanthus_color::hct::cam16::Cam16.jstar: f64
+acanthus_color::hct::cam16::Cam16.m: f64
+acanthus_color::hct::cam16::Cam16.q: f64
+acanthus_color::hct::cam16::Cam16.s: f64
+acanthus_color::hct::cam16::Cam16: struct
+acanthus_color::hct::cam16::Cam16::distance: fn distance (& self , other : & Self) -> f64
+acanthus_color::hct::cam16::Cam16::from_jch: fn from_jch (j : f64 , c : f64 , h : f64) -> Self
+acanthus_color::hct::cam16::Cam16::from_jch_in_viewing_conditions: fn from_jch_in_viewing_conditions (j : f64 , c : f64 , h : f64 , viewing_conditions : & ViewingConditions) -> Self
+acanthus_color::hct::cam16::Cam16::from_ucs: fn from_ucs (jstar : f64 , astar : f64 , bstar : f64) -> Self
+acanthus_color::hct::cam16::Cam16::from_ucs_in_viewing_conditions: fn from_ucs_in_viewing_conditions (jstar : f64 , astar : f64 , bstar : f64 , viewing_conditions : & ViewingConditions ,) -> Self
+acanthus_color::hct::cam16::Cam16::from_xyz_in_viewing_conditions: fn from_xyz_in_viewing_conditions (x : f64 , y : f64 , z : f64 , viewing_conditions : & ViewingConditions) -> Self
+acanthus_color::hct::cam16::Cam16::fromi32_in_viewing_conditions: fn fromi32_in_viewing_conditions (argb : Argb , viewing_conditions : & ViewingConditions) -> Self
+acanthus_color::hct::cam16::Cam16::viewed: fn viewed (& self , viewing_conditions : & ViewingConditions) -> Argb
+acanthus_color::hct::cam16::Cam16::xyz_in_viewing_conditions: fn xyz_in_viewing_conditions (& self , viewing_conditions : & ViewingConditions) -> Xyz
+acanthus_color::hct::solver::HctSolver: struct
+acanthus_color::hct::solver::HctSolver::solve_to_argb: fn solve_to_argb (hue_degrees : f64 , chroma : f64 , lstar : f64) -> Argb
+acanthus_color::hct::solver::HctSolver::solve_to_cam: fn solve_to_cam (hue_degrees : f64 , chroma : f64 , lstar : f64) -> Cam16
+acanthus_color::hct::viewing_conditions::ViewingConditions.adapting_luminance: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.aw: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.background_lstar: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.background_ytowhite_point_y: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.c: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.discounting_illuminant: bool
+acanthus_color::hct::viewing_conditions::ViewingConditions.drgb_inverse: [f64 ; 3]
+acanthus_color::hct::viewing_conditions::ViewingConditions.f_lroot: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.fl: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.n_c: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.nbb: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.ncb: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.rgb_d: [f64 ; 3]
+acanthus_color::hct::viewing_conditions::ViewingConditions.surround: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions.white_point: [f64 ; 3]
+acanthus_color::hct::viewing_conditions::ViewingConditions.z: f64
+acanthus_color::hct::viewing_conditions::ViewingConditions: struct [Clone, Debug]
+acanthus_color::hct::viewing_conditions::ViewingConditions::make: fn make (white_point : Option < [f64 ; 3] > , adapting_luminance : Option < f64 > , background_lstar : Option < f64 > , surround : Option < f64 > , discounting_illuminant : Option < bool > ,) -> Self
+acanthus_color::hct::viewing_conditions::ViewingConditions::s_rgb: fn s_rgb () -> Self
+acanthus_color::hct::viewing_conditions::ViewingConditions::standard: fn standard () -> Self
+acanthus_color::palette::Palette: enum [Eq, PartialEq]
+acanthus_color::palette::Palette::Error: variant 
+acanthus_color::palette::Palette::Neutral: variant 
+acanthus_color::palette::Palette::NeutralVariant: variant 
+acanthus_color::palette::Palette::Primary: variant 
+acanthus_color::palette::Palette::Secondary: variant 
+acanthus_color::palette::Palette::Tertiary: variant 
+acanthus_color::palette::TonalPalette: struct [Clone, Copy, Debug]
+acanthus_color::palette::TonalPalette::by_variant: fn by_variant (source_hct : & Hct , scheme : & Variant , variant : & Palette) -> Self
+acanthus_color::palette::TonalPalette::chroma: const fn chroma (& self) -> f64
+acanthus_color::palette::TonalPalette::common_size: const fn common_size () -> usize
+acanthus_color::palette::TonalPalette::create_key_color: fn create_key_color (hue : f64 , chroma : f64) -> Hct
+acanthus_color::palette::TonalPalette::from_hct: const fn from_hct (hct : Hct) -> Self
+acanthus_color::palette::TonalPalette::from_hue_and_chroma: fn from_hue_and_chroma (hue : f64 , chroma : f64) -> Self
+acanthus_color::palette::TonalPalette::get_hct: fn get_hct (& self , tone : f64) -> Hct
+acanthus_color::palette::TonalPalette::hue: const fn hue (& self) -> f64
+acanthus_color::palette::TonalPalette::key_color: const fn key_color (& self) -> Hct
+acanthus_color::palette::TonalPalette::of: fn of (hue : f64 , chroma : f64) -> Self
+acanthus_color::palette::TonalPalette::tone: fn tone (& self , tone : i32) -> Argb
+acanthus_color::quantize::point_provider::PointProvider: trait
+acanthus_color::quantize::point_provider::PointProvider::distance: required fn distance (one : & Lab , two : & Lab) -> f64
+acanthus_color::quantize::point_provider::PointProvider::lab_from_int: required fn lab_from_int (argb : & Argb) -> Lab
+acanthus_color::quantize::point_provider::PointProvider::lab_to_int: required fn lab_to_int (lab : & Lab) -> Argb
+acanthus_color::quantize::point_provider_lab::PointProviderLab: struct
+acanthus_color::quantize::quantizer::Quantizer: trait
+acanthus_color::quantize::quantizer::Quantizer::quantize: required fn quantize (pixels : & [Argb] , max_colors : usize) -> QuantizerResult
+acanthus_color::quantize::quantizer::QuantizerResult.color_to_count: IndexMap < Argb , u32 >
+acanthus_color::quantize::quantizer::QuantizerResult.input_pixel_to_cluster_pixel: IndexMap < Argb , Argb >
+acanthus_color::quantize::quantizer::QuantizerResult: struct
+acanthus_color::quantize::quantizer_celebi::QuantizerCelebi: struct [Default]
+acanthus_color::quantize::quantizer_map::QuantizerMap: struct [Default]
+acanthus_color::quantize::quantizer_wsmeans::QuantizerWsmeans: struct
+acanthus_color::quantize::quantizer_wsmeans::QuantizerWsmeans::quantize: fn quantize (input_pixels : & [Argb] , max_colors : usize , starting_clusters : & [Argb]) -> QuantizerResult
+acanthus_color::quantize::quantizer_wu::CreateBoxesResult.requested_count: usize
+acanthus_color::quantize::quantizer_wu::CreateBoxesResult.result_count: usize
+acanthus_color::quantize::quantizer_wu::CreateBoxesResult: struct
+acanthus_color::quantize::quantizer_wu::Cube.pixels: [Rgb ; 2]
+acanthus_color::quantize::quantizer_wu::Cube.vol: i32
+acanthus_color::quantize::quantizer_wu::Cube: struct [Clone, Debug]
+acanthus_color::quantize::quantizer_wu::Cube::b: fn b < T : From < u8 > > (& self , pixel : usize) -> T
+acanthus_color::quantize::quantizer_wu::Cube::g: fn g < T : From < u8 > > (& self , pixel : usize) -> T
+acanthus_color::quantize::quantizer_wu::Cube::r: fn r < T : From < u8 > > (& self , pixel : usize) -> T
+acanthus_color::quantize::quantizer_wu::Direction: enum
+acanthus_color::quantize::quantizer_wu::Direction::Blue: variant 
+acanthus_color::quantize::quantizer_wu::Direction::Green: variant 
+acanthus_color::quantize::quantizer_wu::Direction::Red: variant 
+acanthus_color::quantize::quantizer_wu::MaximizeResult.cut_location: i32
+acanthus_color::quantize::quantizer_wu::MaximizeResult.maximum: f64
+acanthus_color::quantize::quantizer_wu::MaximizeResult: struct [Debug]
+acanthus_color::quantize::quantizer_wu::QuantizerWu: struct
+acanthus_color::quantize::quantizer_wu::QuantizerWu::bottom: fn bottom (cube : & Cube , direction : & Direction , moment : & [i64]) -> i64
+acanthus_color::quantize::quantizer_wu::QuantizerWu::compute_moments: fn compute_moments (& mut self)
+acanthus_color::quantize::quantizer_wu::QuantizerWu::construct_histogram: fn construct_histogram (& mut self , pixels : IndexMap < Argb , u32 >)
+acanthus_color::quantize::quantizer_wu::QuantizerWu::create_boxes: fn create_boxes (& mut self , max_color_count : usize) -> CreateBoxesResult
+acanthus_color::quantize::quantizer_wu::QuantizerWu::create_result: fn create_result (& self , color_count : usize) -> IndexMap < Argb , u32 >
+acanthus_color::quantize::quantizer_wu::QuantizerWu::cut: fn cut (& mut self , next : usize , i : usize) -> bool
+acanthus_color::quantize::quantizer_wu::QuantizerWu::get_index: fn get_index < T : Into < usize > > (r : T , g : T , b : T) -> usize
+acanthus_color::quantize::quantizer_wu::QuantizerWu::maximize: fn maximize (& self , cube : & Cube , direction : & Direction , first : i32 , last : i32 , whole_r : i64 , whole_g : i64 , whole_b : i64 , whole_w : i64 ,) -> MaximizeResult
+acanthus_color::quantize::quantizer_wu::QuantizerWu::top: fn top (cube : & Cube , direction : & Direction , position : i32 , moment : & [i64]) -> i64
+acanthus_color::quantize::quantizer_wu::QuantizerWu::variance: fn variance (& self , cube : & Cube) -> f64
+acanthus_color::quantize::quantizer_wu::QuantizerWu::volume: fn volume (cube : & Cube , moment : & [i64]) -> i64
+acanthus_color::scheme::Scheme.background: Argb
+acanthus_color::scheme::Scheme.error: Argb
+acanthus_color::scheme::Scheme.error_container: Argb
+acanthus_color::scheme::Scheme.inverse_on_surface: Argb
+acanthus_color::scheme::Scheme.inverse_primary: Argb
+acanthus_color::scheme::Scheme.inverse_surface: Argb
+acanthus_color::scheme::Scheme.on_background: Argb
+acanthus_color::scheme::Scheme.on_error: Argb
+acanthus_color::scheme::Scheme.on_error_container: Argb
+acanthus_color::scheme::Scheme.on_primary: Argb
+acanthus_color::scheme::Scheme.on_primary_container: Argb
+acanthus_color::scheme::Scheme.on_primary_fixed: Argb
+acanthus_color::scheme::Scheme.on_primary_fixed_variant: Argb
+acanthus_color::scheme::Scheme.on_secondary: Argb
+acanthus_color::scheme::Scheme.on_secondary_container: Argb
+acanthus_color::scheme::Scheme.on_secondary_fixed: Argb
+acanthus_color::scheme::Scheme.on_secondary_fixed_variant: Argb
+acanthus_color::scheme::Scheme.on_surface: Argb
+acanthus_color::scheme::Scheme.on_surface_variant: Argb
+acanthus_color::scheme::Scheme.on_tertiary: Argb
+acanthus_color::scheme::Scheme.on_tertiary_container: Argb
+acanthus_color::scheme::Scheme.on_tertiary_fixed: Argb
+acanthus_color::scheme::Scheme.on_tertiary_fixed_variant: Argb
+acanthus_color::scheme::Scheme.outline: Argb
+acanthus_color::scheme::Scheme.outline_variant: Argb
+acanthus_color::scheme::Scheme.primary: Argb
+acanthus_color::scheme::Scheme.primary_container: Argb
+acanthus_color::scheme::Scheme.primary_fixed: Argb
+acanthus_color::scheme::Scheme.primary_fixed_dim: Argb
+acanthus_color::scheme::Scheme.scrim: Argb
+acanthus_color::scheme::Scheme.secondary: Argb
+acanthus_color::scheme::Scheme.secondary_container: Argb
+acanthus_color::scheme::Scheme.secondary_fixed: Argb
+acanthus_color::scheme::Scheme.secondary_fixed_dim: Argb
+acanthus_color::scheme::Scheme.shadow: Argb
+acanthus_color::scheme::Scheme.surface: Argb
+acanthus_color::scheme::Scheme.surface_bright: Argb
+acanthus_color::scheme::Scheme.surface_container: Argb
+acanthus_color::scheme::Scheme.surface_container_high: Argb
+acanthus_color::scheme::Scheme.surface_container_highest: Argb
+acanthus_color::scheme::Scheme.surface_container_low: Argb
+acanthus_color::scheme::Scheme.surface_container_lowest: Argb
+acanthus_color::scheme::Scheme.surface_dim: Argb
+acanthus_color::scheme::Scheme.surface_tint: Argb
+acanthus_color::scheme::Scheme.surface_variant: Argb
+acanthus_color::scheme::Scheme.tertiary: Argb
+acanthus_color::scheme::Scheme.tertiary_container: Argb
+acanthus_color::scheme::Scheme.tertiary_fixed: Argb
+acanthus_color::scheme::Scheme.tertiary_fixed_dim: Argb
+acanthus_color::scheme::Scheme: struct [Debug, Eq, PartialEq]
+acanthus_color::scheme::Scheme::new: const fn new (primary : Argb , on_primary : Argb , primary_container : Argb , on_primary_container : Argb , inverse_primary : Argb , primary_fixed : Argb , primary_fixed_dim : Argb , on_primary_fixed : Argb , on_primary_fixed_variant : Argb , secondary : Argb , on_secondary : Argb , secondary_container : Argb , on_secondary_container : Argb , secondary_fixed : Argb , secondary_fixed_dim : Argb , on_secondary_fixed : Argb , on_secondary_fixed_variant : Argb , tertiary : Argb , on_tertiary : Argb , tertiary_container : Argb , on_tertiary_container : Argb , tertiary_fixed : Argb , tertiary_fixed_dim : Argb , on_tertiary_fixed : Argb , on_tertiary_fixed_variant : Argb , error : Argb , on_error : Argb , error_container : Argb , on_error_container : Argb , surface_dim : Argb , surface : Argb , surface_tint : Argb , surface_bright : Argb , surface_container_lowest : Argb , surface_container_low : Argb , surface_container : Argb , surface_container_high : Argb , surface_container_highest : Argb , on_surface : Argb , on_surface_variant : Argb , outline : Argb , outline_variant : Argb , inverse_surface : Argb , inverse_on_surface : Argb , surface_variant : Argb , background : Argb , on_background : Argb , shadow : Argb , scrim : Argb ,) -> Self
+acanthus_color::scheme::SchemeFromPalette.background: Argb
+acanthus_color::scheme::SchemeFromPalette.error: Argb
+acanthus_color::scheme::SchemeFromPalette.error_container: Argb
+acanthus_color::scheme::SchemeFromPalette.inverse_on_surface: Argb
+acanthus_color::scheme::SchemeFromPalette.inverse_primary: Argb
+acanthus_color::scheme::SchemeFromPalette.inverse_surface: Argb
+acanthus_color::scheme::SchemeFromPalette.on_background: Argb
+acanthus_color::scheme::SchemeFromPalette.on_error: Argb
+acanthus_color::scheme::SchemeFromPalette.on_error_container: Argb
+acanthus_color::scheme::SchemeFromPalette.on_primary: Argb
+acanthus_color::scheme::SchemeFromPalette.on_primary_container: Argb
+acanthus_color::scheme::SchemeFromPalette.on_secondary: Argb
+acanthus_color::scheme::SchemeFromPalette.on_secondary_container: Argb
+acanthus_color::scheme::SchemeFromPalette.on_surface: Argb
+acanthus_color::scheme::SchemeFromPalette.on_surface_variant: Argb
+acanthus_color::scheme::SchemeFromPalette.on_tertiary: Argb
+acanthus_color::scheme::SchemeFromPalette.on_tertiary_container: Argb
+acanthus_color::scheme::SchemeFromPalette.outline: Argb
+acanthus_color::scheme::SchemeFromPalette.outline_variant: Argb
+acanthus_color::scheme::SchemeFromPalette.primary: Argb
+acanthus_color::scheme::SchemeFromPalette.primary_container: Argb
+acanthus_color::scheme::SchemeFromPalette.scrim: Argb
+acanthus_color::scheme::SchemeFromPalette.secondary: Argb
+acanthus_color::scheme::SchemeFromPalette.secondary_container: Argb
+acanthus_color::scheme::SchemeFromPalette.shadow: Argb
+acanthus_color::scheme::SchemeFromPalette.surface: Argb
+acanthus_color::scheme::SchemeFromPalette.surface_variant: Argb
+acanthus_color::scheme::SchemeFromPalette.tertiary: Argb
+acanthus_color::scheme::SchemeFromPalette.tertiary_container: Argb
+acanthus_color::scheme::SchemeFromPalette: struct [Debug, Eq, PartialEq]
+acanthus_color::scheme::SchemeFromPalette::dark: fn dark (argb : Argb) -> Self
+acanthus_color::scheme::SchemeFromPalette::dark_content: fn dark_content (argb : Argb) -> Self
+acanthus_color::scheme::SchemeFromPalette::dark_from_palette: fn dark_from_palette (palette : & CorePalette) -> Self
+acanthus_color::scheme::SchemeFromPalette::light: fn light (argb : Argb) -> Self
+acanthus_color::scheme::SchemeFromPalette::light_content: fn light_content (argb : Argb) -> Self
+acanthus_color::scheme::SchemeFromPalette::light_from_palette: fn light_from_palette (palette : & CorePalette) -> Self
+acanthus_color::scheme::variant::SchemeContent.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeContent: struct
+acanthus_color::scheme::variant::SchemeContent::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeContent::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeExpressive.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeExpressive: struct
+acanthus_color::scheme::variant::SchemeExpressive::HUES: const [f64 ; 9]
+acanthus_color::scheme::variant::SchemeExpressive::SECONDARY_ROTATIONS: const [f64 ; 9]
+acanthus_color::scheme::variant::SchemeExpressive::TERTIARY_ROTATIONS: const [f64 ; 9]
+acanthus_color::scheme::variant::SchemeExpressive::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeExpressive::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeFidelity.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeFidelity: struct
+acanthus_color::scheme::variant::SchemeFidelity::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeFidelity::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeFruitSalad.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeFruitSalad: struct
+acanthus_color::scheme::variant::SchemeFruitSalad::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeFruitSalad::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeMonochrome.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeMonochrome: struct
+acanthus_color::scheme::variant::SchemeMonochrome::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeMonochrome::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeNeutral.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeNeutral: struct
+acanthus_color::scheme::variant::SchemeNeutral::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeNeutral::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeRainbow.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeRainbow: struct
+acanthus_color::scheme::variant::SchemeRainbow::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeRainbow::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeTonalSpot.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeTonalSpot: struct
+acanthus_color::scheme::variant::SchemeTonalSpot::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeTonalSpot::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::scheme::variant::SchemeVibrant.scheme: DynamicScheme
+acanthus_color::scheme::variant::SchemeVibrant: struct
+acanthus_color::scheme::variant::SchemeVibrant::HUES: const [f64 ; 9]
+acanthus_color::scheme::variant::SchemeVibrant::SECONDARY_ROTATIONS: const [f64 ; 9]
+acanthus_color::scheme::variant::SchemeVibrant::TERTIARY_ROTATIONS: const [f64 ; 9]
+acanthus_color::scheme::variant::SchemeVibrant::new: fn new (source_color_hct : Hct , is_dark : bool , contrast_level : Option < f64 >) -> Self
+acanthus_color::scheme::variant::SchemeVibrant::palette: fn palette (source_color_hct : & Hct , variant : & Palette) -> TonalPalette
+acanthus_color::score::Score: struct
+acanthus_color::score::Score::score: fn score (colors_to_population : & IndexMap < Argb , u32 > , desired : Option < i32 > , fallback_color_argb : Option < Argb > , filter : Option < bool > ,) -> Vec < Argb >
+acanthus_color::temperature::TemperatureCache: struct
+acanthus_color::temperature::TemperatureCache::analogous: fn analogous (& mut self , count : Option < i32 > , divisions : Option < i32 >) -> Vec < Hct >
+acanthus_color::temperature::TemperatureCache::coldest: fn coldest (& mut self) -> Hct
+acanthus_color::temperature::TemperatureCache::complement: fn complement (& mut self) -> Hct
+acanthus_color::temperature::TemperatureCache::hcts_by_hue: fn hcts_by_hue (& mut self) -> Vec < Hct >
+acanthus_color::temperature::TemperatureCache::hcts_by_temp: fn hcts_by_temp (& mut self) -> & [Hct]
+acanthus_color::temperature::TemperatureCache::input_relative_temperature: fn input_relative_temperature (& mut self) -> f64
+acanthus_color::temperature::TemperatureCache::is_between: fn is_between (angle : f64 , a : f64 , b : f64) -> bool
+acanthus_color::temperature::TemperatureCache::new: fn new (input : Hct) -> Self
+acanthus_color::temperature::TemperatureCache::raw_temperature: fn raw_temperature (color : Hct) -> f64
+acanthus_color::temperature::TemperatureCache::relative_temperature: fn relative_temperature (& mut self , hct : & Hct) -> f64
+acanthus_color::temperature::TemperatureCache::temps_by_hct: fn temps_by_hct (& mut self) -> & Map < Hct , f64 >
+acanthus_color::temperature::TemperatureCache::warmest: fn warmest (& mut self) -> Hct
+acanthus_color::utils::math::difference_degrees: fn difference_degrees (a : f64 , b : f64) -> f64
+acanthus_color::utils::math::lerp: fn lerp (start : f64 , stop : f64 , amount : f64) -> f64
+acanthus_color::utils::math::matrix_multiply: fn matrix_multiply (row : [f64 ; 3] , matrix : [[f64 ; 3] ; 3]) -> [f64 ; 3]
+acanthus_color::utils::math::rotate_direction: fn rotate_direction (from : f64 , to : f64) -> f64
+acanthus_color::utils::math::sanitize_degrees_double: fn sanitize_degrees_double (degrees : f64) -> f64
+acanthus_color::utils::math::sanitize_degrees_int: fn const fn sanitize_degrees_int (degrees : i32) -> u32
+acanthus_color::utils::math::signum: fn signum (value : f64) -> f64
+acanthus_color::utils::random::Random: struct
+acanthus_color::utils::random::Random::new: const fn new (seed : i64) -> Self
+acanthus_color::utils::random::Random::next_range: fn next_range (& mut self , range : i32) -> i32
+impl Eq for acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme
+impl Eq for acanthus_color::hct::Hct
+impl Eq for acanthus_color::palette::TonalPalette
+impl From < Argb > for acanthus_color::color::Lab
+impl From < Argb > for acanthus_color::color::Xyz
+impl From < Argb > for acanthus_color::hct::Hct
+impl From < Argb > for acanthus_color::hct::cam16::Cam16
+impl From < Cam16 > for acanthus_color::color::Argb
+impl From < DynamicScheme > for acanthus_color::scheme::Scheme
+impl From < Hct > for acanthus_color::color::Argb
+impl From < Lab > for acanthus_color::color::Argb
+impl From < LinearRgb > for acanthus_color::color::Argb
+impl From < Rgb > for acanthus_color::color::Argb
+impl From < Xyz > for acanthus_color::color::Argb
+impl FromStr for acanthus_color::color::Argb
+impl Hash for acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme
+impl Hash for acanthus_color::hct::Hct
+impl Hash for acanthus_color::palette::TonalPalette
+impl IntoIterator for acanthus_color::scheme::Scheme
+impl PartialEq < Scheme > for acanthus_color::scheme::SchemeFromPalette
+impl PartialEq for acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme
+impl PartialEq for acanthus_color::hct::Hct
+impl PartialEq for acanthus_color::palette::TonalPalette
+impl PointProvider for acanthus_color::quantize::point_provider_lab::PointProviderLab
+impl Quantizer for acanthus_color::quantize::quantizer_celebi::QuantizerCelebi
+impl Quantizer for acanthus_color::quantize::quantizer_map::QuantizerMap
+impl Quantizer for acanthus_color::quantize::quantizer_wu::QuantizerWu
+impl fmt :: Display for acanthus_color::color::Argb
+impl fmt :: Display for acanthus_color::dynamic_color::dynamic_scheme::DynamicScheme
+impl fmt :: Display for acanthus_color::error::Error
+impl fmt :: Display for acanthus_color::hct::Hct
+impl fmt :: Display for acanthus_color::palette::TonalPalette
+impl fmt :: Display for acanthus_color::quantize::quantizer_wu::Cube
+impl fmt :: Display for acanthus_color::scheme::Scheme
+impl std :: error :: Error for acanthus_color::error::Error

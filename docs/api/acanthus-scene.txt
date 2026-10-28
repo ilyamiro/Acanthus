@@ -1,0 +1,693 @@
+acanthus_scene::Align: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::Align::Center: variant 
+acanthus_scene::Align::End: variant 
+acanthus_scene::Align::Start: variant 
+acanthus_scene::Anchors.bottom: Option < f32 >
+acanthus_scene::Anchors.bottom_ref: Option < (NodeId , Edge) >
+acanthus_scene::Anchors.h_center: bool
+acanthus_scene::Anchors.h_offset: f32
+acanthus_scene::Anchors.left: Option < f32 >
+acanthus_scene::Anchors.left_ref: Option < (NodeId , Edge) >
+acanthus_scene::Anchors.right: Option < f32 >
+acanthus_scene::Anchors.right_ref: Option < (NodeId , Edge) >
+acanthus_scene::Anchors.top: Option < f32 >
+acanthus_scene::Anchors.top_ref: Option < (NodeId , Edge) >
+acanthus_scene::Anchors.v_center: bool
+acanthus_scene::Anchors.v_offset: f32
+acanthus_scene::Anchors: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_scene::Anchors::bottom: fn bottom (self , margin : f32) -> Self
+acanthus_scene::Anchors::bottom_to: fn bottom_to (self , node : NodeId , edge : Edge , margin : f32) -> Self
+acanthus_scene::Anchors::center: fn center () -> Self
+acanthus_scene::Anchors::fill: fn fill (margin : f32) -> Self
+acanthus_scene::Anchors::h_center: fn h_center (self) -> Self
+acanthus_scene::Anchors::h_center_offset: fn h_center_offset (self , offset : f32) -> Self
+acanthus_scene::Anchors::left: fn left (self , margin : f32) -> Self
+acanthus_scene::Anchors::left_to: fn left_to (self , node : NodeId , edge : Edge , margin : f32) -> Self
+acanthus_scene::Anchors::right: fn right (self , margin : f32) -> Self
+acanthus_scene::Anchors::right_to: fn right_to (self , node : NodeId , edge : Edge , margin : f32) -> Self
+acanthus_scene::Anchors::top: fn top (self , margin : f32) -> Self
+acanthus_scene::Anchors::top_to: fn top_to (self , node : NodeId , edge : Edge , margin : f32) -> Self
+acanthus_scene::Anchors::v_center: fn v_center (self) -> Self
+acanthus_scene::Anchors::v_center_offset: fn v_center_offset (self , offset : f32) -> Self
+acanthus_scene::AppEffect.label: & 'static str
+acanthus_scene::AppEffect.wgsl: & 'static str
+acanthus_scene::AppEffect: struct [Clone, Copy, Debug]
+acanthus_scene::Axis: type Axis = ([u8 ; 4] , f32)
+acanthus_scene::BoundsBehavior: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::BoundsBehavior::DragAndOvershootBounds: variant 
+acanthus_scene::BoundsBehavior::DragOverBounds: variant 
+acanthus_scene::BoundsBehavior::OvershootBounds: variant 
+acanthus_scene::BoundsBehavior::StopAtBounds: variant 
+acanthus_scene::BoundsBehavior::drag_over: fn drag_over (self) -> bool
+acanthus_scene::BoundsBehavior::overshoot: fn overshoot (self) -> bool
+acanthus_scene::Clip.rect: Rect
+acanthus_scene::Clip.shape: Option < ShapeClip >
+acanthus_scene::Clip: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::Clip::is_empty: fn is_empty (& self) -> bool
+acanthus_scene::Clip::rect: fn rect (rect : Rect) -> Self
+acanthus_scene::Clipboard: struct [Clone, Default]
+acanthus_scene::Clipboard::get: fn get (& self) -> String
+acanthus_scene::Clipboard::new: fn new () -> Self
+acanthus_scene::Clipboard::set: fn set (& self , text : impl Into < String >)
+acanthus_scene::Constraints.column_span: usize
+acanthus_scene::Constraints.margins: Margins
+acanthus_scene::Constraints.max_height: f32
+acanthus_scene::Constraints.max_width: f32
+acanthus_scene::Constraints.min_height: f32
+acanthus_scene::Constraints.min_width: f32
+acanthus_scene::Constraints.preferred_height: Option < f32 >
+acanthus_scene::Constraints.preferred_width: Option < f32 >
+acanthus_scene::Constraints.row_span: usize
+acanthus_scene::Constraints: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::CursorShape: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::CursorShape::Crosshair: variant 
+acanthus_scene::CursorShape::Default: variant 
+acanthus_scene::CursorShape::Grab: variant 
+acanthus_scene::CursorShape::Grabbing: variant 
+acanthus_scene::CursorShape::Help: variant 
+acanthus_scene::CursorShape::Move: variant 
+acanthus_scene::CursorShape::NotAllowed: variant 
+acanthus_scene::CursorShape::Pointer: variant 
+acanthus_scene::CursorShape::Progress: variant 
+acanthus_scene::CursorShape::ResizeAll: variant 
+acanthus_scene::CursorShape::ResizeHorizontal: variant 
+acanthus_scene::CursorShape::ResizeVertical: variant 
+acanthus_scene::CursorShape::Text: variant 
+acanthus_scene::CursorShape::Wait: variant 
+acanthus_scene::Edge: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::Edge::Bottom: variant 
+acanthus_scene::Edge::HCenter: variant 
+acanthus_scene::Edge::Left: variant 
+acanthus_scene::Edge::Right: variant 
+acanthus_scene::Edge::Top: variant 
+acanthus_scene::Edge::VCenter: variant 
+acanthus_scene::Elide: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::Elide::Left: variant 
+acanthus_scene::Elide::Middle: variant 
+acanthus_scene::Elide::None: variant 
+acanthus_scene::Elide::Right: variant 
+acanthus_scene::FlickDirection: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::FlickDirection::Auto: variant 
+acanthus_scene::FlickDirection::Both: variant 
+acanthus_scene::FlickDirection::Horizontal: variant 
+acanthus_scene::FlickDirection::Vertical: variant 
+acanthus_scene::Flickable.bounds: Signal < BoundsBehavior >
+acanthus_scene::Flickable.content_height: Signal < f32 >
+acanthus_scene::Flickable.content_width: Signal < f32 >
+acanthus_scene::Flickable.content_x: Signal < f32 >
+acanthus_scene::Flickable.content_y: Signal < f32 >
+acanthus_scene::Flickable.direction: Signal < FlickDirection >
+acanthus_scene::Flickable.dragging: Signal < bool >
+acanthus_scene::Flickable.flicking: Signal < bool >
+acanthus_scene::Flickable.interactive: Signal < bool >
+acanthus_scene::Flickable.moving: Signal < bool >
+acanthus_scene::Flickable: struct [Clone]
+acanthus_scene::Flickable::bounds: fn bounds (self , v : BoundsBehavior) -> Self
+acanthus_scene::Flickable::can_flick: fn can_flick (& self , viewport : Vec2) -> bool
+acanthus_scene::Flickable::content_size: fn content_size (self , w : f32 , h : f32) -> Self
+acanthus_scene::Flickable::direction: fn direction (self , v : FlickDirection) -> Self
+acanthus_scene::Flickable::is_dragging: fn is_dragging (& self) -> bool
+acanthus_scene::Flickable::max_position: fn max_position (& self , viewport : Vec2) -> Vec2
+acanthus_scene::Flickable::new: fn new () -> Self
+acanthus_scene::Flickable::position: fn position (& self) -> Vec2
+acanthus_scene::Flickable::scroll_to: fn scroll_to (& self , x : f32 , y : f32 , viewport : Vec2)
+acanthus_scene::Flickable::stop: fn stop (& self)
+acanthus_scene::FlickableNodes.content: NodeId
+acanthus_scene::FlickableNodes.viewport: NodeId
+acanthus_scene::FlickableNodes: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::Fonts: struct [Clone]
+acanthus_scene::Fonts::generation: fn generation (& self) -> Signal < u64 >
+acanthus_scene::Fonts::has_family: fn has_family (& self , name : & str) -> bool
+acanthus_scene::Fonts::load_file: fn load_file (& self , path : & Path) -> Vec < String >
+acanthus_scene::Fonts::new: fn new () -> Self
+acanthus_scene::Fonts::system: fn system (& self) -> RefMut < '_ , FontSystem >
+acanthus_scene::Frame.changed: bool
+acanthus_scene::Frame.primitives: & 'a [Primitive]
+acanthus_scene::Frame: struct< 'a >
+acanthus_scene::Glyph.clip: Clip
+acanthus_scene::Glyph.color: Color
+acanthus_scene::Glyph.key: CacheKey
+acanthus_scene::Glyph.transform: Affine2
+acanthus_scene::Glyph.x: i32
+acanthus_scene::Glyph.y: i32
+acanthus_scene::Glyph: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::Gradient.end: Color
+acanthus_scene::Gradient.orientation: Orientation
+acanthus_scene::Gradient.start: Color
+acanthus_scene::Gradient: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::Gradient::horizontal: fn horizontal (start : Color , end : Color) -> Self
+acanthus_scene::Gradient::vertical: fn vertical (start : Color , end : Color) -> Self
+acanthus_scene::HAlign: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::HAlign::Center: variant 
+acanthus_scene::HAlign::Left: variant 
+acanthus_scene::HAlign::Right: variant 
+acanthus_scene::ImageDraw.clip: Clip
+acanthus_scene::ImageDraw.frame: u32
+acanthus_scene::ImageDraw.id: ImageId
+acanthus_scene::ImageDraw.opacity: f32
+acanthus_scene::ImageDraw.rect: Rect
+acanthus_scene::ImageDraw.repeat: bool
+acanthus_scene::ImageDraw.transform: Affine2
+acanthus_scene::ImageDraw.uv: [f32 ; 4]
+acanthus_scene::ImageDraw: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::ImageStyle.animated: Signal < bool >
+acanthus_scene::ImageStyle.fill_mode: Signal < FillMode >
+acanthus_scene::ImageStyle.source: Signal < String >
+acanthus_scene::ImageStyle.source_size: Signal < Option < Vec2 > >
+acanthus_scene::ImageStyle.status: Signal < ImageStatus >
+acanthus_scene::ImageStyle: struct
+acanthus_scene::IntoSignal: trait< T >
+acanthus_scene::IntoSignal::into_signal: required fn into_signal (self) -> Signal < T >
+acanthus_scene::Item.index: Signal < usize >
+acanthus_scene::Item.value: Signal < T >
+acanthus_scene::Item: struct< T >
+acanthus_scene::Key: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::Key::Backspace: variant 
+acanthus_scene::Key::Char: variant (char)
+acanthus_scene::Key::Delete: variant 
+acanthus_scene::Key::Down: variant 
+acanthus_scene::Key::End: variant 
+acanthus_scene::Key::Enter: variant 
+acanthus_scene::Key::Escape: variant 
+acanthus_scene::Key::Function: variant (u8)
+acanthus_scene::Key::Home: variant 
+acanthus_scene::Key::Insert: variant 
+acanthus_scene::Key::Left: variant 
+acanthus_scene::Key::Other: variant (u32)
+acanthus_scene::Key::PageDown: variant 
+acanthus_scene::Key::PageUp: variant 
+acanthus_scene::Key::Right: variant 
+acanthus_scene::Key::Tab: variant 
+acanthus_scene::Key::Up: variant 
+acanthus_scene::KeyEvent.key: Key
+acanthus_scene::KeyEvent.modifiers: Modifiers
+acanthus_scene::KeyEvent.repeat: bool
+acanthus_scene::KeyEvent.text: String
+acanthus_scene::KeyEvent: struct [Clone, Debug, Eq, PartialEq]
+acanthus_scene::KeyEvent::command: fn command (& self) -> bool
+acanthus_scene::KeyEvent::is: fn is (& self , key : Key) -> bool
+acanthus_scene::KeyEvent::new: fn new (key : Key) -> Self
+acanthus_scene::KeyEvent::with_modifiers: fn with_modifiers (mut self , modifiers : Modifiers) -> Self
+acanthus_scene::KeyEvent::with_text: fn with_text (mut self , text : impl Into < String >) -> Self
+acanthus_scene::Kind: enum
+acanthus_scene::Kind::Image: variant (ImageStyle)
+acanthus_scene::Kind::Item: variant 
+acanthus_scene::Kind::Rect: variant (RectStyle)
+acanthus_scene::Kind::Shader: variant (ShaderStyle)
+acanthus_scene::Kind::Text: variant (TextStyle)
+acanthus_scene::LayerBegin.bounds: Rect
+acanthus_scene::LayerBegin.clip: Clip
+acanthus_scene::LayerBegin.fx: LayerFx
+acanthus_scene::LayerBegin.is_mask: bool
+acanthus_scene::LayerBegin.opacity: f32
+acanthus_scene::LayerBegin.source: Option < u8 >
+acanthus_scene::LayerBegin: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::LayerEffect.blur: f32
+acanthus_scene::LayerEffect.blur_max: f32
+acanthus_scene::LayerEffect.brightness: f32
+acanthus_scene::LayerEffect.colorization: f32
+acanthus_scene::LayerEffect.colorization_color: Color
+acanthus_scene::LayerEffect.contrast: f32
+acanthus_scene::LayerEffect.mask: Option < NodeId >
+acanthus_scene::LayerEffect.mask_spread: f32
+acanthus_scene::LayerEffect.mask_threshold: f32
+acanthus_scene::LayerEffect.saturation: f32
+acanthus_scene::LayerEffect.shadow: Option < LayerShadow >
+acanthus_scene::LayerEffect: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::LayerEffect::adjust: fn adjust (brightness : f32 , contrast : f32 , saturation : f32) -> Self
+acanthus_scene::LayerEffect::blur: fn blur (blur : f32) -> Self
+acanthus_scene::LayerEffect::colorize: fn colorize (color : Color , amount : f32) -> Self
+acanthus_scene::LayerEffect::mask: fn mask (source : NodeId) -> Self
+acanthus_scene::LayerEffect::shadow: fn shadow (color : Color , opacity : f32 , blur : f32 , offset : Vec2) -> Self
+acanthus_scene::LayerEffect::with_mask: fn with_mask (mut self , source : NodeId , threshold : f32 , spread : f32) -> Self
+acanthus_scene::LayerFx.blur: f32
+acanthus_scene::LayerFx.brightness: f32
+acanthus_scene::LayerFx.colorization: f32
+acanthus_scene::LayerFx.colorization_color: Color
+acanthus_scene::LayerFx.contrast: f32
+acanthus_scene::LayerFx.mask_spread: f32
+acanthus_scene::LayerFx.mask_threshold: f32
+acanthus_scene::LayerFx.masked: bool
+acanthus_scene::LayerFx.saturation: f32
+acanthus_scene::LayerFx.shadow: Option < LayerShadowFx >
+acanthus_scene::LayerFx: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::LayerFx::adjusts: fn adjusts (& self) -> bool
+acanthus_scene::LayerFx::is_none: fn is_none (& self) -> bool
+acanthus_scene::LayerGeometry.bottom: bool
+acanthus_scene::LayerGeometry.exclusive_zone: i32
+acanthus_scene::LayerGeometry.left: bool
+acanthus_scene::LayerGeometry.margin: [i32 ; 4]
+acanthus_scene::LayerGeometry.right: bool
+acanthus_scene::LayerGeometry.size: (u32 , u32)
+acanthus_scene::LayerGeometry.top: bool
+acanthus_scene::LayerGeometry: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::LayerShadow.blur: f32
+acanthus_scene::LayerShadow.color: Color
+acanthus_scene::LayerShadow.offset: Vec2
+acanthus_scene::LayerShadow.opacity: f32
+acanthus_scene::LayerShadow: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::LayerShadowFx.blur: f32
+acanthus_scene::LayerShadowFx.color: Color
+acanthus_scene::LayerShadowFx.offset: Vec2
+acanthus_scene::LayerShadowFx: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::Layout: enum [Clone, Copy, Debug, Default, PartialEq]
+acanthus_scene::Layout::Column: variant { # [doc = " Gap between children."] spacing : f32 , # [doc = " Inset from the container's edges."] padding : Vec2 , }
+acanthus_scene::Layout::Flow: variant { # [doc = " Gap between children in `x`, between lines in `y`."] spacing : Vec2 , # [doc = " Inset from the container's edges."] padding : Vec2 , }
+acanthus_scene::Layout::Free: variant 
+acanthus_scene::Layout::Grid: variant { # [doc = " Number of columns."] columns : usize , # [doc = " Column gap in `x`, row gap in `y`."] spacing : Vec2 , # [doc = " Inset from the container's edges."] padding : Vec2 , }
+acanthus_scene::Layout::Row: variant { # [doc = " Gap between children."] spacing : f32 , # [doc = " Inset from the container's edges."] padding : Vec2 , }
+acanthus_scene::Layout::Stack: variant { # [doc = " Inset from the container's edges."] padding : Vec2 , }
+acanthus_scene::Layout::column: fn column (spacing : f32) -> Self
+acanthus_scene::Layout::flow: fn flow (spacing : f32 , line_spacing : f32) -> Self
+acanthus_scene::Layout::grid: fn grid (columns : usize , column_spacing : f32 , row_spacing : f32) -> Self
+acanthus_scene::Layout::padding: fn padding (self , x : f32 , y : f32) -> Self
+acanthus_scene::Layout::row: fn row (spacing : f32) -> Self
+acanthus_scene::Layout::stack: fn stack () -> Self
+acanthus_scene::ListTransitions.add_opacity_ms: u32
+acanthus_scene::ListTransitions.add_scale_from: f32
+acanthus_scene::ListTransitions.add_scale_ms: u32
+acanthus_scene::ListTransitions.easing: Easing
+acanthus_scene::ListTransitions.remove_opacity_ms: u32
+acanthus_scene::ListTransitions: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::ListView.count: Signal < usize >
+acanthus_scene::ListView.flickable: Flickable
+acanthus_scene::ListView.instantiated: Signal < usize >
+acanthus_scene::ListView.nodes: FlickableNodes
+acanthus_scene::ListView.view_size: Signal < Vec2 >
+acanthus_scene::ListView: struct [Clone]
+acanthus_scene::ListView::item_range: fn item_range (& self , index : usize) -> Option < (f32 , f32) >
+acanthus_scene::ListView::position_view_at_index: fn position_view_at_index (& self , index : usize , mode : ViewPosition)
+acanthus_scene::ListViewConfig.cache_buffer: f32
+acanthus_scene::ListViewConfig.orientation: Orientation
+acanthus_scene::ListViewConfig.spacing: f32
+acanthus_scene::ListViewConfig.transitions: Option < ListTransitions >
+acanthus_scene::ListViewConfig: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::ListViewConfig::cache_buffer: fn cache_buffer (mut self , cache_buffer : f32) -> Self
+acanthus_scene::ListViewConfig::horizontal: fn horizontal () -> Self
+acanthus_scene::ListViewConfig::spacing: fn spacing (mut self , spacing : f32) -> Self
+acanthus_scene::ListViewConfig::transitions: fn transitions (mut self , transitions : ListTransitions) -> Self
+acanthus_scene::Loader.item: Signal < Option < NodeId > >
+acanthus_scene::Loader: struct [Clone]
+acanthus_scene::Margins.bottom: f32
+acanthus_scene::Margins.left: f32
+acanthus_scene::Margins.right: f32
+acanthus_scene::Margins.top: f32
+acanthus_scene::Margins: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_scene::Margins::all: fn all (v : f32) -> Self
+acanthus_scene::Margins::symmetric: fn symmetric (x : f32 , y : f32) -> Self
+acanthus_scene::Modifiers.alt: bool
+acanthus_scene::Modifiers.ctrl: bool
+acanthus_scene::Modifiers.logo: bool
+acanthus_scene::Modifiers.shift: bool
+acanthus_scene::Modifiers: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::MouseArea.hovered: Signal < bool >
+acanthus_scene::MouseArea.pressed: Signal < bool >
+acanthus_scene::MouseArea: struct [Default]
+acanthus_scene::MouseArea::hovered: fn hovered (& self) -> Signal < bool >
+acanthus_scene::MouseArea::new: fn new () -> Self
+acanthus_scene::MouseArea::on_click: fn on_click (mut self , f : impl FnMut (MouseButton) + 'static) -> Self
+acanthus_scene::MouseArea::on_scroll: fn on_scroll (mut self , f : impl FnMut (ScrollDelta) + 'static) -> Self
+acanthus_scene::MouseArea::pressed: fn pressed (& self) -> Signal < bool >
+acanthus_scene::MouseButton: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::MouseButton::Left: variant 
+acanthus_scene::MouseButton::Middle: variant 
+acanthus_scene::MouseButton::Other: variant (u32)
+acanthus_scene::MouseButton::Right: variant 
+acanthus_scene::MouseButton::from_linux: fn from_linux (code : u32) -> Self
+acanthus_scene::Node.active_focus: Signal < bool >
+acanthus_scene::Node.align: Signal < Align >
+acanthus_scene::Node.anchors: Signal < Anchors >
+acanthus_scene::Node.bounds: Signal < Rect >
+acanthus_scene::Node.clip: Signal < bool >
+acanthus_scene::Node.constraints: Signal < Constraints >
+acanthus_scene::Node.cursor: Option < CursorShape >
+acanthus_scene::Node.fill_height: Signal < bool >
+acanthus_scene::Node.fill_width: Signal < bool >
+acanthus_scene::Node.flick: Option < Flickable >
+acanthus_scene::Node.focusable: bool
+acanthus_scene::Node.height: Option < Signal < f32 > >
+acanthus_scene::Node.implicit_size: Signal < Vec2 >
+acanthus_scene::Node.kind: Kind
+acanthus_scene::Node.laid_out_hidden: bool
+acanthus_scene::Node.layer: Signal < bool >
+acanthus_scene::Node.layer_effect: Signal < LayerEffect >
+acanthus_scene::Node.layout: Signal < Layout >
+acanthus_scene::Node.mouse: Option < MouseArea >
+acanthus_scene::Node.opacity: Signal < f32 >
+acanthus_scene::Node.rotation: Signal < f32 >
+acanthus_scene::Node.scale: Signal < f32 >
+acanthus_scene::Node.smooth: bool
+acanthus_scene::Node.transform_origin: Signal < TransformOrigin >
+acanthus_scene::Node.visible: Signal < bool >
+acanthus_scene::Node.width: Option < Signal < f32 > >
+acanthus_scene::Node.x: Signal < f32 >
+acanthus_scene::Node.y: Signal < f32 >
+acanthus_scene::Node.z: Signal < f32 >
+acanthus_scene::Node: struct
+acanthus_scene::Node::active_focus: fn active_focus (& self) -> Signal < bool >
+acanthus_scene::Node::align: fn align (mut self , v : impl IntoSignal < Align >) -> Self
+acanthus_scene::Node::anchors: fn anchors (mut self , v : impl IntoSignal < Anchors >) -> Self
+acanthus_scene::Node::animate: fn animate (mut self , prop : Prop , motion : impl Into < Motion >) -> Self
+acanthus_scene::Node::animated: fn animated (mut self , v : impl IntoSignal < bool >) -> Self
+acanthus_scene::Node::bind: fn bind (self , effect : Effect) -> Self
+acanthus_scene::Node::border: fn border (mut self , width : impl IntoSignal < f32 > , color : impl IntoSignal < Color >) -> Self
+acanthus_scene::Node::bounds: fn bounds (& self) -> Signal < Rect >
+acanthus_scene::Node::children: fn children (& self) -> & [NodeId]
+acanthus_scene::Node::clip: fn clip (mut self , v : impl IntoSignal < bool >) -> Self
+acanthus_scene::Node::color: fn color (mut self , v : impl IntoSignal < Color >) -> Self
+acanthus_scene::Node::column: fn column (spacing : f32) -> Self
+acanthus_scene::Node::constraints: fn constraints (mut self , v : impl IntoSignal < Constraints >) -> Self
+acanthus_scene::Node::corner_radii: fn corner_radii (mut self , v : impl IntoSignal < Option < [f32 ; 4] > >) -> Self
+acanthus_scene::Node::cursor: fn cursor (mut self , shape : CursorShape) -> Self
+acanthus_scene::Node::elide: fn elide (mut self , v : impl IntoSignal < Elide >) -> Self
+acanthus_scene::Node::fill_height: fn fill_height (mut self) -> Self
+acanthus_scene::Node::fill_mode: fn fill_mode (mut self , v : impl IntoSignal < FillMode >) -> Self
+acanthus_scene::Node::fill_width: fn fill_width (mut self) -> Self
+acanthus_scene::Node::focusable: fn focusable (mut self , v : bool) -> Self
+acanthus_scene::Node::font_axes: fn font_axes (mut self , axes : & [(& str , f32)]) -> Self
+acanthus_scene::Node::font_family: fn font_family (mut self , v : impl IntoSignal < String >) -> Self
+acanthus_scene::Node::font_size: fn font_size (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::font_weight: fn font_weight (mut self , v : impl IntoSignal < u16 >) -> Self
+acanthus_scene::Node::gradient: fn gradient (mut self , v : impl IntoSignal < Option < Gradient > >) -> Self
+acanthus_scene::Node::h_align: fn h_align (mut self , v : impl IntoSignal < HAlign >) -> Self
+acanthus_scene::Node::height: fn height (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::image: fn image (source : impl IntoSignal < String >) -> Self
+acanthus_scene::Node::image_status: fn image_status (& self) -> Option < Signal < ImageStatus > >
+acanthus_scene::Node::implicit_size: fn implicit_size (& self) -> Signal < Vec2 >
+acanthus_scene::Node::item: fn item () -> Self
+acanthus_scene::Node::keep: fn keep (& mut self , value : impl Any)
+acanthus_scene::Node::layer: fn layer (mut self , v : impl IntoSignal < bool >) -> Self
+acanthus_scene::Node::layer_effect: fn layer_effect (mut self , v : impl IntoSignal < LayerEffect >) -> Self
+acanthus_scene::Node::layout: fn layout (mut self , v : impl IntoSignal < Layout >) -> Self
+acanthus_scene::Node::letter_spacing: fn letter_spacing (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::line_height: fn line_height (mut self , v : impl IntoSignal < Option < f32 > >) -> Self
+acanthus_scene::Node::margins: fn margins (self , v : Margins) -> Self
+acanthus_scene::Node::mask_source: fn mask_source (mut self) -> Self
+acanthus_scene::Node::max_lines: fn max_lines (mut self , v : impl IntoSignal < usize >) -> Self
+acanthus_scene::Node::max_size: fn max_size (self , w : f32 , h : f32) -> Self
+acanthus_scene::Node::min_size: fn min_size (self , w : f32 , h : f32) -> Self
+acanthus_scene::Node::mouse: fn mouse (mut self , area : MouseArea) -> Self
+acanthus_scene::Node::on_key: fn on_key (mut self , f : impl FnMut (& KeyEvent) -> bool + 'static) -> Self
+acanthus_scene::Node::on_pointer: fn on_pointer (mut self , f : impl FnMut (PointerEvent) + 'static) -> Self
+acanthus_scene::Node::opacity: fn opacity (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::own: fn own (mut self , value : impl Any) -> Self
+acanthus_scene::Node::parent: fn parent (& self) -> Option < NodeId >
+acanthus_scene::Node::preferred: fn preferred (self , w : f32 , h : f32) -> Self
+acanthus_scene::Node::preferred_height: fn preferred_height (self , h : f32) -> Self
+acanthus_scene::Node::preferred_width: fn preferred_width (self , w : f32) -> Self
+acanthus_scene::Node::radius: fn radius (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::rect: fn rect () -> Self
+acanthus_scene::Node::rotation: fn rotation (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::row: fn row (spacing : f32) -> Self
+acanthus_scene::Node::scale: fn scale (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::shader: fn shader (effect : ShaderEffect , params : impl IntoSignal < ShaderParams >) -> Self
+acanthus_scene::Node::shader_data: fn shader_data (mut self , data : impl IntoSignal < ShaderData >) -> Self
+acanthus_scene::Node::shader_sources: fn shader_sources (mut self , sources : [Option < NodeId > ; 2]) -> Self
+acanthus_scene::Node::size: fn size (self , w : impl IntoSignal < f32 > , h : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::smooth: fn smooth (mut self , v : bool) -> Self
+acanthus_scene::Node::source_size: fn source_size (mut self , v : impl IntoSignal < Option < Vec2 > >) -> Self
+acanthus_scene::Node::span: fn span (self , columns : usize , rows : usize) -> Self
+acanthus_scene::Node::styled: fn styled (mut self , v : bool) -> Self
+acanthus_scene::Node::text: fn text (text : impl IntoSignal < String >) -> Self
+acanthus_scene::Node::transform_origin: fn transform_origin (mut self , v : impl IntoSignal < TransformOrigin >) -> Self
+acanthus_scene::Node::v_align: fn v_align (mut self , v : impl IntoSignal < VAlign >) -> Self
+acanthus_scene::Node::visible: fn visible (mut self , v : impl IntoSignal < bool >) -> Self
+acanthus_scene::Node::width: fn width (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::wrap_mode: fn wrap_mode (mut self , v : impl IntoSignal < WrapMode >) -> Self
+acanthus_scene::Node::x: fn x (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::y: fn y (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Node::z: fn z (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::Orientation: enum [Clone, Copy, Debug, Default, PartialEq]
+acanthus_scene::Orientation::Horizontal: variant 
+acanthus_scene::Orientation::Vertical: variant 
+acanthus_scene::PointerEvent.phase: PointerPhase
+acanthus_scene::PointerEvent.position: Vec2
+acanthus_scene::PointerEvent.time: f32
+acanthus_scene::PointerEvent: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::PointerPhase: enum [Clone, Copy, Debug, PartialEq]
+acanthus_scene::PointerPhase::Drag: variant 
+acanthus_scene::PointerPhase::Press: variant 
+acanthus_scene::PointerPhase::Release: variant 
+acanthus_scene::Primitive: enum [Clone, Debug, PartialEq]
+acanthus_scene::Primitive::Glyph: variant (Glyph)
+acanthus_scene::Primitive::Image: variant (ImageDraw)
+acanthus_scene::Primitive::LayerBegin: variant (LayerBegin)
+acanthus_scene::Primitive::LayerEnd: variant 
+acanthus_scene::Primitive::Quad: variant (Quad)
+acanthus_scene::Primitive::Shader: variant (ShaderDraw)
+acanthus_scene::Prop: enum [Clone, Copy, Debug, Eq, Hash, PartialEq]
+acanthus_scene::Prop::BorderColor: variant 
+acanthus_scene::Prop::BorderWidth: variant 
+acanthus_scene::Prop::Color: variant 
+acanthus_scene::Prop::Height: variant 
+acanthus_scene::Prop::Opacity: variant 
+acanthus_scene::Prop::Radius: variant 
+acanthus_scene::Prop::Rotation: variant 
+acanthus_scene::Prop::Scale: variant 
+acanthus_scene::Prop::Width: variant 
+acanthus_scene::Prop::X: variant 
+acanthus_scene::Prop::Y: variant 
+acanthus_scene::Prop::animator_eligible: fn animator_eligible (self) -> bool
+acanthus_scene::Prop::name: fn name (self) -> & 'static str
+acanthus_scene::Quad.border_color: Color
+acanthus_scene::Quad.border_width: f32
+acanthus_scene::Quad.clip: Clip
+acanthus_scene::Quad.end: Color
+acanthus_scene::Quad.orientation: Option < Orientation >
+acanthus_scene::Quad.radii: [f32 ; 4]
+acanthus_scene::Quad.radius: f32
+acanthus_scene::Quad.rect: Rect
+acanthus_scene::Quad.start: Color
+acanthus_scene::Quad.transform: Affine2
+acanthus_scene::Quad: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::RectStyle.border_color: Signal < Color >
+acanthus_scene::RectStyle.border_width: Signal < f32 >
+acanthus_scene::RectStyle.color: Signal < Color >
+acanthus_scene::RectStyle.corner_radii: Signal < Option < [f32 ; 4] > >
+acanthus_scene::RectStyle.gradient: Signal < Option < Gradient > >
+acanthus_scene::RectStyle.radius: Signal < f32 >
+acanthus_scene::RectStyle: struct
+acanthus_scene::Repeater.anchor: NodeId
+acanthus_scene::Repeater.count: Signal < usize >
+acanthus_scene::Repeater: struct [Clone]
+acanthus_scene::Scene: struct
+acanthus_scene::Scene::add: fn add (& mut self , parent : NodeId , mut node : Node) -> NodeId
+acanthus_scene::Scene::clipboard: fn clipboard (& self) -> Clipboard
+acanthus_scene::Scene::cursor_shape: fn cursor_shape (& self) -> CursorShape
+acanthus_scene::Scene::flickable: fn flickable (& mut self , parent : NodeId , viewport : Node , flickable : & Flickable) -> FlickableNodes
+acanthus_scene::Scene::focus_next: fn focus_next (& mut self , backwards : bool)
+acanthus_scene::Scene::focus_when: fn focus_when (& mut self , node : NodeId , trigger : Signal < bool >)
+acanthus_scene::Scene::focused: fn focused (& self) -> Option < NodeId >
+acanthus_scene::Scene::fonts: fn fonts (& self) -> & Fonts
+acanthus_scene::Scene::frame: fn frame (& mut self) -> Frame < '_ >
+acanthus_scene::Scene::geometry: fn geometry (& self , id : NodeId) -> Option < Rect >
+acanthus_scene::Scene::get: fn get (& self , id : NodeId) -> Option < & Node >
+acanthus_scene::Scene::get_mut: fn get_mut (& mut self , id : NodeId) -> Option < & mut Node >
+acanthus_scene::Scene::images: fn images (& self) -> & ImageStore
+acanthus_scene::Scene::input_region: fn input_region (& self) -> Signal < Option < Vec < Rect > > >
+acanthus_scene::Scene::is_empty: fn is_empty (& self) -> bool
+acanthus_scene::Scene::key_event: fn key_event (& mut self , event : & KeyEvent) -> bool
+acanthus_scene::Scene::keyboard_on_demand: fn keyboard_on_demand (& self) -> Signal < Option < bool > >
+acanthus_scene::Scene::layer_geometry: fn layer_geometry (& self) -> Signal < Option < LayerGeometry > >
+acanthus_scene::Scene::layer_raised: fn layer_raised (& self) -> Signal < Option < bool > >
+acanthus_scene::Scene::len: fn len (& self) -> usize
+acanthus_scene::Scene::list_view: fn list_view < T , K > (& mut self , parent : NodeId , viewport : Node , config : ListViewConfig , model : & ListSignal < T > , key : impl Fn (& T) -> K + 'static , delegate : impl FnMut (& mut Scene , NodeId , Item < T >) -> NodeId + 'static ,) -> ListView where T : Clone + PartialEq + 'static , K : Eq + Hash + Clone + 'static ,
+acanthus_scene::Scene::loader: fn loader (& mut self , container : NodeId , active : impl IntoSignal < bool > , build : impl FnMut (& mut Scene , NodeId) -> NodeId + 'static ,) -> Loader
+acanthus_scene::Scene::needs_frame: fn needs_frame (& self) -> bool
+acanthus_scene::Scene::new: fn new (fonts : Fonts) -> Self
+acanthus_scene::Scene::pointer_button: fn pointer_button (& mut self , button : MouseButton , down : bool)
+acanthus_scene::Scene::pointer_button_at: fn pointer_button_at (& mut self , button : MouseButton , down : bool , time : f32)
+acanthus_scene::Scene::pointer_leave: fn pointer_leave (& mut self)
+acanthus_scene::Scene::pointer_motion: fn pointer_motion (& mut self , pos : Vec2)
+acanthus_scene::Scene::pointer_motion_at: fn pointer_motion_at (& mut self , pos : Vec2 , time : f32)
+acanthus_scene::Scene::remove: fn remove (& mut self , id : NodeId)
+acanthus_scene::Scene::repeater: fn repeater < T , K > (& mut self , parent : NodeId , model : & ListSignal < T > , key : impl Fn (& T) -> K + 'static , delegate : impl FnMut (& mut Scene , NodeId , Item < T >) -> NodeId + 'static ,) -> Repeater where T : Clone + PartialEq + 'static , K : Eq + Hash + Clone + 'static ,
+acanthus_scene::Scene::root: fn root (& self) -> NodeId
+acanthus_scene::Scene::scale: fn scale (& self) -> f32
+acanthus_scene::Scene::scroll: fn scroll (& mut self , delta : ScrollDelta)
+acanthus_scene::Scene::set_focus: fn set_focus (& mut self , id : Option < NodeId >)
+acanthus_scene::Scene::set_ui_scale: fn set_ui_scale (& mut self , scale : impl IntoSignal < f32 >)
+acanthus_scene::Scene::set_viewport: fn set_viewport (& mut self , size : Vec2 , scale : f32)
+acanthus_scene::Scene::set_window_focus: fn set_window_focus (& mut self , focused : bool)
+acanthus_scene::Scene::surface_input_region: fn surface_input_region (& self) -> Option < Vec < Rect > >
+acanthus_scene::Scene::surface_layer_geometry: fn surface_layer_geometry (& self) -> Option < LayerGeometry >
+acanthus_scene::Scene::surface_output: fn surface_output (& self) -> Signal < Option < SurfaceOutput > >
+acanthus_scene::Scene::text_input: fn text_input (& mut self , parent : NodeId , field : Node , input : & TextInput , style : TextInputStyle ,) -> TextInputNodes
+acanthus_scene::Scene::ui_scale: fn ui_scale (& self) -> f32
+acanthus_scene::Scene::viewport: fn viewport (& self) -> Signal < Vec2 >
+acanthus_scene::Scene::window_focus: fn window_focus (& self) -> bool
+acanthus_scene::Scene::with_images: fn with_images (fonts : Fonts , images : ImageStore) -> Self
+acanthus_scene::ScrollDelta.x: f32
+acanthus_scene::ScrollDelta.y: f32
+acanthus_scene::ScrollDelta: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_scene::ShaderData.0: Arc < [[f32 ; 4]] >
+acanthus_scene::ShaderData: struct [Clone, Debug, Default, PartialEq]
+acanthus_scene::ShaderData::from_floats: fn from_floats (values : & [f32]) -> Self
+acanthus_scene::ShaderData::from_vec4s: fn from_vec4s (values : impl Into < Arc < [[f32 ; 4]] > >) -> Self
+acanthus_scene::ShaderData::is_empty: fn is_empty (& self) -> bool
+acanthus_scene::ShaderDraw.clip: Clip
+acanthus_scene::ShaderDraw.data: ShaderData
+acanthus_scene::ShaderDraw.effect: ShaderEffect
+acanthus_scene::ShaderDraw.item_size: Vec2
+acanthus_scene::ShaderDraw.opacity: f32
+acanthus_scene::ShaderDraw.params: ShaderParams
+acanthus_scene::ShaderDraw.rect: Rect
+acanthus_scene::ShaderDraw.sources: [bool ; 2]
+acanthus_scene::ShaderDraw.transform: Affine2
+acanthus_scene::ShaderDraw: struct [Clone, Debug, PartialEq]
+acanthus_scene::ShaderEffect: enum [Clone, Copy, Debug, Eq, Hash, PartialEq]
+acanthus_scene::ShaderEffect::ALL: const [ShaderEffect ; 19]
+acanthus_scene::ShaderEffect::App: variant (u16)
+acanthus_scene::ShaderEffect::BorderCharge: variant 
+acanthus_scene::ShaderEffect::CircularWaveGauge: variant 
+acanthus_scene::ShaderEffect::CircularWaveGaugeSmooth: variant 
+acanthus_scene::ShaderEffect::CornerCutout: variant 
+acanthus_scene::ShaderEffect::CurtainWipe: variant 
+acanthus_scene::ShaderEffect::DashedEllipse: variant 
+acanthus_scene::ShaderEffect::FluidWave: variant 
+acanthus_scene::ShaderEffect::Ghost: variant 
+acanthus_scene::ShaderEffect::GridPattern: variant 
+acanthus_scene::ShaderEffect::MarqueeScroll: variant 
+acanthus_scene::ShaderEffect::RoundedMask: variant 
+acanthus_scene::ShaderEffect::ScreenWipe: variant 
+acanthus_scene::ShaderEffect::SeekbarWave: variant 
+acanthus_scene::ShaderEffect::Vignette: variant 
+acanthus_scene::ShaderEffect::VisualizerBars: variant 
+acanthus_scene::ShaderEffect::VisualizerRingWave: variant 
+acanthus_scene::ShaderEffect::VisualizerWave: variant 
+acanthus_scene::ShaderEffect::WallpaperBlend: variant 
+acanthus_scene::ShaderEffect::WidgetOutline: variant 
+acanthus_scene::ShaderEffect::index: fn index (self) -> usize
+acanthus_scene::ShaderParams.0: [[f32 ; 4] ; 8]
+acanthus_scene::ShaderParams: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_scene::ShaderParams::border_charge: fn border_charge (radius : f32 , inset : f32 , line_width : f32 , progress : f32) -> Self
+acanthus_scene::ShaderParams::circular_wave_gauge: fn circular_wave_gauge (fill_ratio : f32 , stroke_width : f32 , sine_wave : bool , accent : Color , params : [f32 ; 4] ,) -> Self
+acanthus_scene::ShaderParams::circular_wave_gauge_smooth: fn circular_wave_gauge_smooth (fill_ratio : f32 , stroke_width : f32 , sine_wave : bool , accent : Color , params : [f32 ; 4] , track : Color ,) -> Self
+acanthus_scene::ShaderParams::corner_cutout: fn corner_cutout (corner_index : f32 , color : Color) -> Self
+acanthus_scene::ShaderParams::curtain_wipe: fn curtain_wipe (reveal : f32 , amplitude : f32 , colors : [Color ; 5]) -> Self
+acanthus_scene::ShaderParams::dashed_ellipse: fn dashed_ellipse (radii : Vec2 , dash : Vec2 , line_width : f32 , color : Color) -> Self
+acanthus_scene::ShaderParams::fluid_wave: fn fluid_wave (radius : f32 , fill_level : f32 , wave : [f32 ; 2] , vertical : bool , global_alpha : f32 , from : Color , to : Color ,) -> Self
+acanthus_scene::ShaderParams::ghost: fn ghost (body : Color , pupil : Color , shift : Vec2) -> Self
+acanthus_scene::ShaderParams::grid_pattern: fn grid_pattern (step : f32 , line_width : f32 , color : Color) -> Self
+acanthus_scene::ShaderParams::marquee_scroll: fn marquee_scroll (src_size : Vec2 , offset : f32) -> Self
+acanthus_scene::ShaderParams::pack: fn pack < const N : usize > (slots : [[f32 ; 4] ; N]) -> Self
+acanthus_scene::ShaderParams::rounded_mask: fn rounded_mask (radii : [f32 ; 4] , fill_alpha : f32) -> Self
+acanthus_scene::ShaderParams::screen_wipe: fn screen_wipe (reveal : f32 , phase : f32 , amplitude : f32 , colors : [Color ; 5]) -> Self
+acanthus_scene::ShaderParams::seekbar_wave: fn seekbar_wave (color : Color , geometry : [f32 ; 4] , motion_params : [f32 ; 4] , shape : [[f32 ; 4] ; 2] , motion : [[f32 ; 4] ; 2] ,) -> Self
+acanthus_scene::ShaderParams::vignette: fn vignette (color : Color , inner : f32 , outer : f32 , max_alpha : f32) -> Self
+acanthus_scene::ShaderParams::visualizer_bars: fn visualizer_bars (color : Color , count : usize , vertical : bool , alignment : f32 , spacing : f32 , lengths : [f32 ; 2] , radius_ratio : f32 , opacity : [f32 ; 2] , edge_fade : bool , ring : [f32 ; 2] , tint_strength : f32 ,) -> Self
+acanthus_scene::ShaderParams::visualizer_ring_wave: fn visualizer_ring_wave (color : Color , count : usize , lengths : [f32 ; 2] , opacity : [f32 ; 2] , ring_radius : f32 , tint_strength : f32 ,) -> Self
+acanthus_scene::ShaderParams::visualizer_wave: fn visualizer_wave (color : Color , count : usize , vertical : bool , alignment : f32 , max_length : f32) -> Self
+acanthus_scene::ShaderParams::wallpaper_blend: fn wallpaper_blend (progress : f32 , transition : f32 , origin : Vec2 , params : [f32 ; 4]) -> Self
+acanthus_scene::ShaderParams::widget_outline: fn widget_outline (color : Color , radius : f32 , inset : f32 , line_width : f32 , amplitude : f32 , frequency : f32 , phase : f32 ,) -> Self
+acanthus_scene::ShaderStyle.data: Signal < ShaderData >
+acanthus_scene::ShaderStyle.effect: ShaderEffect
+acanthus_scene::ShaderStyle.params: Signal < ShaderParams >
+acanthus_scene::ShaderStyle.sources: [Option < NodeId > ; 2]
+acanthus_scene::ShaderStyle: struct
+acanthus_scene::ShapeClip.inverse: Affine2
+acanthus_scene::ShapeClip.radius: f32
+acanthus_scene::ShapeClip.rect: Rect
+acanthus_scene::ShapeClip: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::SurfaceOutput.name: String
+acanthus_scene::SurfaceOutput.size: Vec2
+acanthus_scene::SurfaceOutput: struct [Clone, Debug, PartialEq]
+acanthus_scene::TextInput: struct [Clone]
+acanthus_scene::TextInput::anchor: fn anchor (& self) -> Signal < usize >
+acanthus_scene::TextInput::before_key: fn before_key (self , f : impl FnMut (& KeyEvent) -> bool + 'static) -> Self
+acanthus_scene::TextInput::clear: fn clear (& self)
+acanthus_scene::TextInput::cursor: fn cursor (& self) -> Signal < usize >
+acanthus_scene::TextInput::delete_selection: fn delete_selection (& self) -> bool
+acanthus_scene::TextInput::handle_key: fn handle_key (& self , event : & KeyEvent , clipboard : & Clipboard) -> bool
+acanthus_scene::TextInput::has_selection: fn has_selection (& self) -> bool
+acanthus_scene::TextInput::index_at: fn index_at (& self , x : f32) -> usize
+acanthus_scene::TextInput::insert: fn insert (& self , text : & str) -> bool
+acanthus_scene::TextInput::is_empty: fn is_empty (& self) -> bool
+acanthus_scene::TextInput::len: fn len (& self) -> usize
+acanthus_scene::TextInput::max_length: fn max_length (self , v : usize) -> Self
+acanthus_scene::TextInput::new: fn new (text : impl Into < String >) -> Self
+acanthus_scene::TextInput::on_accepted: fn on_accepted (self , f : impl FnMut (& str) + 'static) -> Self
+acanthus_scene::TextInput::on_edited: fn on_edited (self , f : impl FnMut (& str) + 'static) -> Self
+acanthus_scene::TextInput::password: fn password (self , v : bool) -> Self
+acanthus_scene::TextInput::password_signal: fn password_signal (& self) -> Signal < bool >
+acanthus_scene::TextInput::read_only: fn read_only (self , v : bool) -> Self
+acanthus_scene::TextInput::scroll: fn scroll (& self) -> Signal < f32 >
+acanthus_scene::TextInput::select: fn select (& self , anchor : usize , cursor : usize)
+acanthus_scene::TextInput::select_all: fn select_all (& self)
+acanthus_scene::TextInput::selected_text: fn selected_text (& self) -> String
+acanthus_scene::TextInput::selection: fn selection (& self) -> (usize , usize)
+acanthus_scene::TextInput::set_cursor: fn set_cursor (& self , index : usize , extend : bool)
+acanthus_scene::TextInput::set_text: fn set_text (& self , text : impl Into < String >)
+acanthus_scene::TextInput::text: fn text (& self) -> Signal < String >
+acanthus_scene::TextInput::validator: fn validator (self , f : impl Fn (& str) -> bool + 'static) -> Self
+acanthus_scene::TextInputNodes.caret: NodeId
+acanthus_scene::TextInputNodes.field: NodeId
+acanthus_scene::TextInputNodes.placeholder: NodeId
+acanthus_scene::TextInputNodes.selection: NodeId
+acanthus_scene::TextInputNodes.text: NodeId
+acanthus_scene::TextInputNodes: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::TextInputStyle.caret_color: Signal < Color >
+acanthus_scene::TextInputStyle.color: Signal < Color >
+acanthus_scene::TextInputStyle.font_family: Signal < String >
+acanthus_scene::TextInputStyle.font_size: Signal < f32 >
+acanthus_scene::TextInputStyle.font_weight: Signal < u16 >
+acanthus_scene::TextInputStyle.placeholder: Signal < String >
+acanthus_scene::TextInputStyle.placeholder_color: Signal < Color >
+acanthus_scene::TextInputStyle.selection_color: Signal < Color >
+acanthus_scene::TextInputStyle: struct
+acanthus_scene::TextStyle.axes: u8
+acanthus_scene::TextStyle.color: Signal < Color >
+acanthus_scene::TextStyle.elide: Signal < Elide >
+acanthus_scene::TextStyle.family: Signal < String >
+acanthus_scene::TextStyle.h_align: Signal < HAlign >
+acanthus_scene::TextStyle.letter_spacing: Signal < f32 >
+acanthus_scene::TextStyle.line_height: Signal < Option < f32 > >
+acanthus_scene::TextStyle.max_lines: Signal < usize >
+acanthus_scene::TextStyle.size: Signal < f32 >
+acanthus_scene::TextStyle.styled: bool
+acanthus_scene::TextStyle.text: Signal < String >
+acanthus_scene::TextStyle.v_align: Signal < VAlign >
+acanthus_scene::TextStyle.weight: Signal < u16 >
+acanthus_scene::TextStyle.wrap: Signal < WrapMode >
+acanthus_scene::TextStyle: struct
+acanthus_scene::TransformOrigin: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::TransformOrigin::Bottom: variant 
+acanthus_scene::TransformOrigin::BottomLeft: variant 
+acanthus_scene::TransformOrigin::BottomRight: variant 
+acanthus_scene::TransformOrigin::Center: variant 
+acanthus_scene::TransformOrigin::Left: variant 
+acanthus_scene::TransformOrigin::Right: variant 
+acanthus_scene::TransformOrigin::Top: variant 
+acanthus_scene::TransformOrigin::TopLeft: variant 
+acanthus_scene::TransformOrigin::TopRight: variant 
+acanthus_scene::TransformOrigin::point: fn point (self , rect : Rect) -> Vec2
+acanthus_scene::VAlign: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::VAlign::Bottom: variant 
+acanthus_scene::VAlign::Center: variant 
+acanthus_scene::VAlign::Top: variant 
+acanthus_scene::ViewPosition: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_scene::ViewPosition::Beginning: variant 
+acanthus_scene::ViewPosition::Center: variant 
+acanthus_scene::ViewPosition::Contain: variant 
+acanthus_scene::ViewPosition::End: variant 
+acanthus_scene::ViewPosition::Visible: variant 
+acanthus_scene::WrapMode: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_scene::WrapMode::Anywhere: variant 
+acanthus_scene::WrapMode::NoWrap: variant 
+acanthus_scene::WrapMode::Word: variant 
+acanthus_scene::WrapMode::WordOrAnywhere: variant 
+acanthus_scene::app_effects: fn app_effects () -> & 'static [AppEffect]
+acanthus_scene::flags_for: fn flags_for (profile : u8) -> CacheKeyFlags
+acanthus_scene::lookup: fn lookup (flags : CacheKeyFlags) -> Option < Vec < Axis > >
+acanthus_scene::register_app_effects: fn register_app_effects (effects : & 'static [AppEffect])
+impl Clone for acanthus_scene::Item
+impl Default for acanthus_scene::Constraints
+impl Default for acanthus_scene::Flickable
+impl Default for acanthus_scene::Fonts
+impl Default for acanthus_scene::LayerEffect
+impl Default for acanthus_scene::LayerFx
+impl Default for acanthus_scene::ListViewConfig
+impl Default for acanthus_scene::TextInput
+impl Default for acanthus_scene::TextInputStyle
+impl IntoSignal < LayerEffect > for acanthus_scene::LayerEffect
+impl IntoSignal < Option < Gradient > > for acanthus_scene::Gradient

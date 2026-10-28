@@ -1,0 +1,94 @@
+acanthus_core::list::ListSignal: struct< T >
+acanthus_core::list::ListSignal::at: fn at (& self , index : usize) -> Option < T >
+acanthus_core::list::ListSignal::clear: fn clear (& self)
+acanthus_core::list::ListSignal::get: fn get (& self) -> Vec < T >
+acanthus_core::list::ListSignal::get_untracked: fn get_untracked (& self) -> Vec < T >
+acanthus_core::list::ListSignal::insert: fn insert (& self , index : usize , item : T)
+acanthus_core::list::ListSignal::is_empty: fn is_empty (& self) -> bool
+acanthus_core::list::ListSignal::len: fn len (& self) -> usize
+acanthus_core::list::ListSignal::move_item: fn move_item (& self , from : usize , to : usize)
+acanthus_core::list::ListSignal::new: fn new (items : Vec < T >) -> Self
+acanthus_core::list::ListSignal::push: fn push (& self , item : T)
+acanthus_core::list::ListSignal::remove: fn remove (& self , index : usize) -> Option < T >
+acanthus_core::list::ListSignal::replace: fn replace (& self , items : Vec < T >)
+acanthus_core::list::ListSignal::signal: fn signal (& self) -> & Signal < Vec < T > >
+acanthus_core::list::ListSignal::update_at: fn update_at (& self , index : usize , f : impl FnOnce (& mut T))
+acanthus_core::list::ListSignal::with: fn with < R > (& self , f : impl FnOnce (& [T]) -> R) -> R
+acanthus_core::reactive::Effect: struct
+acanthus_core::reactive::Effect::leak: fn leak (self)
+acanthus_core::reactive::Effect::new: fn new (f : impl FnMut () + 'static) -> Self
+acanthus_core::reactive::Memo.signal: Signal < T >
+acanthus_core::reactive::Memo: struct< T >
+acanthus_core::reactive::Memo::get: fn get (& self) -> T
+acanthus_core::reactive::Memo::new: fn new (mut f : impl FnMut () -> T + 'static) -> Self
+acanthus_core::reactive::Memo::split: fn split (self) -> (Signal < T > , Effect)
+acanthus_core::reactive::Scope: struct [Default]
+acanthus_core::reactive::Scope::add: fn add (& mut self , value : impl std :: any :: Any)
+acanthus_core::reactive::Scope::derive: fn derive < T : PartialEq + 'static > (& mut self , f : impl FnMut () -> T + 'static) -> Signal < T >
+acanthus_core::reactive::Signal: struct< T >
+acanthus_core::reactive::Signal::bind: fn bind (& self , mut f : impl FnMut () -> T + 'static) -> Effect
+acanthus_core::reactive::Signal::get: fn get (& self) -> T
+acanthus_core::reactive::Signal::get_untracked: fn get_untracked (& self) -> T
+acanthus_core::reactive::Signal::new: fn new (value : T) -> Self
+acanthus_core::reactive::Signal::ptr_eq: fn ptr_eq (& self , other : & Signal < T >) -> bool
+acanthus_core::reactive::Signal::set: fn set (& self , value : T)
+acanthus_core::reactive::Signal::set_forced: fn set_forced (& self , value : T)
+acanthus_core::reactive::Signal::try_get_untracked: fn try_get_untracked (& self) -> Option < T >
+acanthus_core::reactive::Signal::try_with_untracked: fn try_with_untracked < R > (& self , f : impl FnOnce (& T) -> R) -> Option < R >
+acanthus_core::reactive::Signal::update: fn update (& self , f : impl FnOnce (& mut T))
+acanthus_core::reactive::Signal::with: fn with < R > (& self , f : impl FnOnce (& T) -> R) -> R
+acanthus_core::reactive::Signal::with_untracked: fn with_untracked < R > (& self , f : impl FnOnce (& T) -> R) -> R
+acanthus_core::reactive::Tracker: struct
+acanthus_core::reactive::Tracker::is_dirty: fn is_dirty (& self) -> bool
+acanthus_core::reactive::Tracker::mark_dirty: fn mark_dirty (& self)
+acanthus_core::reactive::Tracker::new: fn new () -> Self
+acanthus_core::reactive::Tracker::track: fn track < R > (& self , f : impl FnOnce () -> R) -> R
+acanthus_core::reactive::batch: fn batch < R > (f : impl FnOnce () -> R) -> R
+acanthus_core::reactive::epoch: fn epoch () -> u64
+acanthus_core::reactive::untrack: fn untrack < R > (f : impl FnOnce () -> R) -> R
+acanthus_core::types::Color.a: f32
+acanthus_core::types::Color.b: f32
+acanthus_core::types::Color.g: f32
+acanthus_core::types::Color.r: f32
+acanthus_core::types::Color: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_core::types::Color::BLACK: const Color
+acanthus_core::types::Color::TRANSPARENT: const Color
+acanthus_core::types::Color::WHITE: const Color
+acanthus_core::types::Color::darken: fn darken (self , factor : f32) -> Self
+acanthus_core::types::Color::fade: fn fade (self , opacity : f32) -> Self
+acanthus_core::types::Color::hex: const fn hex (rgb : u32) -> Self
+acanthus_core::types::Color::hexa: const fn hexa (rgba : u32) -> Self
+acanthus_core::types::Color::lerp: fn lerp (self , to : Color , t : f32) -> Self
+acanthus_core::types::Color::lighten: fn lighten (self , factor : f32) -> Self
+acanthus_core::types::Color::mix: fn mix (self , to : Color , t : f32) -> Self
+acanthus_core::types::Color::parse: fn parse (s : & str) -> Option < Self >
+acanthus_core::types::Color::premultiplied: fn premultiplied (self) -> [f32 ; 4]
+acanthus_core::types::Color::rgb8: const fn rgb8 (r : u8 , g : u8 , b : u8) -> Self
+acanthus_core::types::Color::rgba: const fn rgba (r : f32 , g : f32 , b : f32 , a : f32) -> Self
+acanthus_core::types::Color::with_alpha: const fn with_alpha (self , a : f32) -> Self
+acanthus_core::types::Rect.h: f32
+acanthus_core::types::Rect.w: f32
+acanthus_core::types::Rect.x: f32
+acanthus_core::types::Rect.y: f32
+acanthus_core::types::Rect: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_core::types::Rect::bottom: fn bottom (& self) -> f32
+acanthus_core::types::Rect::contains: fn contains (& self , p : Vec2) -> bool
+acanthus_core::types::Rect::inset: fn inset (& self , m : f32) -> Rect
+acanthus_core::types::Rect::intersect: fn intersect (& self , o : & Rect) -> Rect
+acanthus_core::types::Rect::is_empty: fn is_empty (& self) -> bool
+acanthus_core::types::Rect::new: const fn new (x : f32 , y : f32 , w : f32 , h : f32) -> Self
+acanthus_core::types::Rect::right: fn right (& self) -> f32
+acanthus_core::types::Rect::scale: fn scale (& self , s : f32) -> Rect
+acanthus_core::types::Rect::translate: fn translate (& self , d : Vec2) -> Rect
+acanthus_core::types::darken: fn darken (color : Color , factor : f32) -> Color
+acanthus_core::types::lighten: fn lighten (color : Color , factor : f32) -> Color
+acanthus_core::types::scaled: fn scaled (value : f32 , scale : f32) -> f32
+impl Clone for acanthus_core::list::ListSignal
+impl Clone for acanthus_core::reactive::Signal
+impl Default for acanthus_core::list::ListSignal
+impl Default for acanthus_core::reactive::Signal
+impl Default for acanthus_core::reactive::Tracker
+impl Drop for acanthus_core::reactive::Effect
+impl Drop for acanthus_core::reactive::Tracker
+impl fmt :: Debug for acanthus_core::reactive::Effect
+impl fmt :: Debug for acanthus_core::reactive::Signal

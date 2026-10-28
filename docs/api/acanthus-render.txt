@@ -1,0 +1,21 @@
+acanthus_render::Gpu.adapter: wgpu :: Adapter
+acanthus_render::Gpu.device: wgpu :: Device
+acanthus_render::Gpu.instance: wgpu :: Instance
+acanthus_render::Gpu.queue: wgpu :: Queue
+acanthus_render::Gpu: struct
+acanthus_render::Gpu::context: fn context (& self , format : wgpu :: TextureFormat , images : & ImageStore) -> GpuContext
+acanthus_render::Gpu::instance: fn instance () -> wgpu :: Instance
+acanthus_render::Gpu::new: async fn new (instance : wgpu :: Instance , surface : Option < & wgpu :: Surface < '_ > >) -> Result < Self , GpuError >
+acanthus_render::Gpu::surface_config: fn surface_config (& self , surface : & wgpu :: Surface < '_ > , width : u32 , height : u32) -> wgpu :: SurfaceConfiguration
+acanthus_render::GpuContext: struct [Clone]
+acanthus_render::GpuContext::matches: fn matches (& self , format : wgpu :: TextureFormat , images : & ImageStore) -> bool
+acanthus_render::GpuContext::new: fn new (device : & wgpu :: Device , format : wgpu :: TextureFormat , images : ImageStore) -> Self
+acanthus_render::GpuError: enum [Debug, thiserror :: Error]
+acanthus_render::GpuError::Adapter: variant (# [from] wgpu :: RequestAdapterError)
+acanthus_render::GpuError::Device: variant (# [from] wgpu :: RequestDeviceError)
+acanthus_render::GpuError::Surface: variant (# [from] wgpu :: CreateSurfaceError)
+acanthus_render::Renderer: struct
+acanthus_render::Renderer::new: fn new (device : & wgpu :: Device , format : wgpu :: TextureFormat , fonts : Fonts , images : ImageStore) -> Self
+acanthus_render::Renderer::render: fn render (& mut self , device : & wgpu :: Device , queue : & wgpu :: Queue , target : & wgpu :: TextureView , size : (u32 , u32) , primitives : & [Primitive] , clear : Color ,)
+acanthus_render::Renderer::reused_layers: fn reused_layers (& self) -> usize
+acanthus_render::Renderer::with_context: fn with_context (device : & wgpu :: Device , ctx : GpuContext , fonts : Fonts) -> Self

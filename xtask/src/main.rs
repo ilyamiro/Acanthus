@@ -1,9 +1,10 @@
+mod api;
 mod new_module;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: cargo xtask new-module <name> [--dir <parent directory>]";
+const USAGE: &str = "usage: cargo xtask new-module <name> [--dir <parent directory>] | cargo xtask api [--check]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -25,6 +26,14 @@ fn run(args: &[String]) -> Result<String, String> {
             let (name, dir) = parse_new_module(&args[1..])?;
             let created = new_module::scaffold(&name, &dir)?;
             Ok(new_module::report(&name, &created))
+        }
+        Some("api") => {
+            let check = match args.get(1).map(String::as_str) {
+                None => false,
+                Some("--check") => true,
+                Some(_) => return Err(USAGE.to_string()),
+            };
+            api::run(&std::env::current_dir().map_err(|e| e.to_string())?, check)
         }
         _ => Err(USAGE.to_string()),
     }

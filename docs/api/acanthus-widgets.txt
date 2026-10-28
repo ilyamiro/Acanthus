@@ -1,0 +1,323 @@
+acanthus_widgets::button::CLICK: const CLICK: Feel
+acanthus_widgets::button::FILL: const FILL: Feel
+acanthus_widgets::button::Feel.flash_ms: u32
+acanthus_widgets::button::Feel.flash_peak: f32
+acanthus_widgets::button::Feel.pop_in_ms: u32
+acanthus_widgets::button::Feel.pop_out_ms: u32
+acanthus_widgets::button::Feel.pop_peak: f32
+acanthus_widgets::button::Feel.sound: & 'static str
+acanthus_widgets::button::Feel: struct [Clone, Copy]
+acanthus_widgets::button::ICON: const ICON: Feel
+acanthus_widgets::button::IconButtonComponent: struct
+acanthus_widgets::button::IconSpec.accent: Signal < Color >
+acanthus_widgets::button::IconSpec.bg_opacity: Signal < f32 >
+acanthus_widgets::button::IconSpec.font: Signal < String >
+acanthus_widgets::button::IconSpec.glyph: Signal < String >
+acanthus_widgets::button::IconSpec.glyph_size: f32
+acanthus_widgets::button::IconSpec.height: f32
+acanthus_widgets::button::IconSpec.on_click: Rc < dyn Fn () >
+acanthus_widgets::button::IconSpec.radius: Signal < f32 >
+acanthus_widgets::button::IconSpec.sound: Sound
+acanthus_widgets::button::IconSpec.text: Signal < Color >
+acanthus_widgets::button::IconSpec.text_hover: Signal < Color >
+acanthus_widgets::button::IconSpec.width: f32
+acanthus_widgets::button::IconSpec: struct
+acanthus_widgets::button::Press: struct
+acanthus_widgets::button::Press::fire: fn fire (& self)
+acanthus_widgets::button::Press::new: fn new (feel : Feel , sound : Sound) -> Rc < Press >
+acanthus_widgets::button::Press::scale: fn scale (& self , keep : & mut Keep , hover : & Signal < f32 >) -> Signal < f32 >
+acanthus_widgets::button::Sound: type Sound = Option < Rc < dyn Fn (& str) > >
+acanthus_widgets::button::activate: fn activate (press : & Rc < Press > , click : impl Fn () + 'static) -> Rc < dyn Fn () >
+acanthus_widgets::button::dress: fn dress (scene : & mut Scene , body : NodeId , radius : & Signal < f32 > , press : & Press)
+acanthus_widgets::button::flash: fn flash (scene : & mut Scene , body : NodeId , radius : & Signal < f32 > , press : & Press)
+acanthus_widgets::button::focusable: fn focusable (node : Node , activate : Rc < dyn Fn () >) -> Node
+acanthus_widgets::button::icon_button: fn icon_button (scene : & mut Scene , parent : NodeId , spec : IconSpec) -> NodeId
+acanthus_widgets::component::BuildError: enum [Clone, Debug, Eq, PartialEq]
+acanthus_widgets::component::BuildError::Duplicate: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop."] name : & 'static str , }
+acanthus_widgets::component::BuildError::Missing: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop."] name : & 'static str , }
+acanthus_widgets::component::BuildError::UnknownComponent: variant { # [doc = " The name that was asked for."] name : String , # [doc = " The closest registered name."] suggestion : Option < String > , }
+acanthus_widgets::component::BuildError::UnknownProp: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop that was given."] name : String , # [doc = " The closest declared prop."] suggestion : Option < String > , }
+acanthus_widgets::component::BuildError::WrongKind: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop."] name : & 'static str , # [doc = " The declared type."] expected : Kind , # [doc = " The type that was given."] found : Kind , }
+acanthus_widgets::component::Component: trait
+acanthus_widgets::component::Component::build: required fn build (& self , scene : & mut Scene , parent : NodeId , props : & Props) -> NodeId
+acanthus_widgets::component::Component::name: required fn name (& self) -> & 'static str
+acanthus_widgets::component::Component::props: required fn props (& self) -> & 'static [PropSpec]
+acanthus_widgets::component::Kind: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_widgets::component::Kind::Bool: variant 
+acanthus_widgets::component::Kind::BoolEvent: variant 
+acanthus_widgets::component::Kind::Color: variant 
+acanthus_widgets::component::Kind::Event: variant 
+acanthus_widgets::component::Kind::Flickable: variant 
+acanthus_widgets::component::Kind::Index: variant 
+acanthus_widgets::component::Kind::IndexEvent: variant 
+acanthus_widgets::component::Kind::Node: variant 
+acanthus_widgets::component::Kind::Number: variant 
+acanthus_widgets::component::Kind::NumberEvent: variant 
+acanthus_widgets::component::Kind::Point: variant 
+acanthus_widgets::component::Kind::Text: variant 
+acanthus_widgets::component::Kind::TextList: variant 
+acanthus_widgets::component::Kind::TextSlots: variant 
+acanthus_widgets::component::Kind::word: fn word (self) -> & 'static str
+acanthus_widgets::component::Prop: enum [Clone]
+acanthus_widgets::component::Prop::Bool: variant (Signal < bool >)
+acanthus_widgets::component::Prop::BoolEvent: variant (Rc < dyn Fn (bool) >)
+acanthus_widgets::component::Prop::Color: variant (Signal < Color >)
+acanthus_widgets::component::Prop::Event: variant (Rc < dyn Fn () >)
+acanthus_widgets::component::Prop::Flickable: variant (Flickable)
+acanthus_widgets::component::Prop::Index: variant (Signal < usize >)
+acanthus_widgets::component::Prop::IndexEvent: variant (Rc < dyn Fn (usize) >)
+acanthus_widgets::component::Prop::Node: variant (NodeId)
+acanthus_widgets::component::Prop::Number: variant (Signal < f32 >)
+acanthus_widgets::component::Prop::NumberEvent: variant (Rc < dyn Fn (f32) >)
+acanthus_widgets::component::Prop::Point: variant (Signal < Vec2 >)
+acanthus_widgets::component::Prop::Text: variant (Signal < String >)
+acanthus_widgets::component::Prop::TextList: variant (Signal < Vec < String > >)
+acanthus_widgets::component::Prop::TextSlots: variant (Vec < Signal < String > >)
+acanthus_widgets::component::Prop::bool: fn bool (value : bool) -> Prop
+acanthus_widgets::component::Prop::color: fn color (value : Color) -> Prop
+acanthus_widgets::component::Prop::kind: fn kind (& self) -> Kind
+acanthus_widgets::component::Prop::number: fn number (value : f32) -> Prop
+acanthus_widgets::component::Prop::text: fn text (value : impl Into < String >) -> Prop
+acanthus_widgets::component::PropSpec.default: Option < fn () -> Prop >
+acanthus_widgets::component::PropSpec.kind: Kind
+acanthus_widgets::component::PropSpec.name: & 'static str
+acanthus_widgets::component::PropSpec: struct
+acanthus_widgets::component::PropSpec::bool: const fn bool (name : & 'static str , default : fn () -> Prop) -> PropSpec
+acanthus_widgets::component::PropSpec::bool_event: const fn bool_event (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::color: const fn color (name : & 'static str , default : fn () -> Prop) -> PropSpec
+acanthus_widgets::component::PropSpec::event: const fn event (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::index: const fn index (name : & 'static str , default : fn () -> Prop) -> PropSpec
+acanthus_widgets::component::PropSpec::index_event: const fn index_event (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::number: const fn number (name : & 'static str , default : fn () -> Prop) -> PropSpec
+acanthus_widgets::component::PropSpec::number_event: const fn number_event (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::point: const fn point (name : & 'static str , default : fn () -> Prop) -> PropSpec
+acanthus_widgets::component::PropSpec::required: const fn required (name : & 'static str , kind : Kind) -> PropSpec
+acanthus_widgets::component::PropSpec::text: const fn text (name : & 'static str , default : fn () -> Prop) -> PropSpec
+acanthus_widgets::component::PropSpec::text_list: const fn text_list (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::text_slots: const fn text_slots (name : & 'static str) -> PropSpec
+acanthus_widgets::component::Props: struct
+acanthus_widgets::component::Props::bool: fn bool (& self , name : & str) -> Signal < bool >
+acanthus_widgets::component::Props::bool_event: fn bool_event (& self , name : & str) -> Rc < dyn Fn (bool) >
+acanthus_widgets::component::Props::color: fn color (& self , name : & str) -> Signal < Color >
+acanthus_widgets::component::Props::event: fn event (& self , name : & str) -> Rc < dyn Fn () >
+acanthus_widgets::component::Props::flickable: fn flickable (& self , name : & str) -> Flickable
+acanthus_widgets::component::Props::index: fn index (& self , name : & str) -> Signal < usize >
+acanthus_widgets::component::Props::index_event: fn index_event (& self , name : & str) -> Rc < dyn Fn (usize) >
+acanthus_widgets::component::Props::node: fn node (& self , name : & str) -> NodeId
+acanthus_widgets::component::Props::number: fn number (& self , name : & str) -> Signal < f32 >
+acanthus_widgets::component::Props::number_event: fn number_event (& self , name : & str) -> Rc < dyn Fn (f32) >
+acanthus_widgets::component::Props::point: fn point (& self , name : & str) -> Signal < Vec2 >
+acanthus_widgets::component::Props::text: fn text (& self , name : & str) -> Signal < String >
+acanthus_widgets::component::Props::text_list: fn text_list (& self , name : & str) -> Signal < Vec < String > >
+acanthus_widgets::component::Props::text_slots: fn text_slots (& self , name : & str) -> Vec < Signal < String > >
+acanthus_widgets::component::Registry: struct [Default]
+acanthus_widgets::component::Registry::build: fn build (& self , name : & str , scene : & mut Scene , parent : NodeId , given : Vec < (String , Prop) > ,) -> Result < NodeId , BuildError >
+acanthus_widgets::component::Registry::get: fn get (& self , name : & str) -> Option < Rc < dyn Component > >
+acanthus_widgets::component::Registry::names: fn names (& self) -> Vec < & 'static str >
+acanthus_widgets::component::Registry::new: fn new () -> Registry
+acanthus_widgets::component::Registry::register: fn register (& mut self , component : impl Component + 'static)
+acanthus_widgets::component::Registry::resolve: fn resolve (& self , name : & str , given : Vec < (String , Prop) >) -> Result < (Rc < dyn Component > , Props) , BuildError >
+acanthus_widgets::component::nearest: fn nearest < 'a > (word : & str , candidates : impl IntoIterator < Item = & 'a str >) -> Option < & 'a str >
+acanthus_widgets::dropdown::CLICK_SOUND: const CLICK_SOUND: & str
+acanthus_widgets::dropdown::DropdownComponent: struct
+acanthus_widgets::dropdown::ENTER_MS: const ENTER_MS: u32
+acanthus_widgets::dropdown::EXIT_MS: const EXIT_MS: u32
+acanthus_widgets::dropdown::ITEM_GAP: const ITEM_GAP: f32
+acanthus_widgets::dropdown::ITEM_HEIGHT: const ITEM_HEIGHT: f32
+acanthus_widgets::dropdown::MAX_LIST_HEIGHT: const MAX_LIST_HEIGHT: f32
+acanthus_widgets::dropdown::MENU_GAP: const MENU_GAP: f32
+acanthus_widgets::dropdown::PADDING: const PADDING: f32
+acanthus_widgets::dropdown::Spec.accent: Signal < Color >
+acanthus_widgets::dropdown::Spec.active_text: Signal < Color >
+acanthus_widgets::dropdown::Spec.base: Signal < Color >
+acanthus_widgets::dropdown::Spec.border: Signal < Color >
+acanthus_widgets::dropdown::Spec.current: Signal < usize >
+acanthus_widgets::dropdown::Spec.font: Signal < String >
+acanthus_widgets::dropdown::Spec.font_size: f32
+acanthus_widgets::dropdown::Spec.height: f32
+acanthus_widgets::dropdown::Spec.hover: Signal < Color >
+acanthus_widgets::dropdown::Spec.icon_size: f32
+acanthus_widgets::dropdown::Spec.menu: Signal < Color >
+acanthus_widgets::dropdown::Spec.menu_x: Signal < f32 >
+acanthus_widgets::dropdown::Spec.menu_y: Signal < f32 >
+acanthus_widgets::dropdown::Spec.on_select: Rc < dyn Fn (usize) >
+acanthus_widgets::dropdown::Spec.open: Signal < bool >
+acanthus_widgets::dropdown::Spec.options: Signal < Vec < String > >
+acanthus_widgets::dropdown::Spec.overlay: NodeId
+acanthus_widgets::dropdown::Spec.overlay_size: (f32 , f32)
+acanthus_widgets::dropdown::Spec.placeholder: Signal < String >
+acanthus_widgets::dropdown::Spec.radius: Signal < f32 >
+acanthus_widgets::dropdown::Spec.scale: f32
+acanthus_widgets::dropdown::Spec.sound: Sound
+acanthus_widgets::dropdown::Spec.text: Signal < Color >
+acanthus_widgets::dropdown::Spec.width: f32
+acanthus_widgets::dropdown::Spec.x: Signal < f32 >
+acanthus_widgets::dropdown::Spec.y: Signal < f32 >
+acanthus_widgets::dropdown::Spec: struct
+acanthus_widgets::dropdown::content_height: fn content_height (count : usize) -> f32
+acanthus_widgets::dropdown::dropdown: fn dropdown (scene : & mut Scene , parent : NodeId , spec : Spec) -> NodeId
+acanthus_widgets::dropdown::filter: fn filter (options : & [String] , query : & str) -> Vec < usize >
+acanthus_widgets::dropdown::fuzzy_score: fn fuzzy_score (query : & str , text : & str) -> Option < i32 >
+acanthus_widgets::dropdown::list_height: fn list_height (count : usize) -> f32
+acanthus_widgets::dropdown::menu_radius: fn menu_radius (radius : f32) -> f32
+acanthus_widgets::dropdown::row_radius: fn row_radius (radius : f32) -> f32
+acanthus_widgets::dropdown::shown: fn shown (elapsed_ms : f32 , index : usize , count : usize) -> bool
+acanthus_widgets::dropdown::stagger_ms: fn stagger_ms (index : usize) -> f32
+acanthus_widgets::dropdown::stagger_total_ms: fn stagger_total_ms (count : usize) -> f32
+acanthus_widgets::dropdown::visible_count: fn visible_count (count : usize) -> usize
+acanthus_widgets::marquee::MARQUEE_PAUSE_MS: const MARQUEE_PAUSE_MS: u32
+acanthus_widgets::marquee::MarqueeComponent: struct
+acanthus_widgets::marquee::Spec.active: Signal < bool >
+acanthus_widgets::marquee::Spec.color: Signal < Color >
+acanthus_widgets::marquee::Spec.family: Signal < String >
+acanthus_widgets::marquee::Spec.size: f32
+acanthus_widgets::marquee::Spec.spacing: f32
+acanthus_widgets::marquee::Spec.speed: f32
+acanthus_widgets::marquee::Spec.text: Signal < String >
+acanthus_widgets::marquee::Spec.weight: u16
+acanthus_widgets::marquee::Spec.width: Signal < f32 >
+acanthus_widgets::marquee::Spec: struct
+acanthus_widgets::marquee::build: fn build (scene : & mut Scene , parent : NodeId , spec : Spec) -> NodeId
+acanthus_widgets::marquee::can_marquee: fn can_marquee (active : bool , text_width : f32 , width : f32) -> bool
+acanthus_widgets::marquee::scroll_distance: fn scroll_distance (text_width : f32 , spacing : f32) -> f32
+acanthus_widgets::marquee::scroll_duration_ms: fn scroll_duration_ms (distance : f32 , speed : f32) -> u32
+acanthus_widgets::marquee::scroll_x: fn scroll_x (progress : f32 , distance : f32) -> f32
+acanthus_widgets::scrollbar::ScrollBar.color: C
+acanthus_widgets::scrollbar::ScrollBar.flickable: Flickable
+acanthus_widgets::scrollbar::ScrollBar.radius: f32
+acanthus_widgets::scrollbar::ScrollBar.top: f32
+acanthus_widgets::scrollbar::ScrollBar.view: Signal < Vec2 >
+acanthus_widgets::scrollbar::ScrollBar.width: f32
+acanthus_widgets::scrollbar::ScrollBar.x: X
+acanthus_widgets::scrollbar::ScrollBar: struct< X , C >
+acanthus_widgets::scrollbar::ScrollBarComponent: struct
+acanthus_widgets::scrollbar::scroll_bar: fn scroll_bar < X : IntoSignal < f32 > , C : IntoSignal < Color > > (scene : & mut Scene , parent : NodeId , bar : ScrollBar < X , C > ,) -> NodeId
+acanthus_widgets::scrollbar::scroll_handle: fn scroll_handle (content : f32 , view : f32 , position : f32) -> Option < (f32 , f32) >
+acanthus_widgets::search_field::SearchField.focus: Signal < bool >
+acanthus_widgets::search_field::SearchField.font_size: f32
+acanthus_widgets::search_field::SearchField.gap: f32
+acanthus_widgets::search_field::SearchField.height: f32
+acanthus_widgets::search_field::SearchField.input: & 'a TextInput
+acanthus_widgets::search_field::SearchField.on_clear: Rc < dyn Fn () >
+acanthus_widgets::search_field::SearchField.pad: f32
+acanthus_widgets::search_field::SearchField.placeholder: Signal < String >
+acanthus_widgets::search_field::SearchField.tokens: & 'a SearchTokens
+acanthus_widgets::search_field::SearchField.width: Signal < f32 >
+acanthus_widgets::search_field::SearchField: struct< 'a >
+acanthus_widgets::search_field::SearchFieldComponent: struct
+acanthus_widgets::search_field::SearchTokens.accent: Signal < Color >
+acanthus_widgets::search_field::SearchTokens.font_family: Signal < String >
+acanthus_widgets::search_field::SearchTokens.icon_font: Signal < String >
+acanthus_widgets::search_field::SearchTokens.muted: Signal < Color >
+acanthus_widgets::search_field::SearchTokens.text: Signal < Color >
+acanthus_widgets::search_field::SearchTokens: struct [Clone]
+acanthus_widgets::search_field::search_field: fn search_field (scene : & mut Scene , parent : NodeId , keep : & mut Keep , field : SearchField < '_ >)
+acanthus_widgets::slider::Slider.effective: Signal < f32 >
+acanthus_widgets::slider::Slider.node: NodeId
+acanthus_widgets::slider::Slider: struct
+acanthus_widgets::slider::SliderComponent: struct
+acanthus_widgets::slider::SliderSpec.accent: Signal < Color >
+acanthus_widgets::slider::SliderSpec.background: Signal < Color >
+acanthus_widgets::slider::SliderSpec.corner_radius: f32
+acanthus_widgets::slider::SliderSpec.handle: Signal < Color >
+acanthus_widgets::slider::SliderSpec.handle_drag: Signal < Color >
+acanthus_widgets::slider::SliderSpec.handle_size: f32
+acanthus_widgets::slider::SliderSpec.height: Signal < f32 >
+acanthus_widgets::slider::SliderSpec.on_drag_finish: Rc < dyn Fn () >
+acanthus_widgets::slider::SliderSpec.on_drag_start: Rc < dyn Fn () >
+acanthus_widgets::slider::SliderSpec.on_moved: Rc < dyn Fn (f32) >
+acanthus_widgets::slider::SliderSpec.opacity: Signal < f32 >
+acanthus_widgets::slider::SliderSpec.value: Signal < f32 >
+acanthus_widgets::slider::SliderSpec.vertical: bool
+acanthus_widgets::slider::SliderSpec.visible: Signal < bool >
+acanthus_widgets::slider::SliderSpec.width: Signal < f32 >
+acanthus_widgets::slider::SliderSpec.x: Signal < f32 >
+acanthus_widgets::slider::SliderSpec.y: Signal < f32 >
+acanthus_widgets::slider::SliderSpec: struct
+acanthus_widgets::slider::build: fn build (scene : & mut Scene , parent : NodeId , spec : SliderSpec) -> Slider
+acanthus_widgets::slider::key_value: fn key_value (key : Key , current : f32) -> Option < f32 >
+acanthus_widgets::slider::value_at: fn value_at (position : f32 , extent : f32 , vertical : bool , from : f32 , to : f32) -> f32
+acanthus_widgets::slider::visual_position: fn visual_position (value : f32 , from : f32 , to : f32) -> f32
+acanthus_widgets::standard_registry: fn standard_registry () -> component :: Registry
+acanthus_widgets::switch::SWITCH: const SWITCH: Feel
+acanthus_widgets::switch::SwitchComponent: struct
+acanthus_widgets::switch::SwitchSpec.accent: Signal < Color >
+acanthus_widgets::switch::SwitchSpec.active_text: Signal < Color >
+acanthus_widgets::switch::SwitchSpec.base: Signal < Color >
+acanthus_widgets::switch::SwitchSpec.corner: f32
+acanthus_widgets::switch::SwitchSpec.count: Signal < usize >
+acanthus_widgets::switch::SwitchSpec.current: Signal < usize >
+acanthus_widgets::switch::SwitchSpec.family: Signal < String >
+acanthus_widgets::switch::SwitchSpec.font_size: Signal < f32 >
+acanthus_widgets::switch::SwitchSpec.height: f32
+acanthus_widgets::switch::SwitchSpec.labels: Vec < Signal < String > >
+acanthus_widgets::switch::SwitchSpec.min_font_size: f32
+acanthus_widgets::switch::SwitchSpec.on_select: Rc < dyn Fn (usize) >
+acanthus_widgets::switch::SwitchSpec.rtl: Signal < bool >
+acanthus_widgets::switch::SwitchSpec.sound: Sound
+acanthus_widgets::switch::SwitchSpec.text: Signal < Color >
+acanthus_widgets::switch::SwitchSpec.visible: Signal < bool >
+acanthus_widgets::switch::SwitchSpec.width: Signal < f32 >
+acanthus_widgets::switch::SwitchSpec.x: Signal < f32 >
+acanthus_widgets::switch::SwitchSpec.y: Signal < f32 >
+acanthus_widgets::switch::SwitchSpec: struct
+acanthus_widgets::switch::allocate: fn allocate (needs : & [f32] , available : f32) -> Vec < f32 >
+acanthus_widgets::switch::edge_radii: fn edge_radii (index : usize , count : usize , corner : f32) -> [f32 ; 2]
+acanthus_widgets::switch::fit_width: fn fit_width (natural : f32) -> f32
+acanthus_widgets::switch::fitted_size: fn fitted_size (font : f32 , minimum : f32 , available : f32 , natural : f32) -> f32
+acanthus_widgets::switch::placements: fn placements (widths : & [f32] , total : f32 , rtl : bool) -> Vec < (f32 , f32) >
+acanthus_widgets::switch::step: fn step (current : usize , count : usize , forward : bool) -> usize
+acanthus_widgets::switch::switch: fn switch (scene : & mut Scene , parent : NodeId , spec : SwitchSpec) -> NodeId
+acanthus_widgets::toggle::HEIGHT: const HEIGHT: f32
+acanthus_widgets::toggle::TOGGLE: const TOGGLE: Feel
+acanthus_widgets::toggle::ToggleComponent: struct
+acanthus_widgets::toggle::ToggleSpec.accent: Signal < Color >
+acanthus_widgets::toggle::ToggleSpec.base: Signal < Color >
+acanthus_widgets::toggle::ToggleSpec.checked: Signal < bool >
+acanthus_widgets::toggle::ToggleSpec.corner: f32
+acanthus_widgets::toggle::ToggleSpec.enabled: Signal < bool >
+acanthus_widgets::toggle::ToggleSpec.handle_off: Signal < Color >
+acanthus_widgets::toggle::ToggleSpec.handle_on: Signal < Color >
+acanthus_widgets::toggle::ToggleSpec.on_toggle: Rc < dyn Fn (bool) >
+acanthus_widgets::toggle::ToggleSpec.scale: f32
+acanthus_widgets::toggle::ToggleSpec.sound: Sound
+acanthus_widgets::toggle::ToggleSpec.x: Signal < f32 >
+acanthus_widgets::toggle::ToggleSpec.y: Signal < f32 >
+acanthus_widgets::toggle::ToggleSpec: struct
+acanthus_widgets::toggle::WIDTH: const WIDTH: f32
+acanthus_widgets::toggle::toggle: fn toggle (scene : & mut Scene , parent : NodeId , spec : ToggleSpec) -> NodeId
+acanthus_widgets::wallpaper_blur::BLUR_MAX: const BLUR_MAX: f32
+acanthus_widgets::wallpaper_blur::MAX_FILL_ALPHA: const MAX_FILL_ALPHA: f32
+acanthus_widgets::wallpaper_blur::Spec.active: Signal < bool >
+acanthus_widgets::wallpaper_blur::Spec.fill_alpha: Signal < f32 >
+acanthus_widgets::wallpaper_blur::Spec.origin: Signal < Vec2 >
+acanthus_widgets::wallpaper_blur::Spec.radii: Signal < Option < [f32 ; 4] > >
+acanthus_widgets::wallpaper_blur::Spec.radius: Signal < f32 >
+acanthus_widgets::wallpaper_blur::Spec.scale: f32
+acanthus_widgets::wallpaper_blur::Spec.screen: Signal < Vec2 >
+acanthus_widgets::wallpaper_blur::Spec.source: Signal < String >
+acanthus_widgets::wallpaper_blur::Spec: struct
+acanthus_widgets::wallpaper_blur::WallpaperBlurComponent: struct
+acanthus_widgets::wallpaper_blur::alpha_for: fn alpha_for (element_opacity : f32) -> f32
+acanthus_widgets::wallpaper_blur::backdrop: fn backdrop (scene : & mut Scene , parent : NodeId , spec : Spec) -> NodeId
+acanthus_widgets::wallpaper_blur::image_origin: fn image_origin (bounds : Rect , pad : f32 , surface : Vec2) -> (f32 , f32)
+acanthus_widgets::wallpaper_blur::padded_size: fn padded_size (bounds : Rect , pad : f32) -> (f32 , f32)
+acanthus_widgets::wheel::WHEEL_RESET_MS: const WHEEL_RESET_MS: u64
+acanthus_widgets::wheel::WHEEL_STEP: const WHEEL_STEP: f32
+acanthus_widgets::wheel::WHEEL_UNITS_PER_ABSOLUTE: const WHEEL_UNITS_PER_ABSOLUTE: f32
+acanthus_widgets::wheel::Wheel: struct [Debug, Default]
+acanthus_widgets::wheel::Wheel::feed: fn feed (& mut self , delta : f32) -> i32
+acanthus_widgets::wheel::Wheel::reset: fn reset (& mut self)
+acanthus_widgets::wheel::wheel_units: fn wheel_units (delta_y : f32) -> f32
+impl Component for acanthus_widgets::button::IconButtonComponent
+impl Component for acanthus_widgets::dropdown::DropdownComponent
+impl Component for acanthus_widgets::marquee::MarqueeComponent
+impl Component for acanthus_widgets::scrollbar::ScrollBarComponent
+impl Component for acanthus_widgets::search_field::SearchFieldComponent
+impl Component for acanthus_widgets::slider::SliderComponent
+impl Component for acanthus_widgets::switch::SwitchComponent
+impl Component for acanthus_widgets::toggle::ToggleComponent
+impl Component for acanthus_widgets::wallpaper_blur::WallpaperBlurComponent
+impl Drop for acanthus_widgets::button::Press
+impl fmt :: Display for acanthus_widgets::component::BuildError
+impl std :: error :: Error for acanthus_widgets::component::BuildError

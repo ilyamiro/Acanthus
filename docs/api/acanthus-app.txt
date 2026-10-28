@@ -1,0 +1,58 @@
+acanthus_app::Module: trait< Cx : ? Sized >
+acanthus_app::Module::name: required fn name (& self) -> & 'static str
+acanthus_app::Module::start: required fn start (& self , app : & mut App , cx : & Cx) -> Result < Running , Box < dyn Error > >
+acanthus_app::Provided: struct [Default]
+acanthus_app::Provided::get: fn get < T : Clone + 'static > (& self) -> Option < T >
+acanthus_app::Provided::new: fn new () -> Provided
+acanthus_app::Provided::provide: fn provide < T : Clone + 'static > (& self , value : T)
+acanthus_app::Provided::require: fn require < T : Clone + 'static > (& self) -> Result < T , Box < dyn Error > >
+acanthus_app::Running: type Running = Box < dyn Any >
+acanthus_app::Slot: struct< T >
+acanthus_app::Slot::demand: fn demand () -> Slot < T >
+acanthus_app::Slot::get: fn get (& self) -> Option < Rc < T > >
+acanthus_app::Slot::get_or_init: fn get_or_init (& self , start : impl FnOnce () -> T) -> Rc < T >
+acanthus_app::Slot::get_or_start: fn get_or_start < E > (& self , start : impl FnOnce () -> Result < T , E >) -> Result < Rc < T > , E >
+acanthus_app::Slot::new: fn new () -> Slot < T >
+acanthus_app::Slot::release: fn release (& self)
+acanthus_app::Slot::starts: fn starts (& self) -> u32
+acanthus_app::actions::Actions: struct
+acanthus_app::actions::Actions::add: fn add (& self , popup : Rc < dyn Popup >)
+acanthus_app::actions::Actions::close_group: fn close_group (& self , group : & str)
+acanthus_app::actions::Actions::dismiss: fn dismiss (& self)
+acanthus_app::actions::Actions::dispatch: fn dispatch (& self , command : & str , target : & str , extra : & str) -> bool
+acanthus_app::actions::Actions::escape: fn escape (& self) -> bool
+acanthus_app::actions::Actions::new: fn new (dismiss_group : & 'static str) -> Rc < Actions >
+acanthus_app::actions::Actions::on_dismiss: fn on_dismiss (& self , hide : impl Fn () + 'static)
+acanthus_app::actions::Actions::on_dispatch: fn on_dispatch (& self , observer : impl Fn (& str , & str , & str) + 'static)
+acanthus_app::actions::Actions::open_popups: fn open_popups (& self) -> Vec < & 'static str >
+acanthus_app::actions::Actions::pending: fn pending (& self , names : & 'static [& 'static str] , group : Option < & 'static str >)
+acanthus_app::actions::Actions::register: fn register (& self , names : & 'static [& 'static str] , group : Option < & 'static str > , run : impl Fn (Verb , & str) + 'static , close : impl Fn () + 'static ,)
+acanthus_app::actions::Actions::register_typed: fn register_typed < A : FromStr > (& self , names : & 'static [& 'static str] , group : Option < & 'static str > , run : impl Fn (Verb , Option < A >) + 'static , close : impl Fn () + 'static ,)
+acanthus_app::actions::Actions::serve: fn serve (self : & Rc < Self > , ipc : & IpcRegistry , target : & str , method : & str)
+acanthus_app::actions::Actions::trigger: fn trigger (self : & Rc < Self > , verb : Verb , name : & 'static str) -> Rc < dyn Fn () >
+acanthus_app::actions::Actions::trigger_with: fn trigger_with (self : & Rc < Self > , verb : Verb , name : & 'static str , extra : & 'static str) -> Rc < dyn Fn () >
+acanthus_app::actions::Verb: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_app::actions::Verb::Close: variant 
+acanthus_app::actions::Verb::Open: variant 
+acanthus_app::actions::Verb::Toggle: variant 
+acanthus_app::actions::Verb::parse: fn parse (word : & str) -> Option < Verb >
+acanthus_app::actions::Verb::word: fn word (self) -> & 'static str
+acanthus_app::dismiss::Spec.alive: Signal < bool >
+acanthus_app::dismiss::Spec.close: Rc < dyn Fn () >
+acanthus_app::dismiss::Spec.popup: Rc < dyn Fn () -> Rect >
+acanthus_app::dismiss::Spec.reserved: Rc < dyn Fn (Vec2) -> Rect >
+acanthus_app::dismiss::Spec: struct
+acanthus_app::dismiss::attach: fn attach (scene : & mut Scene , parent : NodeId , keep : & mut Keep , viewport : & Signal < Vec2 > , spec : Spec) -> NodeId
+acanthus_app::dismiss::bind_input_region: fn bind_input_region (scene : & Scene , keep : & mut Keep , viewport : & Signal < Vec2 > , alive : & Signal < bool > , reserved : Rc < dyn Fn (Vec2) -> Rect > , popup : Option < Rc < dyn Fn () -> Rect > > ,)
+acanthus_app::dismiss::free_area: fn free_area (reserved : Rect , size : Vec2) -> Rect
+acanthus_app::dismiss::regions: fn regions (reserved : Rect , size : Vec2 , popup : Rect) -> Vec < Rect >
+acanthus_app::popup::Popup: trait
+acanthus_app::popup::Popup::close: required fn close (& self)
+acanthus_app::popup::Popup::group: provided fn group (& self) -> Option < & 'static str >
+acanthus_app::popup::Popup::is_open: required fn is_open (& self) -> bool
+acanthus_app::popup::Popup::names: required fn names (& self) -> & 'static [& 'static str]
+acanthus_app::popup::Popup::open: required fn open (& self , arg : & str)
+acanthus_app::popup::Popup::toggle: provided fn toggle (& self , arg : & str)
+acanthus_app::popup::closing_on_escape: fn closing_on_escape (close : impl Fn () + 'static , mut keys : impl FnMut (& acanthus_scene :: KeyEvent) -> bool + 'static ,) -> impl FnMut (& acanthus_scene :: KeyEvent) -> bool + 'static
+acanthus_app::start_all: fn start_all < 'm , Cx : ? Sized , M : Module < Cx > + ? Sized + 'm > (modules : impl IntoIterator < Item = & 'm M > , app : & mut App , cx : & Cx , mut on_stage : impl FnMut (& str) ,) -> Result < Vec < Running > , Box < dyn Error > >
+impl Default for acanthus_app::Slot

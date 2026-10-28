@@ -25,6 +25,7 @@ step() {
 }
 step fmt "cargo fmt --all"
 step layers "scripts/check-layers.sh"
+step api "cargo xtask api --check"
 step build "cargo build ${scope[*]} --all-targets"
 if [ "$mode" = full ]; then
   step deny "cargo deny check licenses bans sources"

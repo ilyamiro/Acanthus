@@ -1,0 +1,103 @@
+acanthus_anim::Action: struct
+acanthus_anim::Action::new: fn new (f : impl FnMut () + 'static) -> Self
+acanthus_anim::AnimHandle: struct [Clone, Copy, Debug, Eq, Hash, PartialEq]
+acanthus_anim::AnimHandle::is_running: fn is_running (self) -> bool
+acanthus_anim::AnimHandle::stop: fn stop (self)
+acanthus_anim::Animatable: trait
+acanthus_anim::Animatable::components: required fn components (& self) -> [f32 ; 4]
+acanthus_anim::Animatable::from_components: required fn from_components (c : [f32 ; 4]) -> Self
+acanthus_anim::Animatable::lerp: provided fn lerp (& self , to : & Self , t : f32) -> Self
+acanthus_anim::Animated: struct< T : Animatable >
+acanthus_anim::Animated::get: fn get (& self) -> T
+acanthus_anim::Animated::new: fn new (source : & Signal < T > , motion : Motion) -> Self
+acanthus_anim::Animated::signal: fn signal (& self) -> & Signal < T >
+acanthus_anim::Animated::with: fn with < M : Into < Motion > > (source : & Signal < T > , motion : impl Fn (& T) -> M + 'static) -> Self
+acanthus_anim::Animation: trait
+acanthus_anim::Animation::advance: required fn advance (& mut self , dt : f32) -> Option < f32 >
+acanthus_anim::Animation::start: required fn start (& mut self)
+acanthus_anim::BASE: const BASE: u32
+acanthus_anim::Easing: enum [Clone, Copy, Debug, Default, PartialEq]
+acanthus_anim::Easing::IN_BACK: const Easing
+acanthus_anim::Easing::IN_OUT_BACK: const Easing
+acanthus_anim::Easing::InBack: variant (f32)
+acanthus_anim::Easing::InCirc: variant 
+acanthus_anim::Easing::InCubic: variant 
+acanthus_anim::Easing::InExpo: variant 
+acanthus_anim::Easing::InOutBack: variant (f32)
+acanthus_anim::Easing::InOutCirc: variant 
+acanthus_anim::Easing::InOutCubic: variant 
+acanthus_anim::Easing::InOutExpo: variant 
+acanthus_anim::Easing::InOutQuad: variant 
+acanthus_anim::Easing::InOutQuart: variant 
+acanthus_anim::Easing::InOutQuint: variant 
+acanthus_anim::Easing::InOutSine: variant 
+acanthus_anim::Easing::InQuad: variant 
+acanthus_anim::Easing::InQuart: variant 
+acanthus_anim::Easing::InQuint: variant 
+acanthus_anim::Easing::InSine: variant 
+acanthus_anim::Easing::Linear: variant 
+acanthus_anim::Easing::OUT_BACK: const Easing
+acanthus_anim::Easing::OutBack: variant (f32)
+acanthus_anim::Easing::OutCirc: variant 
+acanthus_anim::Easing::OutCubic: variant 
+acanthus_anim::Easing::OutExpo: variant 
+acanthus_anim::Easing::OutQuad: variant 
+acanthus_anim::Easing::OutQuart: variant 
+acanthus_anim::Easing::OutQuint: variant 
+acanthus_anim::Easing::OutSine: variant 
+acanthus_anim::Easing::apply: fn apply (self , t : f32) -> f32
+acanthus_anim::FAST: const FAST: u32
+acanthus_anim::Keep: struct [Default]
+acanthus_anim::Keep::alpha: fn alpha (& mut self , color : & Signal < Color > , alpha : f32) -> Signal < Color >
+acanthus_anim::Keep::ease: fn ease < T : Animatable > (& mut self , source : & Signal < T > , duration : u32 , easing : Easing) -> Signal < T >
+acanthus_anim::Keep::looping: fn looping (& mut self , running : & Signal < bool > , signal : & Signal < f32 > , to : f32 , ms : u32)
+acanthus_anim::Keep::spring: fn spring (& mut self , source : & Signal < f32 > , params : SpringParams) -> Signal < f32 >
+acanthus_anim::Keep::tone: fn tone (& mut self , color : & Signal < Color > , compact : bool , factor : f32) -> Signal < Color >
+acanthus_anim::Loop: struct
+acanthus_anim::Loop::infinite: fn infinite (anim : impl Animation) -> Self
+acanthus_anim::Loop::times: fn times (anim : impl Animation , count : u32) -> Self
+acanthus_anim::Motion: enum [Clone, Copy, Debug, PartialEq]
+acanthus_anim::Motion::Spring: variant (SpringParams)
+acanthus_anim::Motion::Tween: variant { # [doc = " Duration in milliseconds."] duration_ms : u32 , # [doc = " Easing curve."] easing : Easing , }
+acanthus_anim::Motion::tween: fn tween (duration_ms : u32 , easing : Easing) -> Self
+acanthus_anim::Parallel: struct [Default]
+acanthus_anim::Parallel::new: fn new () -> Self
+acanthus_anim::Parallel::with: fn with (mut self , anim : impl Animation) -> Self
+acanthus_anim::Pause: struct
+acanthus_anim::Pause::new: fn new (duration_ms : u32) -> Self
+acanthus_anim::SLOW: const SLOW: u32
+acanthus_anim::Sequential: struct [Default]
+acanthus_anim::Sequential::new: fn new () -> Self
+acanthus_anim::Sequential::then: fn then (mut self , anim : impl Animation) -> Self
+acanthus_anim::Spring: struct< T : Animatable >
+acanthus_anim::Spring::new: fn new (target : & Signal < T > , to : T , params : SpringParams) -> Self
+acanthus_anim::Spring::with_velocity: fn with_velocity (mut self , velocity : Rc < Cell < [f32 ; 4] > >) -> Self
+acanthus_anim::SpringParams.damping: f32
+acanthus_anim::SpringParams.epsilon: f32
+acanthus_anim::SpringParams.mass: f32
+acanthus_anim::SpringParams.max_velocity: f32
+acanthus_anim::SpringParams.spring: f32
+acanthus_anim::SpringParams: struct [Clone, Copy, Debug, PartialEq]
+acanthus_anim::SpringParams::epsilon: fn epsilon (self , epsilon : f32) -> Self
+acanthus_anim::SpringParams::mass: fn mass (self , mass : f32) -> Self
+acanthus_anim::SpringParams::new: fn new (spring : f32 , damping : f32) -> Self
+acanthus_anim::Tween: struct< T : Animatable >
+acanthus_anim::Tween::from: fn from (mut self , from : T) -> Self
+acanthus_anim::Tween::new: fn new (target : & Signal < T > , to : T , duration_ms : u32 , easing : Easing) -> Self
+acanthus_anim::counted: fn counted (count : Signal < usize >) -> (ListSignal < usize > , Keep)
+acanthus_anim::is_active: fn is_active () -> bool
+acanthus_anim::reduced_motion: fn reduced_motion () -> bool
+acanthus_anim::set_reduced_motion: fn set_reduced_motion (on : bool)
+acanthus_anim::start: fn start (mut anim : impl Animation) -> AnimHandle
+acanthus_anim::tick: fn tick (dt : f32)
+impl Animation for acanthus_anim::Action
+impl Animation for acanthus_anim::Loop
+impl Animation for acanthus_anim::Parallel
+impl Animation for acanthus_anim::Pause
+impl Animation for acanthus_anim::Sequential
+impl Animation for acanthus_anim::Spring
+impl Animation for acanthus_anim::Tween
+impl Default for acanthus_anim::SpringParams
+impl From < (u32 , Easing) > for acanthus_anim::Motion
+impl std :: ops :: Deref for acanthus_anim::Keep
+impl std :: ops :: DerefMut for acanthus_anim::Keep

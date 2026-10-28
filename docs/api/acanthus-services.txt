@@ -1,0 +1,1250 @@
+acanthus_services::kit::Blocking: struct [Clone]
+acanthus_services::kit::Blocking::inline: fn inline () -> Blocking
+acanthus_services::kit::Blocking::new: fn new < D : 'static > (handle : & LoopHandle < 'static , D >) -> Blocking
+acanthus_services::kit::Blocking::run: fn run < T : Send + 'static > (& self , job : impl FnOnce () -> T + Send + 'static , done : impl FnOnce (T) + 'static)
+acanthus_services::kit::CacheFile: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::kit::CacheFile::age_seconds: fn age_seconds (& self) -> Option < u64 >
+acanthus_services::kit::CacheFile::exists: fn exists (& self) -> bool
+acanthus_services::kit::CacheFile::new: fn new (path : std :: path :: PathBuf) -> CacheFile
+acanthus_services::kit::CacheFile::path: fn path (& self) -> & std :: path :: Path
+acanthus_services::kit::CacheFile::read_json: fn read_json (& self) -> Option < serde_json :: Value >
+acanthus_services::kit::CacheFile::touch: fn touch (& self)
+acanthus_services::kit::CacheFile::write_json: fn write_json (& self , value : & serde_json :: Value)
+acanthus_services::kit::Clock: trait
+acanthus_services::kit::Clock::now: required fn now (& self) -> DateTime < Local >
+acanthus_services::kit::Clock::unix_ms: provided fn unix_ms (& self) -> f64
+acanthus_services::kit::Clock::unix_secs: provided fn unix_secs (& self) -> i64
+acanthus_services::kit::Clock::unix_secs_f64: provided fn unix_secs_f64 (& self) -> f64
+acanthus_services::kit::Cmd.argv: Vec < String >
+acanthus_services::kit::Cmd.cwd: Option < PathBuf >
+acanthus_services::kit::Cmd.env: Vec < (String , String) >
+acanthus_services::kit::Cmd.timeout: Option < Duration >
+acanthus_services::kit::Cmd: struct [Clone, Debug, Default, Eq, PartialEq]
+acanthus_services::kit::Cmd::cwd: fn cwd (mut self , dir : impl Into < PathBuf >) -> Cmd
+acanthus_services::kit::Cmd::env: fn env (mut self , key : impl Into < String > , value : impl Into < String >) -> Cmd
+acanthus_services::kit::Cmd::new: fn new < I , S > (argv : I) -> Cmd where I : IntoIterator < Item = S > , S : Into < String > ,
+acanthus_services::kit::Cmd::timeout: fn timeout (mut self , timeout : Duration) -> Cmd
+acanthus_services::kit::Codec: trait< K , D >
+acanthus_services::kit::Codec::decode: required fn decode (& self , value : & Value) -> Option < Stored < K , D > >
+acanthus_services::kit::Codec::encode: required fn encode (& self , stored : & Stored < K , D >) -> Value
+acanthus_services::kit::ConfigStore: struct< K , D >
+acanthus_services::kit::ConfigStore::new: fn new (read : ReadSetting , write : WriteSetting , codec : Rc < dyn Codec < K , D > > , clock : Rc < dyn Fn () -> i64 > ,) -> ConfigStore < K , D >
+acanthus_services::kit::Ctx.blocking: Blocking
+acanthus_services::kit::Ctx.clock: std :: rc :: Rc < dyn Clock >
+acanthus_services::kit::Ctx.dirs: Dirs
+acanthus_services::kit::Ctx.exec: std :: rc :: Rc < dyn Exec >
+acanthus_services::kit::Ctx.http: Http
+acanthus_services::kit::Ctx.i18n: std :: rc :: Rc < dyn Translator >
+acanthus_services::kit::Ctx.notify: std :: rc :: Rc < dyn Notifier >
+acanthus_services::kit::Ctx.schedule: acanthus_io :: Scheduler
+acanthus_services::kit::Ctx: struct [Clone]
+acanthus_services::kit::DiskStore: struct< K , D >
+acanthus_services::kit::DiskStore::new: fn new (service : & 'static str , path : PathBuf , codec : Rc < dyn Codec < K , D > >) -> DiskStore < K , D >
+acanthus_services::kit::DiskStore::path: fn path (& self) -> & Path
+acanthus_services::kit::Done: type Done = Box < dyn FnOnce (ExitInfo) >
+acanthus_services::kit::Exec: trait
+acanthus_services::kit::Exec::detached: required fn detached (& self , cmd : Cmd)
+acanthus_services::kit::Exec::has_program: required fn has_program (& self , name : & str) -> bool
+acanthus_services::kit::Exec::run: required fn run (& self , cmd : Cmd , done : Done) -> Option < Box < dyn Running > >
+acanthus_services::kit::Exec::spawn: required fn spawn (& self , cmd : Cmd , on_line : Box < dyn FnMut (& str) > , on_exit : Done) -> Option < Box < dyn Running > >
+acanthus_services::kit::Http: struct [Clone]
+acanthus_services::kit::Http::download: fn download (& self , request : Request , dest : & Path , done : impl FnOnce (Result < u16 , HttpError >) + 'static ,) -> Option < Box < dyn Running > >
+acanthus_services::kit::Http::first_of: fn first_of < T : 'static > (& self , sources : Vec < Source < T > > , done : impl FnOnce (Option < T >) + 'static)
+acanthus_services::kit::Http::get: fn get (& self , request : Request , done : impl FnOnce (Result < String , HttpError >) + 'static ,) -> Option < Box < dyn Running > >
+acanthus_services::kit::Http::new: fn new (exec : Rc < dyn Exec >) -> Http
+acanthus_services::kit::HttpError: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::kit::HttpError::Empty: variant 
+acanthus_services::kit::HttpError::Exit: variant (i32)
+acanthus_services::kit::HttpError::Spawn: variant 
+acanthus_services::kit::HttpError::Status: variant (u16)
+acanthus_services::kit::HttpError::Timeout: variant 
+acanthus_services::kit::KeyedDiskStore: struct< K , D >
+acanthus_services::kit::KeyedDiskStore::age_of: fn age_of (& self , key : & K) -> Option < Duration >
+acanthus_services::kit::KeyedDiskStore::load_key: fn load_key (& self , key : & K) -> Option < Stored < K , D > >
+acanthus_services::kit::KeyedDiskStore::new: fn new (service : & 'static str , dir : PathBuf , file_name : Rc < dyn Fn (& K) -> String > , codec : Rc < dyn Codec < K , D > > ,) -> KeyedDiskStore < K , D >
+acanthus_services::kit::KeyedDiskStore::path_for: fn path_for (& self , key : & K) -> PathBuf
+acanthus_services::kit::KeyedDiskStore::save: fn save (& self , stored : & Stored < K , D >)
+acanthus_services::kit::MemoryStore: struct< K , D >
+acanthus_services::kit::MemoryStore::current: fn current (& self) -> Option < Stored < K , D > >
+acanthus_services::kit::MemoryStore::loads: fn loads (& self) -> usize
+acanthus_services::kit::MemoryStore::saves: fn saves (& self) -> usize
+acanthus_services::kit::MemoryStore::set_age: fn set_age (& self , age : Option < Duration >)
+acanthus_services::kit::MemoryStore::with: fn with (stored : Stored < K , D > , age : Duration) -> MemoryStore < K , D >
+acanthus_services::kit::Notice.actions: Vec < (String , String) >
+acanthus_services::kit::Notice.app_name: String
+acanthus_services::kit::Notice.body: String
+acanthus_services::kit::Notice.icon: String
+acanthus_services::kit::Notice.on_action: Option < Box < dyn FnOnce (String) > >
+acanthus_services::kit::Notice.summary: String
+acanthus_services::kit::Notice.urgency: Urgency
+acanthus_services::kit::Notice: struct
+acanthus_services::kit::Notice::action: fn action (mut self , id : impl Into < String > , text : impl Into < String >) -> Notice
+acanthus_services::kit::Notice::icon: fn icon (mut self , icon : impl Into < String >) -> Notice
+acanthus_services::kit::Notice::new: fn new (app_name : impl Into < String > , summary : impl Into < String > , body : impl Into < String >) -> Notice
+acanthus_services::kit::Notice::on_action: fn on_action (mut self , handler : impl FnOnce (String) + 'static) -> Notice
+acanthus_services::kit::Notice::urgency: fn urgency (mut self , urgency : Urgency) -> Notice
+acanthus_services::kit::Notifier: trait
+acanthus_services::kit::Notifier::notify: required fn notify (& self , notice : Notice)
+acanthus_services::kit::NotifySendNotifier: struct
+acanthus_services::kit::NotifySendNotifier::new: fn new (exec : Rc < dyn Exec >) -> NotifySendNotifier
+acanthus_services::kit::ProcessExec: struct< D : 'static >
+acanthus_services::kit::ProcessExec::new: fn new (handle : & LoopHandle < 'static , D >) -> ProcessExec < D >
+acanthus_services::kit::ProcessExec::shared: fn shared (handle : & LoopHandle < 'static , D >) -> Rc < dyn Exec >
+acanthus_services::kit::Request.headers: Vec < (String , String) >
+acanthus_services::kit::Request.timeout: Duration
+acanthus_services::kit::Request.url: String
+acanthus_services::kit::Request.user_agent: Option < String >
+acanthus_services::kit::Request: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::kit::Request::header: fn header (mut self , name : impl Into < String > , value : impl Into < String >) -> Request
+acanthus_services::kit::Request::headers: fn headers (mut self , headers : & [(& str , & str)]) -> Request
+acanthus_services::kit::Request::new: fn new (url : impl Into < String >) -> Request
+acanthus_services::kit::Request::timeout: fn timeout (mut self , timeout : Duration) -> Request
+acanthus_services::kit::Request::timeout_secs: fn timeout_secs (self , seconds : u64) -> Request
+acanthus_services::kit::Request::user_agent: fn user_agent (mut self , agent : impl Into < String >) -> Request
+acanthus_services::kit::Running: trait
+acanthus_services::kit::Running::kill: required fn kill (& self)
+acanthus_services::kit::Running::pid: required fn pid (& self) -> Option < u32 >
+acanthus_services::kit::Source.parse: Parser < T >
+acanthus_services::kit::Source.request: Request
+acanthus_services::kit::Source: struct< T >
+acanthus_services::kit::Store: trait< K , D >
+acanthus_services::kit::Store::age: required fn age (& self) -> Option < Duration >
+acanthus_services::kit::Store::load: required fn load (& self) -> Option < Stored < K , D > >
+acanthus_services::kit::Store::save: required fn save (& self , stored : & Stored < K , D >)
+acanthus_services::kit::Store::touch: required fn touch (& self)
+acanthus_services::kit::Stored.data: D
+acanthus_services::kit::Stored.fetched_at: i64
+acanthus_services::kit::Stored.key: K
+acanthus_services::kit::Stored: struct [Clone, Debug, PartialEq]< K , D >
+acanthus_services::kit::SystemClock: struct [Clone, Copy, Debug, Default]
+acanthus_services::kit::Translator: trait
+acanthus_services::kit::Translator::t: required fn t (& self , key : & str) -> String
+acanthus_services::kit::Translator::t_args: required fn t_args (& self , key : & str , args : & [(& str , & str)]) -> String
+acanthus_services::kit::Urgency: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::kit::Urgency::Critical: variant 
+acanthus_services::kit::Urgency::Low: variant 
+acanthus_services::kit::Urgency::Normal: variant 
+acanthus_services::kit::Urgency::as_number: fn as_number (self) -> u8
+acanthus_services::kit::Urgency::as_str: fn as_str (self) -> & 'static str
+acanthus_services::kit::Urgency::from_hint: fn from_hint (value : u8) -> Urgency
+acanthus_services::kit::daemon::Daemon.state: DaemonState
+acanthus_services::kit::daemon::Daemon: struct
+acanthus_services::kit::daemon::Daemon::new: fn new (exec : Rc < dyn Exec > , schedule : Scheduler , spec : DaemonSpec , state : DaemonState , on_line : Rc < dyn Fn (& str) > , on_stop : Rc < dyn Fn () > ,) -> Daemon
+acanthus_services::kit::daemon::Daemon::set_enabled: fn set_enabled (& self , enabled : bool)
+acanthus_services::kit::daemon::Daemon::set_watching: fn set_watching (& self , watching : bool)
+acanthus_services::kit::daemon::Daemon::with_spawn: fn with_spawn (spawn : DaemonSpawn , schedule : Scheduler , options : DaemonOptions , state : DaemonState , on_line : Rc < dyn Fn (& str) > , on_stop : Rc < dyn Fn () > ,) -> Daemon
+acanthus_services::kit::daemon::DaemonOptions.restart: Restart
+acanthus_services::kit::daemon::DaemonOptions.watchdog: Option < Duration >
+acanthus_services::kit::daemon::DaemonOptions: struct [Clone, Copy, Debug]
+acanthus_services::kit::daemon::DaemonSpawn: type DaemonSpawn = Rc < dyn Fn (Box < dyn FnMut (& str) > , Box < dyn FnOnce () >) -> Option < Box < dyn std :: any :: Any > > >
+acanthus_services::kit::daemon::DaemonSpec.cmd: Cmd
+acanthus_services::kit::daemon::DaemonSpec.name: & 'static str
+acanthus_services::kit::daemon::DaemonSpec.prepare: Option < Rc < dyn Fn () -> std :: io :: Result < () > > >
+acanthus_services::kit::daemon::DaemonSpec.restart: Restart
+acanthus_services::kit::daemon::DaemonSpec.watchdog: Option < Duration >
+acanthus_services::kit::daemon::DaemonSpec: struct
+acanthus_services::kit::daemon::DaemonState.restarting: Signal < bool >
+acanthus_services::kit::daemon::DaemonState.running: Signal < bool >
+acanthus_services::kit::daemon::DaemonState: struct [Clone]
+acanthus_services::kit::daemon::DaemonState::new: fn new () -> DaemonState
+acanthus_services::kit::daemon::Restart: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::kit::daemon::Restart::After: variant (Duration)
+acanthus_services::kit::daemon::Restart::Never: variant 
+acanthus_services::kit::daemon::spawn_for: fn spawn_for (exec : Rc < dyn Exec > , spec : DaemonSpec) -> (DaemonSpawn , DaemonOptions)
+acanthus_services::kit::download_argv: fn download_argv (request : & Request , dest : & Path) -> Vec < String >
+acanthus_services::kit::download_blocking: fn download_blocking (request : & Request , dest : & Path) -> Result < u16 , HttpError >
+acanthus_services::kit::feed::Feed: struct< S : FeedSpec >
+acanthus_services::kit::feed::Feed::cancel: fn cancel (& self)
+acanthus_services::kit::feed::Feed::new: fn new (ctx : & Ctx , spec : S , store : Box < dyn Store < S :: Key , S :: Data > >) -> Feed < S >
+acanthus_services::kit::feed::Feed::refresh: fn refresh (& self , force : bool)
+acanthus_services::kit::feed::Feed::spec: fn spec (& self) -> & S
+acanthus_services::kit::feed::Feed::state: fn state (& self) -> & FeedState < S :: Data >
+acanthus_services::kit::feed::Feed::subscribe: fn subscribe (& self) -> Subscription
+acanthus_services::kit::feed::FeedSpec: trait
+acanthus_services::kit::feed::FeedSpec::Data: type
+acanthus_services::kit::feed::FeedSpec::Key: type
+acanthus_services::kit::feed::FeedSpec::NAME: const & 'static str
+acanthus_services::kit::feed::FeedSpec::fallback: provided fn fallback (& self , _ctx : & Ctx , _key : & Self :: Key) -> Option < Self :: Data >
+acanthus_services::kit::feed::FeedSpec::fetch: required fn fetch (& self , ctx : & Ctx , key : & Self :: Key , done : FetchDone < Self :: Data >) -> Option < Box < dyn Running > >
+acanthus_services::kit::feed::FeedSpec::key: required fn key (& self) -> Option < Self :: Key >
+acanthus_services::kit::feed::FeedSpec::policy: required fn policy (& self) -> Policy
+acanthus_services::kit::feed::FeedState.data: Signal < Option < D > >
+acanthus_services::kit::feed::FeedState.fetched_at: Signal < Option < i64 > >
+acanthus_services::kit::feed::FeedState.loading: Signal < bool >
+acanthus_services::kit::feed::FeedState.revision: Signal < u64 >
+acanthus_services::kit::feed::FeedState.status: Signal < FeedStatus >
+acanthus_services::kit::feed::FeedState: struct [Clone]< D >
+acanthus_services::kit::feed::FeedStatus: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::kit::feed::FeedStatus::Failed: variant 
+acanthus_services::kit::feed::FeedStatus::Idle: variant 
+acanthus_services::kit::feed::FeedStatus::Loading: variant 
+acanthus_services::kit::feed::FeedStatus::Offline: variant 
+acanthus_services::kit::feed::FeedStatus::Ready: variant 
+acanthus_services::kit::feed::FetchDone: type FetchDone< D > = Box < dyn FnOnce (Option < D >) >
+acanthus_services::kit::feed::Policy.debounce: Duration
+acanthus_services::kit::feed::Policy.fresh_for: Duration
+acanthus_services::kit::feed::Policy.gated: bool
+acanthus_services::kit::feed::Policy.interval: Option < Duration >
+acanthus_services::kit::feed::Policy.retry_after_failure: Duration
+acanthus_services::kit::feed::Policy.stale_after: Option < Duration >
+acanthus_services::kit::feed::Policy: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::kit::feed::Subscription: struct
+acanthus_services::kit::fsx::create_dir: fn create_dir (service : & str , dir : & Path)
+acanthus_services::kit::fsx::remove_file: fn remove_file (service : & str , path : & Path)
+acanthus_services::kit::fsx::rename: fn rename (service : & str , from : & Path , to : & Path) -> bool
+acanthus_services::kit::fsx::touch: fn touch (service : & str , path : & Path)
+acanthus_services::kit::fsx::write_atomic: fn write_atomic (service : & str , path : & Path , bytes : & [u8])
+acanthus_services::kit::fsx::write_file: fn write_file (service : & str , path : & Path , bytes : & [u8])
+acanthus_services::kit::get_argv: fn get_argv (request : & Request) -> Vec < String >
+acanthus_services::kit::notify_send_argv: fn notify_send_argv (notice : & Notice) -> Vec < String >
+acanthus_services::kit::program_in_path: fn program_in_path (name : & str) -> bool
+acanthus_services::kit::run_blocking: fn run_blocking (cmd : & Cmd) -> Option < ExitInfo >
+acanthus_services::kit::settings::derive: fn derive < T : PartialEq + 'static > (source : & Signal < Value > , map : impl Fn (& Value) -> T + 'static) -> Memo < T >
+acanthus_services::platform::app_matcher::AppMatcher: struct
+acanthus_services::platform::app_matcher::AppMatcher::entry: fn entry (& self , id : & str) -> Option < Rc < DesktopEntry > >
+acanthus_services::platform::app_matcher::AppMatcher::is_empty: fn is_empty (& self) -> bool
+acanthus_services::platform::app_matcher::AppMatcher::len: fn len (& self) -> usize
+acanthus_services::platform::app_matcher::AppMatcher::new: fn new (entries : & [Rc < DesktopEntry >]) -> AppMatcher
+acanthus_services::platform::app_matcher::AppMatcher::resolve: fn resolve (& self , app_id : & str) -> String
+acanthus_services::platform::app_matcher::canonical_id: fn canonical_id (id : & str) -> String
+acanthus_services::platform::app_matcher::normalize_key: fn normalize_key (value : & str) -> String
+acanthus_services::platform::bluetooth::Bluetooth.state: BluetoothState
+acanthus_services::platform::bluetooth::Bluetooth: struct
+acanthus_services::platform::bluetooth::Bluetooth::answer_pairing: fn answer_pairing (& self , id : u64 , answer : PairingAnswer) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::cancel_pairing: fn cancel_pairing (& self , id : u64) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::command: fn command (& self , command : BluetoothCommand) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::connect: fn connect (& self , path : & str) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::disconnect: fn disconnect (& self , path : & str) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::forget: fn forget (& self , path : & str) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::pair: fn pair (& self , path : & str) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::set_discovering: fn set_discovering (& self , discovering : bool) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::set_enabled: fn set_enabled (& self , enabled : bool) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::set_trusted: fn set_trusted (& self , path : & str , trusted : bool) -> bool
+acanthus_services::platform::bluetooth::Bluetooth::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind , app : & str) -> Result < Bluetooth , IoError >
+acanthus_services::platform::bluetooth::BluetoothCommand: enum [Clone, Debug, PartialEq]
+acanthus_services::platform::bluetooth::BluetoothCommand::Connect: variant (String)
+acanthus_services::platform::bluetooth::BluetoothCommand::Disconnect: variant (String)
+acanthus_services::platform::bluetooth::BluetoothCommand::Forget: variant (String)
+acanthus_services::platform::bluetooth::BluetoothCommand::Pair: variant (String)
+acanthus_services::platform::bluetooth::BluetoothCommand::PairingAnswer: variant { # [doc = " Id of the request."] id : u64 , # [doc = " The answer, `None` to cancel."] answer : Option < PairingAnswer > , }
+acanthus_services::platform::bluetooth::BluetoothCommand::SetDiscovering: variant (bool)
+acanthus_services::platform::bluetooth::BluetoothCommand::SetPowered: variant (bool)
+acanthus_services::platform::bluetooth::BluetoothCommand::SetTrusted: variant (String , bool)
+acanthus_services::platform::bluetooth::BluetoothDevice.address: String
+acanthus_services::platform::bluetooth::BluetoothDevice.alias: String
+acanthus_services::platform::bluetooth::BluetoothDevice.battery: f64
+acanthus_services::platform::bluetooth::BluetoothDevice.battery_available: bool
+acanthus_services::platform::bluetooth::BluetoothDevice.connected: bool
+acanthus_services::platform::bluetooth::BluetoothDevice.icon: String
+acanthus_services::platform::bluetooth::BluetoothDevice.name: String
+acanthus_services::platform::bluetooth::BluetoothDevice.paired: bool
+acanthus_services::platform::bluetooth::BluetoothDevice.path: String
+acanthus_services::platform::bluetooth::BluetoothDevice.trusted: bool
+acanthus_services::platform::bluetooth::BluetoothDevice: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::bluetooth::BluetoothDevice::display_name: fn display_name (& self) -> & str
+acanthus_services::platform::bluetooth::BluetoothSnapshot.adapter_name: String
+acanthus_services::platform::bluetooth::BluetoothSnapshot.adapter_path: Option < String >
+acanthus_services::platform::bluetooth::BluetoothSnapshot.devices: Vec < BluetoothDevice >
+acanthus_services::platform::bluetooth::BluetoothSnapshot.discovering: bool
+acanthus_services::platform::bluetooth::BluetoothSnapshot.enabled: bool
+acanthus_services::platform::bluetooth::BluetoothSnapshot: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::bluetooth::BluetoothState.adapter_name: Signal < String >
+acanthus_services::platform::bluetooth::BluetoothState.agent_registered: Signal < bool >
+acanthus_services::platform::bluetooth::BluetoothState.available: Signal < bool >
+acanthus_services::platform::bluetooth::BluetoothState.devices: Signal < Vec < BluetoothDevice > >
+acanthus_services::platform::bluetooth::BluetoothState.discovering: Signal < bool >
+acanthus_services::platform::bluetooth::BluetoothState.enabled: Signal < bool >
+acanthus_services::platform::bluetooth::BluetoothState.pairing_display: Signal < Option < PairingDisplay > >
+acanthus_services::platform::bluetooth::BluetoothState.pairing_requests: Signal < Vec < PairingRequest > >
+acanthus_services::platform::bluetooth::BluetoothState.ready: Signal < bool >
+acanthus_services::platform::bluetooth::BluetoothState: struct [Clone]
+acanthus_services::platform::bluetooth::BluetoothState::apply: fn apply (& self , snapshot : & BluetoothSnapshot)
+acanthus_services::platform::bluetooth::BluetoothState::connected_devices: fn connected_devices (& self) -> Vec < BluetoothDevice >
+acanthus_services::platform::bluetooth::BluetoothState::device_by_address: fn device_by_address (& self , address : & str) -> Option < BluetoothDevice >
+acanthus_services::platform::bluetooth::BluetoothState::new: fn new () -> Self
+acanthus_services::platform::bluetooth::Objects: type Objects = HashMap < String , HashMap < String , Properties > >
+acanthus_services::platform::bluetooth::PairingAnswer: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::bluetooth::PairingAnswer::Accept: variant 
+acanthus_services::platform::bluetooth::PairingAnswer::Passkey: variant (u32)
+acanthus_services::platform::bluetooth::PairingAnswer::Pin: variant (String)
+acanthus_services::platform::bluetooth::PairingAnswer::Reject: variant 
+acanthus_services::platform::bluetooth::PairingDisplay.code: String
+acanthus_services::platform::bluetooth::PairingDisplay.device_name: String
+acanthus_services::platform::bluetooth::PairingDisplay.device_path: String
+acanthus_services::platform::bluetooth::PairingDisplay.entered: u16
+acanthus_services::platform::bluetooth::PairingDisplay: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::bluetooth::PairingKind: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::bluetooth::PairingKind::Authorization: variant 
+acanthus_services::platform::bluetooth::PairingKind::AuthorizeService: variant { # [doc = " UUID of the service."] uuid : String , }
+acanthus_services::platform::bluetooth::PairingKind::Confirmation: variant { # [doc = " The passkey to compare."] passkey : u32 , }
+acanthus_services::platform::bluetooth::PairingKind::Passkey: variant 
+acanthus_services::platform::bluetooth::PairingKind::PinCode: variant 
+acanthus_services::platform::bluetooth::PairingRequest.device_name: String
+acanthus_services::platform::bluetooth::PairingRequest.device_path: String
+acanthus_services::platform::bluetooth::PairingRequest.id: u64
+acanthus_services::platform::bluetooth::PairingRequest.kind: PairingKind
+acanthus_services::platform::bluetooth::PairingRequest: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::bluetooth::Properties: type Properties = HashMap < String , OwnedValue >
+acanthus_services::platform::bluetooth::parse_objects: fn parse_objects (objects : & Objects) -> BluetoothSnapshot
+acanthus_services::platform::bridge::Backoff.first: Duration
+acanthus_services::platform::bridge::Backoff.healthy: Duration
+acanthus_services::platform::bridge::Backoff.max: Duration
+acanthus_services::platform::bridge::Backoff: struct [Clone, Copy, Debug, PartialEq]
+acanthus_services::platform::bridge::Backoff::DEFAULT: const Backoff
+acanthus_services::platform::bridge::Backoff::next: fn next (& self , previous : Option < Duration > , ran_for : Duration) -> Duration
+acanthus_services::platform::bridge::EventSink: struct< E >
+acanthus_services::platform::bridge::EventSink::send: fn send (& self , event : E) -> bool
+acanthus_services::platform::bridge::ServiceHandle: struct< C >
+acanthus_services::platform::bridge::ServiceHandle::send: fn send (& self , command : C) -> bool
+acanthus_services::platform::bridge::StopFlag: struct [Clone, Default]
+acanthus_services::platform::bridge::StopFlag::is_set: fn is_set (& self) -> bool
+acanthus_services::platform::bridge::StopFlag::sleep: fn sleep (& self , duration : Duration) -> bool
+acanthus_services::platform::bridge::ThreadHandle: struct
+acanthus_services::platform::bridge::ThreadHandle::stop_flag: fn stop_flag (& self) -> StopFlag
+acanthus_services::platform::bridge::spawn_supervised: fn spawn_supervised < D , E , C , F , Fut > (handle : & LoopHandle < 'static , D > , name : & str , on_event : impl FnMut (E) + 'static , run : F ,) -> Result < ServiceHandle < C > , IoError > where D : 'static , E : Send + 'static , C : Send + 'static , F : Fn (EventSink < E > , async_channel :: Receiver < C >) -> Fut + Send + 'static , Fut : Future < Output = () > + 'static ,
+acanthus_services::platform::bridge::spawn_supervised_with: fn spawn_supervised_with < D , E , C , F , Fut > (handle : & LoopHandle < 'static , D > , name : & str , backoff : Backoff , on_event : impl FnMut (E) + 'static , run : F ,) -> Result < ServiceHandle < C > , IoError > where D : 'static , E : Send + 'static , C : Send + 'static , F : Fn (EventSink < E > , async_channel :: Receiver < C >) -> Fut + Send + 'static , Fut : Future < Output = () > + 'static ,
+acanthus_services::platform::bridge::spawn_thread: fn spawn_thread < D , E > (handle : & LoopHandle < 'static , D > , name : & str , mut on_event : impl FnMut (E) + 'static , run : impl FnOnce (EventSink < E > , StopFlag) + Send + 'static ,) -> Result < ThreadHandle , IoError > where D : 'static , E : Send + 'static ,
+acanthus_services::platform::bridge::spawn_worker: fn spawn_worker < D , E , C , F , Fut > (handle : & LoopHandle < 'static , D > , name : & str , on_event : impl FnMut (E) + 'static , run : F ,) -> Result < ServiceHandle < C > , IoError > where D : 'static , E : Send + 'static , C : Send + 'static , F : FnOnce (EventSink < E > , async_channel :: Receiver < C >) -> Fut + Send + 'static , Fut : Future < Output = () > + 'static ,
+acanthus_services::platform::brightness::BACKLIGHT_ROOT: const BACKLIGHT_ROOT: & str
+acanthus_services::platform::brightness::Backend: enum [Clone, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::brightness::Backend::Backlight: variant (String)
+acanthus_services::platform::brightness::Backend::Ddc: variant 
+acanthus_services::platform::brightness::Backend::None: variant 
+acanthus_services::platform::brightness::Backend::Unknown: variant 
+acanthus_services::platform::brightness::Backend::describe: fn describe (self) -> & 'static str
+acanthus_services::platform::brightness::Backend::from_names: fn from_names (portal_running : bool , activatable : & [String] , owned : & [String]) -> Backend
+acanthus_services::platform::brightness::BacklightDevice.current: u64
+acanthus_services::platform::brightness::BacklightDevice.max: u64
+acanthus_services::platform::brightness::BacklightDevice.name: String
+acanthus_services::platform::brightness::BacklightDevice.path: PathBuf
+acanthus_services::platform::brightness::BacklightDevice: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::brightness::BacklightDevice::percent: fn percent (& self) -> u32
+acanthus_services::platform::brightness::Brightness.backend: Signal < Backend >
+acanthus_services::platform::brightness::Brightness.percent: Signal < Option < u32 > >
+acanthus_services::platform::brightness::Brightness: struct
+acanthus_services::platform::brightness::Brightness::adjust: fn adjust (& self , delta : i32)
+acanthus_services::platform::brightness::Brightness::last_error: fn last_error (& self) -> Signal < String >
+acanthus_services::platform::brightness::Brightness::lower: fn lower (& self)
+acanthus_services::platform::brightness::Brightness::raise: fn raise (& self)
+acanthus_services::platform::brightness::Brightness::refresh: fn refresh (& self)
+acanthus_services::platform::brightness::Brightness::set: fn set (& self , percent : i32)
+acanthus_services::platform::brightness::Brightness::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind , backlight_root : & Path , ddc_exec : Option < (Rc < dyn Exec > , & str) > ,) -> Result < Brightness , IoError >
+acanthus_services::platform::brightness::Ddc: struct
+acanthus_services::platform::brightness::Ddc::new: fn new (exec : Rc < dyn Exec > , program : & str , percent : Signal < Option < u32 > >) -> Rc < Ddc >
+acanthus_services::platform::brightness::Ddc::submit: fn submit (self : & Rc < Self > , op : DdcOpPublic)
+acanthus_services::platform::brightness::DdcOpPublic: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::brightness::DdcOpPublic::Adjust: variant (i32)
+acanthus_services::platform::brightness::DdcOpPublic::Get: variant 
+acanthus_services::platform::brightness::DdcOpPublic::Set: variant (i32)
+acanthus_services::platform::brightness::LEDS_ROOT: const LEDS_ROOT: & str
+acanthus_services::platform::brightness::STEP: const STEP: i32
+acanthus_services::platform::brightness::parse_ddc_bus: fn parse_ddc_bus (detect_output : & str) -> Option < u32 >
+acanthus_services::platform::brightness::parse_vcp: fn parse_vcp (output : & str) -> Option < (u32 , u32) >
+acanthus_services::platform::brightness::raw_for_percent: fn raw_for_percent (percent : i32 , max : u64) -> u64
+acanthus_services::platform::brightness::read_backlights: fn read_backlights (root : & Path) -> Vec < BacklightDevice >
+acanthus_services::platform::compositor::Compositor.connected: Signal < bool >
+acanthus_services::platform::compositor::Compositor.focus: Signal < FocusInfo >
+acanthus_services::platform::compositor::Compositor.kind: CompositorKind
+acanthus_services::platform::compositor::Compositor.snapshot: Signal < Snapshot >
+acanthus_services::platform::compositor::Compositor: struct
+acanthus_services::platform::compositor::Compositor::close_window: fn close_window (& self , window : & Window)
+acanthus_services::platform::compositor::Compositor::focus_window: fn focus_window (& self , window : & Window)
+acanthus_services::platform::compositor::Compositor::focus_workspace: fn focus_workspace (& self , index : u32)
+acanthus_services::platform::compositor::Compositor::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , env : impl Fn (& str) -> Option < String > ,) -> Result < Compositor , IoError >
+acanthus_services::platform::compositor::Compositor::switch_keyboard_layout: fn switch_keyboard_layout (& self)
+acanthus_services::platform::compositor::CompositorKind: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::compositor::CompositorKind::Hyprland: variant 
+acanthus_services::platform::compositor::CompositorKind::Mango: variant 
+acanthus_services::platform::compositor::CompositorKind::Niri: variant 
+acanthus_services::platform::compositor::CompositorKind::Sway: variant 
+acanthus_services::platform::compositor::CompositorKind::Unknown: variant 
+acanthus_services::platform::compositor::CompositorKind::detect: fn detect (env : impl Fn (& str) -> Option < String >) -> CompositorKind
+acanthus_services::platform::compositor::FocusInfo.app_class: String
+acanthus_services::platform::compositor::FocusInfo.title: String
+acanthus_services::platform::compositor::FocusInfo: struct [Clone, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::compositor::FocusInfo::display_text: fn display_text (& self) -> & str
+acanthus_services::platform::compositor::FocusInfo::is_focused: fn is_focused (& self) -> bool
+acanthus_services::platform::compositor::Snapshot.focused_output: String
+acanthus_services::platform::compositor::Snapshot.keyboard_layout_index: usize
+acanthus_services::platform::compositor::Snapshot.keyboard_layouts: Vec < String >
+acanthus_services::platform::compositor::Snapshot.windows: Vec < Window >
+acanthus_services::platform::compositor::Snapshot.workspaces: Vec < Workspace >
+acanthus_services::platform::compositor::Snapshot: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::compositor::Snapshot::active_index: fn active_index (& self) -> i32
+acanthus_services::platform::compositor::Snapshot::active_index_for: fn active_index_for (& self , output : & str) -> i32
+acanthus_services::platform::compositor::Snapshot::focused_window: fn focused_window (& self) -> Option < & Window >
+acanthus_services::platform::compositor::Snapshot::is_occupied: fn is_occupied (& self , output : & str , index : i32) -> bool
+acanthus_services::platform::compositor::Snapshot::keyboard_layout: fn keyboard_layout (& self) -> & str
+acanthus_services::platform::compositor::Snapshot::max_workspace_index: fn max_workspace_index (& self) -> i32
+acanthus_services::platform::compositor::Snapshot::short_keyboard_layout: fn short_keyboard_layout (& self) -> String
+acanthus_services::platform::compositor::Window.app_id: String
+acanthus_services::platform::compositor::Window.floating: bool
+acanthus_services::platform::compositor::Window.focused: bool
+acanthus_services::platform::compositor::Window.fullscreen: bool
+acanthus_services::platform::compositor::Window.id: String
+acanthus_services::platform::compositor::Window.native_id: String
+acanthus_services::platform::compositor::Window.output: String
+acanthus_services::platform::compositor::Window.pid: Option < i64 >
+acanthus_services::platform::compositor::Window.title: String
+acanthus_services::platform::compositor::Window.urgent: bool
+acanthus_services::platform::compositor::Window.workspace: i32
+acanthus_services::platform::compositor::Window.workspace_name: String
+acanthus_services::platform::compositor::Window: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::compositor::Workspace.active: bool
+acanthus_services::platform::compositor::Workspace.focused: bool
+acanthus_services::platform::compositor::Workspace.has_fullscreen: bool
+acanthus_services::platform::compositor::Workspace.id: i64
+acanthus_services::platform::compositor::Workspace.index: i32
+acanthus_services::platform::compositor::Workspace.name: String
+acanthus_services::platform::compositor::Workspace.occupied: bool
+acanthus_services::platform::compositor::Workspace.output: String
+acanthus_services::platform::compositor::Workspace.urgent: bool
+acanthus_services::platform::compositor::Workspace: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::dbus::BusKind: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::dbus::BusKind::Address: variant (String)
+acanthus_services::platform::dbus::BusKind::Session: variant 
+acanthus_services::platform::dbus::BusKind::System: variant 
+acanthus_services::platform::dbus::BusKind::connect: async fn connect (& self) -> zbus :: Result < Connection >
+acanthus_services::platform::dbus::BusKind::connect_shared: async fn connect_shared (& self) -> zbus :: Result < Connection >
+acanthus_services::platform::dbus::BusKind::forget_shared: fn forget_shared (& self)
+acanthus_services::platform::dbus::forget_all_shared: fn forget_all_shared ()
+acanthus_services::platform::dbus::variant_to_json: fn variant_to_json (value : & Variant < '_ >) -> Json
+acanthus_services::platform::dbus::wait_for_owner: fn async fn wait_for_owner (connection : & Connection , names : & [& str]) -> zbus :: Result < () >
+acanthus_services::platform::dbus::while_owned: fn async fn while_owned < T > (connection : & Connection , name : & str , body : impl Future < Output = zbus :: Result < T > > ,) -> zbus :: Result < T >
+acanthus_services::platform::desktop::DesktopAction.exec: String
+acanthus_services::platform::desktop::DesktopAction.icon: String
+acanthus_services::platform::desktop::DesktopAction.id: String
+acanthus_services::platform::desktop::DesktopAction.name: String
+acanthus_services::platform::desktop::DesktopAction: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::desktop::DesktopEntry.actions: Vec < DesktopAction >
+acanthus_services::platform::desktop::DesktopEntry.categories: Vec < String >
+acanthus_services::platform::desktop::DesktopEntry.comment: String
+acanthus_services::platform::desktop::DesktopEntry.exec: String
+acanthus_services::platform::desktop::DesktopEntry.generic_name: String
+acanthus_services::platform::desktop::DesktopEntry.hidden: bool
+acanthus_services::platform::desktop::DesktopEntry.icon: String
+acanthus_services::platform::desktop::DesktopEntry.id: String
+acanthus_services::platform::desktop::DesktopEntry.keywords: Vec < String >
+acanthus_services::platform::desktop::DesktopEntry.mime_types: Vec < String >
+acanthus_services::platform::desktop::DesktopEntry.name: String
+acanthus_services::platform::desktop::DesktopEntry.no_display: bool
+acanthus_services::platform::desktop::DesktopEntry.not_show_in: Vec < String >
+acanthus_services::platform::desktop::DesktopEntry.only_show_in: Vec < String >
+acanthus_services::platform::desktop::DesktopEntry.path: PathBuf
+acanthus_services::platform::desktop::DesktopEntry.startup_wm_class: String
+acanthus_services::platform::desktop::DesktopEntry.terminal: bool
+acanthus_services::platform::desktop::DesktopEntry.try_exec: String
+acanthus_services::platform::desktop::DesktopEntry.working_dir: String
+acanthus_services::platform::desktop::DesktopEntry: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::desktop::DesktopEntry::action_command: fn action_command (& self , action_id : & str) -> Option < Vec < String > >
+acanthus_services::platform::desktop::DesktopEntry::command: fn command (& self , files : & [String]) -> Vec < String >
+acanthus_services::platform::desktop::DesktopEntry::is_visible_in: fn is_visible_in (& self , current_desktops : & [String]) -> bool
+acanthus_services::platform::desktop::DesktopEntry::launch_command: fn launch_command (& self , files : & [String] , terminal : Option < & str >) -> Vec < String >
+acanthus_services::platform::desktop::application_dirs: fn application_dirs (env : impl Fn (& str) -> Option < String >) -> Vec < PathBuf >
+acanthus_services::platform::desktop::expand_locales: fn expand_locales (raw : & [String]) -> Vec < String >
+acanthus_services::platform::desktop::locales_from_env: fn locales_from_env (env : impl Fn (& str) -> Option < String >) -> Vec < String >
+acanthus_services::platform::desktop::parse_entry: fn parse_entry (id : & str , path : & Path , text : & str , locales : & [String]) -> Option < DesktopEntry >
+acanthus_services::platform::desktop::scan: fn scan (dirs : & [PathBuf] , locales : & [String]) -> Vec < DesktopEntry >
+acanthus_services::platform::desktop::split_exec: fn split_exec (exec : & str) -> Vec < String >
+acanthus_services::platform::desktop_service::DesktopEntries: struct
+acanthus_services::platform::desktop_service::DesktopEntries::entries: fn entries (& self) -> Vec < Rc < DesktopEntry > >
+acanthus_services::platform::desktop_service::DesktopEntries::find: fn find (& self , id : & str) -> Option < Rc < DesktopEntry > >
+acanthus_services::platform::desktop_service::DesktopEntries::launch: fn launch (& self , entry : & DesktopEntry , files : & [String])
+acanthus_services::platform::desktop_service::DesktopEntries::matcher: fn matcher (& self) -> Rc < AppMatcher >
+acanthus_services::platform::desktop_service::DesktopEntries::rescan_now: fn rescan_now (& self)
+acanthus_services::platform::desktop_service::DesktopEntries::revision: fn revision (& self) -> Signal < u64 >
+acanthus_services::platform::desktop_service::DesktopEntries::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , env : impl Fn (& str) -> Option < String > , exec : Rc < dyn Exec > ,) -> Result < DesktopEntries , IoError >
+acanthus_services::platform::file_chooser::Backend: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::file_chooser::Backend::Missing: variant 
+acanthus_services::platform::file_chooser::Backend::Other: variant 
+acanthus_services::platform::file_chooser::Backend::Ski: variant 
+acanthus_services::platform::file_chooser::Filter.name: String
+acanthus_services::platform::file_chooser::Filter.patterns: Vec < Pattern >
+acanthus_services::platform::file_chooser::Filter: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::file_chooser::Filter::globs: fn globs (name : & str , globs : & [& str]) -> Filter
+acanthus_services::platform::file_chooser::Outcome: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::file_chooser::Outcome::Cancelled: variant 
+acanthus_services::platform::file_chooser::Outcome::Picked: variant (Vec < PathBuf >)
+acanthus_services::platform::file_chooser::Outcome::Unavailable: variant 
+acanthus_services::platform::file_chooser::Pattern: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::file_chooser::Pattern::Glob: variant (String)
+acanthus_services::platform::file_chooser::Pattern::Mime: variant (String)
+acanthus_services::platform::file_chooser::Pick: struct
+acanthus_services::platform::file_chooser::PickMode: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::file_chooser::PickMode::Folder: variant 
+acanthus_services::platform::file_chooser::PickMode::OpenFile: variant 
+acanthus_services::platform::file_chooser::PickMode::OpenFiles: variant 
+acanthus_services::platform::file_chooser::PickMode::Save: variant 
+acanthus_services::platform::file_chooser::PickSpec.filters: Vec < Filter >
+acanthus_services::platform::file_chooser::PickSpec.folder: Option < PathBuf >
+acanthus_services::platform::file_chooser::PickSpec.mode: PickMode
+acanthus_services::platform::file_chooser::PickSpec.name: Option < String >
+acanthus_services::platform::file_chooser::PickSpec.title: String
+acanthus_services::platform::file_chooser::PickSpec: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::file_chooser::PickSpec::filter: fn filter (mut self , filter : Filter) -> PickSpec
+acanthus_services::platform::file_chooser::PickSpec::folder: fn folder (mut self , folder : PathBuf) -> PickSpec
+acanthus_services::platform::file_chooser::PickSpec::name: fn name (mut self , name : & str) -> PickSpec
+acanthus_services::platform::file_chooser::PickSpec::new: fn new (mode : PickMode , title : & str) -> PickSpec
+acanthus_services::platform::file_chooser::log_backend: fn log_backend (bus : BusKind)
+acanthus_services::platform::file_chooser::options: fn options < 'a > (spec : & 'a PickSpec , token : & 'a str) -> HashMap < & 'static str , Variant < 'a > >
+acanthus_services::platform::file_chooser::outcome: fn outcome (code : u32 , uris : & [String]) -> Outcome
+acanthus_services::platform::file_chooser::path_to_uri: fn path_to_uri (path : & std :: path :: Path) -> String
+acanthus_services::platform::file_chooser::percent_decode: fn percent_decode (text : & str) -> String
+acanthus_services::platform::file_chooser::pick: fn pick < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind , spec : PickSpec , on_done : impl FnOnce (Outcome) + 'static ,) -> Result < Pick , IoError >
+acanthus_services::platform::file_chooser::probe: fn async fn probe (bus : & BusKind) -> Backend
+acanthus_services::platform::file_chooser::request_path: fn request_path (unique_name : & str , token : & str) -> String
+acanthus_services::platform::file_chooser::uri_to_path: fn uri_to_path (uri : & str) -> Option < PathBuf >
+acanthus_services::platform::gamma::DAY_TEMP: const DAY_TEMP: u32
+acanthus_services::platform::gamma::Gamma.state: GammaState
+acanthus_services::platform::gamma::Gamma: struct
+acanthus_services::platform::gamma::Gamma::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , mut on_failed : impl FnMut (String) + 'static ,) -> Result < Gamma , IoError >
+acanthus_services::platform::gamma::GammaBackend: trait
+acanthus_services::platform::gamma::GammaBackend::set: required fn set (& self , output : Option < & str > , kelvin : Option < u32 >)
+acanthus_services::platform::gamma::GammaSnapshot.applied: Vec < (String , u32) >
+acanthus_services::platform::gamma::GammaSnapshot.outputs: Vec < String >
+acanthus_services::platform::gamma::GammaSnapshot: struct [Clone, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::gamma::GammaState.applied: Signal < Vec < (String , u32) > >
+acanthus_services::platform::gamma::GammaState.available: Signal < bool >
+acanthus_services::platform::gamma::GammaState.outputs: Signal < Vec < String > >
+acanthus_services::platform::gamma::GammaState.ready: Signal < bool >
+acanthus_services::platform::gamma::GammaState: struct [Clone]
+acanthus_services::platform::gamma::TEMP_MAX: const TEMP_MAX: i64
+acanthus_services::platform::gamma::TEMP_MIN: const TEMP_MIN: i64
+acanthus_services::platform::gamma::kelvin_multipliers: fn kelvin_multipliers (kelvin : u32) -> [f64 ; 3]
+acanthus_services::platform::gamma::ramp_bytes: fn ramp_bytes (size : usize , multipliers : [f64 ; 3]) -> Vec < u8 >
+acanthus_services::platform::idle::Idle.state: IdleState
+acanthus_services::platform::idle::Idle: struct
+acanthus_services::platform::idle::Idle::monitor: fn monitor (& self , timeout : Duration , respect_inhibitors : bool) -> IdleMonitor
+acanthus_services::platform::idle::Idle::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D >) -> Result < Idle , IoError >
+acanthus_services::platform::idle::IdleMonitor.is_idle: Signal < bool >
+acanthus_services::platform::idle::IdleMonitor: struct
+acanthus_services::platform::idle::IdleMonitor::enabled: fn enabled (& self) -> bool
+acanthus_services::platform::idle::IdleMonitor::set_enabled: fn set_enabled (& self , enabled : bool)
+acanthus_services::platform::idle::IdleState.available: Signal < bool >
+acanthus_services::platform::idle::IdleState.ready: Signal < bool >
+acanthus_services::platform::idle::IdleState: struct [Clone]
+acanthus_services::platform::idle::timeout_millis: fn timeout_millis (timeout : Duration) -> u32
+acanthus_services::platform::mpris::Action: enum [Clone, Debug, PartialEq]
+acanthus_services::platform::mpris::Action::Next: variant 
+acanthus_services::platform::mpris::Action::Pause: variant 
+acanthus_services::platform::mpris::Action::Play: variant 
+acanthus_services::platform::mpris::Action::PlayPause: variant 
+acanthus_services::platform::mpris::Action::Previous: variant 
+acanthus_services::platform::mpris::Action::Raise: variant 
+acanthus_services::platform::mpris::Action::SeekBy: variant (i64)
+acanthus_services::platform::mpris::Action::SetPosition: variant (i64)
+acanthus_services::platform::mpris::Action::Stop: variant 
+acanthus_services::platform::mpris::Command.action: Action
+acanthus_services::platform::mpris::Command.bus_name: String
+acanthus_services::platform::mpris::Command: struct [Clone, Debug, PartialEq]
+acanthus_services::platform::mpris::Mpris.active: Signal < Option < Player > >
+acanthus_services::platform::mpris::Mpris.players: Signal < Vec < Player > >
+acanthus_services::platform::mpris::Mpris: struct
+acanthus_services::platform::mpris::Mpris::play_pause_active: fn play_pause_active (& self)
+acanthus_services::platform::mpris::Mpris::send: fn send (& self , bus_name : & str , action : Action)
+acanthus_services::platform::mpris::Mpris::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind) -> Result < Mpris , IoError >
+acanthus_services::platform::mpris::Playback: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::mpris::Playback::Paused: variant 
+acanthus_services::platform::mpris::Playback::Playing: variant 
+acanthus_services::platform::mpris::Playback::Stopped: variant 
+acanthus_services::platform::mpris::Playback::parse: fn parse (text : & str) -> Playback
+acanthus_services::platform::mpris::Player.album: String
+acanthus_services::platform::mpris::Player.art_url: String
+acanthus_services::platform::mpris::Player.artist: String
+acanthus_services::platform::mpris::Player.bus_name: String
+acanthus_services::platform::mpris::Player.can_control: bool
+acanthus_services::platform::mpris::Player.can_go_next: bool
+acanthus_services::platform::mpris::Player.can_go_previous: bool
+acanthus_services::platform::mpris::Player.can_pause: bool
+acanthus_services::platform::mpris::Player.can_play: bool
+acanthus_services::platform::mpris::Player.can_seek: bool
+acanthus_services::platform::mpris::Player.desktop_entry: String
+acanthus_services::platform::mpris::Player.identity: String
+acanthus_services::platform::mpris::Player.length_us: i64
+acanthus_services::platform::mpris::Player.loop_status: String
+acanthus_services::platform::mpris::Player.metadata: Value
+acanthus_services::platform::mpris::Player.playback: Playback
+acanthus_services::platform::mpris::Player.position_stamp: Option < Instant >
+acanthus_services::platform::mpris::Player.position_us: i64
+acanthus_services::platform::mpris::Player.rate: f64
+acanthus_services::platform::mpris::Player.shuffle: bool
+acanthus_services::platform::mpris::Player.title: String
+acanthus_services::platform::mpris::Player.track_id: String
+acanthus_services::platform::mpris::Player.volume: f64
+acanthus_services::platform::mpris::Player: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::mpris::Player::cover_url: fn cover_url (& self) -> String
+acanthus_services::platform::mpris::Player::id: fn id (& self) -> & str
+acanthus_services::platform::mpris::Player::is_playing: fn is_playing (& self) -> bool
+acanthus_services::platform::mpris::Player::live_position_us: fn live_position_us (& self , now : Instant) -> i64
+acanthus_services::platform::mpris::parse_player: fn parse_player (bus_name : & str , root : & HashMap < String , OwnedValue > , props : & HashMap < String , OwnedValue > , now : Instant ,) -> Player
+acanthus_services::platform::mpris::select_active: fn select_active < 'a > (players : & 'a [Player] , last_playing_bus : & str) -> Option < & 'a Player >
+acanthus_services::platform::network::ConnectOptions.enterprise: Option < Enterprise >
+acanthus_services::platform::network::ConnectOptions.hidden: bool
+acanthus_services::platform::network::ConnectOptions.psk: Option < String >
+acanthus_services::platform::network::ConnectOptions.wep_key_type: WepKeyType
+acanthus_services::platform::network::ConnectOptions.wep_shared: bool
+acanthus_services::platform::network::ConnectOptions: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::ConnectionSettings: type ConnectionSettings = HashMap < String , Properties >
+acanthus_services::platform::network::DeviceKind: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::network::DeviceKind::Other: variant 
+acanthus_services::platform::network::DeviceKind::Wifi: variant 
+acanthus_services::platform::network::DeviceKind::Wired: variant 
+acanthus_services::platform::network::EapMethod: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::network::EapMethod::Aka: variant 
+acanthus_services::platform::network::EapMethod::AkaPrime: variant 
+acanthus_services::platform::network::EapMethod::Fast: variant 
+acanthus_services::platform::network::EapMethod::Peap: variant 
+acanthus_services::platform::network::EapMethod::Pwd: variant 
+acanthus_services::platform::network::EapMethod::Sim: variant 
+acanthus_services::platform::network::EapMethod::Tls: variant 
+acanthus_services::platform::network::EapMethod::Ttls: variant 
+acanthus_services::platform::network::Enterprise.altsubject_matches: Vec < String >
+acanthus_services::platform::network::Enterprise.anonymous_identity: Option < String >
+acanthus_services::platform::network::Enterprise.ca_cert: Option < String >
+acanthus_services::platform::network::Enterprise.ca_path: Option < String >
+acanthus_services::platform::network::Enterprise.client_cert: Option < String >
+acanthus_services::platform::network::Enterprise.domain_match: Option < String >
+acanthus_services::platform::network::Enterprise.domain_suffix: Option < String >
+acanthus_services::platform::network::Enterprise.fast_provisioning: FastProvisioning
+acanthus_services::platform::network::Enterprise.identity: String
+acanthus_services::platform::network::Enterprise.method: EapMethod
+acanthus_services::platform::network::Enterprise.pac_file: Option < String >
+acanthus_services::platform::network::Enterprise.password: Option < String >
+acanthus_services::platform::network::Enterprise.phase2: Option < String >
+acanthus_services::platform::network::Enterprise.pin: Option < String >
+acanthus_services::platform::network::Enterprise.private_key: Option < String >
+acanthus_services::platform::network::Enterprise.private_key_password: Option < String >
+acanthus_services::platform::network::Enterprise.subject_match: Option < String >
+acanthus_services::platform::network::Enterprise.system_ca_certs: bool
+acanthus_services::platform::network::Enterprise: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::FastProvisioning: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::network::FastProvisioning::Anonymous: variant 
+acanthus_services::platform::network::FastProvisioning::Authenticated: variant 
+acanthus_services::platform::network::FastProvisioning::Both: variant 
+acanthus_services::platform::network::Known: type Known = HashMap < String , Vec < String > >
+acanthus_services::platform::network::Network.state: NetworkState
+acanthus_services::platform::network::Network: struct
+acanthus_services::platform::network::Network::activate: fn activate (& self , device_path : & str) -> bool
+acanthus_services::platform::network::Network::cancel_secret: fn cancel_secret (& self , id : u64) -> bool
+acanthus_services::platform::network::Network::command: fn command (& self , command : NetworkCommand) -> bool
+acanthus_services::platform::network::Network::connect: fn connect (& self , ssid : & str) -> bool
+acanthus_services::platform::network::Network::connect_enterprise: fn connect_enterprise (& self , ssid : & str , identity : & str , password : & str) -> bool
+acanthus_services::platform::network::Network::connect_hidden: fn connect_hidden (& self , ssid : & str , psk : Option < & str >) -> bool
+acanthus_services::platform::network::Network::connect_vpn: fn connect_vpn (& self , path : & str) -> bool
+acanthus_services::platform::network::Network::connect_wep: fn connect_wep (& self , ssid : & str , key : & str , key_type : WepKeyType , shared : bool) -> bool
+acanthus_services::platform::network::Network::connect_with: fn connect_with (& self , ssid : & str , options : ConnectOptions) -> bool
+acanthus_services::platform::network::Network::connect_with_psk: fn connect_with_psk (& self , ssid : & str , psk : & str) -> bool
+acanthus_services::platform::network::Network::disconnect: fn disconnect (& self , device_path : & str) -> bool
+acanthus_services::platform::network::Network::disconnect_vpn: fn disconnect_vpn (& self , path : & str) -> bool
+acanthus_services::platform::network::Network::forget: fn forget (& self , ssid : & str) -> bool
+acanthus_services::platform::network::Network::import_profile: fn import_profile (& self , name : & str , text : & str) -> Result < Vec < String > , ImportError >
+acanthus_services::platform::network::Network::import_profile_file: fn import_profile_file (& self , path : & std :: path :: Path) -> Result < Vec < String > , ImportError >
+acanthus_services::platform::network::Network::import_profile_with: fn import_profile_with (& self , name : & str , text : & str , options : & ImportOptions ,) -> Result < Vec < String > , ImportError >
+acanthus_services::platform::network::Network::provide_secret: fn provide_secret (& self , id : u64 , secret : & str) -> bool
+acanthus_services::platform::network::Network::provide_secrets: fn provide_secrets (& self , id : u64 , secrets : HashMap < String , String >) -> bool
+acanthus_services::platform::network::Network::scan: fn scan (& self) -> bool
+acanthus_services::platform::network::Network::set_scanning: fn set_scanning (& self , scanning : bool) -> bool
+acanthus_services::platform::network::Network::set_wifi_enabled: fn set_wifi_enabled (& self , enabled : bool) -> bool
+acanthus_services::platform::network::Network::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind , app : & str) -> Result < Network , IoError >
+acanthus_services::platform::network::NetworkCommand: enum [Clone, Debug, PartialEq]
+acanthus_services::platform::network::NetworkCommand::Activate: variant (String)
+acanthus_services::platform::network::NetworkCommand::AddConnection: variant (Box < ConnectionSettings >)
+acanthus_services::platform::network::NetworkCommand::Connect: variant { # [doc = " Network name."] ssid : String , # [doc = " Credentials and flags."] options : Box < ConnectOptions > , }
+acanthus_services::platform::network::NetworkCommand::ConnectVpn: variant (String)
+acanthus_services::platform::network::NetworkCommand::Disconnect: variant (String)
+acanthus_services::platform::network::NetworkCommand::DisconnectVpn: variant (String)
+acanthus_services::platform::network::NetworkCommand::Forget: variant (String)
+acanthus_services::platform::network::NetworkCommand::ProvideSecret: variant { # [doc = " Id of the request."] id : u64 , # [doc = " The secrets by key, `None` to cancel."] secrets : Option < HashMap < String , String > > , }
+acanthus_services::platform::network::NetworkCommand::Scan: variant 
+acanthus_services::platform::network::NetworkCommand::SetScanning: variant (bool)
+acanthus_services::platform::network::NetworkCommand::SetWifiEnabled: variant (bool)
+acanthus_services::platform::network::NetworkDevice.address: String
+acanthus_services::platform::network::NetworkDevice.connected: bool
+acanthus_services::platform::network::NetworkDevice.has_link: bool
+acanthus_services::platform::network::NetworkDevice.kind: DeviceKind
+acanthus_services::platform::network::NetworkDevice.name: String
+acanthus_services::platform::network::NetworkDevice.path: String
+acanthus_services::platform::network::NetworkDevice: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::NetworkSnapshot.available: bool
+acanthus_services::platform::network::NetworkSnapshot.devices: Vec < NetworkDevice >
+acanthus_services::platform::network::NetworkSnapshot.networks: Vec < WifiNetwork >
+acanthus_services::platform::network::NetworkSnapshot.vpns: Vec < VpnConnection >
+acanthus_services::platform::network::NetworkSnapshot.wifi_enabled: bool
+acanthus_services::platform::network::NetworkSnapshot: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::NetworkState.available: Signal < bool >
+acanthus_services::platform::network::NetworkState.devices: Signal < Vec < NetworkDevice > >
+acanthus_services::platform::network::NetworkState.last_error: Signal < String >
+acanthus_services::platform::network::NetworkState.networks: Signal < Vec < WifiNetwork > >
+acanthus_services::platform::network::NetworkState.ready: Signal < bool >
+acanthus_services::platform::network::NetworkState.scanning: Signal < bool >
+acanthus_services::platform::network::NetworkState.secret_requests: Signal < Vec < SecretRequest > >
+acanthus_services::platform::network::NetworkState.vpns: Signal < Vec < VpnConnection > >
+acanthus_services::platform::network::NetworkState.wifi_enabled: Signal < bool >
+acanthus_services::platform::network::NetworkState: struct [Clone]
+acanthus_services::platform::network::NetworkState::apply: fn apply (& self , snapshot : & NetworkSnapshot)
+acanthus_services::platform::network::NetworkState::connected_network: fn connected_network (& self) -> Option < WifiNetwork >
+acanthus_services::platform::network::NetworkState::device_of: fn device_of (& self , kind : DeviceKind) -> Option < NetworkDevice >
+acanthus_services::platform::network::NetworkState::ethernet_device: fn ethernet_device (& self) -> Option < NetworkDevice >
+acanthus_services::platform::network::NetworkState::new: fn new () -> Self
+acanthus_services::platform::network::NetworkState::wifi_device: fn wifi_device (& self) -> Option < NetworkDevice >
+acanthus_services::platform::network::Profiles.known: Known
+acanthus_services::platform::network::Profiles.vpns: Vec < VpnProfile >
+acanthus_services::platform::network::Profiles: struct [Clone, Debug, Default]
+acanthus_services::platform::network::Properties: type Properties = HashMap < String , OwnedValue >
+acanthus_services::platform::network::RawAccessPoint.path: String
+acanthus_services::platform::network::RawAccessPoint.props: Properties
+acanthus_services::platform::network::RawAccessPoint: struct [Clone, Debug, Default]
+acanthus_services::platform::network::RawDevice.access_points: Vec < RawAccessPoint >
+acanthus_services::platform::network::RawDevice.device: Properties
+acanthus_services::platform::network::RawDevice.path: String
+acanthus_services::platform::network::RawDevice.wired: Properties
+acanthus_services::platform::network::RawDevice.wireless: Properties
+acanthus_services::platform::network::RawDevice: struct [Clone, Debug, Default]
+acanthus_services::platform::network::SecretRequest.allow_interaction: bool
+acanthus_services::platform::network::SecretRequest.connection_name: String
+acanthus_services::platform::network::SecretRequest.connection_path: String
+acanthus_services::platform::network::SecretRequest.hints: Vec < String >
+acanthus_services::platform::network::SecretRequest.id: u64
+acanthus_services::platform::network::SecretRequest.key: String
+acanthus_services::platform::network::SecretRequest.keys: Vec < String >
+acanthus_services::platform::network::SecretRequest.message: String
+acanthus_services::platform::network::SecretRequest.request_new: bool
+acanthus_services::platform::network::SecretRequest.setting: String
+acanthus_services::platform::network::SecretRequest: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::VpnConnection.active: bool
+acanthus_services::platform::network::VpnConnection.name: String
+acanthus_services::platform::network::VpnConnection.path: String
+acanthus_services::platform::network::VpnConnection: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::VpnProfile.active_path: Option < String >
+acanthus_services::platform::network::VpnProfile.name: String
+acanthus_services::platform::network::VpnProfile.path: String
+acanthus_services::platform::network::VpnProfile: struct [Clone, Debug, Default]
+acanthus_services::platform::network::WepKeyType: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::network::WepKeyType::Key: variant 
+acanthus_services::platform::network::WepKeyType::Passphrase: variant 
+acanthus_services::platform::network::WifiNetwork.connected: bool
+acanthus_services::platform::network::WifiNetwork.device: String
+acanthus_services::platform::network::WifiNetwork.known: bool
+acanthus_services::platform::network::WifiNetwork.name: String
+acanthus_services::platform::network::WifiNetwork.path: String
+acanthus_services::platform::network::WifiNetwork.security: WifiSecurity
+acanthus_services::platform::network::WifiNetwork.signal_strength: f64
+acanthus_services::platform::network::WifiNetwork: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::network::WifiSecurity: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::network::WifiSecurity::Eap: variant 
+acanthus_services::platform::network::WifiSecurity::Open: variant 
+acanthus_services::platform::network::WifiSecurity::Owe: variant 
+acanthus_services::platform::network::WifiSecurity::Wep: variant 
+acanthus_services::platform::network::WifiSecurity::Wpa2Psk: variant 
+acanthus_services::platform::network::WifiSecurity::Wpa3Sae: variant 
+acanthus_services::platform::network::WifiSecurity::WpaPsk: variant 
+acanthus_services::platform::network::WifiSecurity::is_open: fn is_open (self) -> bool
+acanthus_services::platform::network::WifiSecurity::needs_psk: fn needs_psk (self) -> bool
+acanthus_services::platform::network::build_snapshot: fn build_snapshot (wifi_enabled : bool , raws : & [RawDevice] , profiles : & Profiles) -> NetworkSnapshot
+acanthus_services::platform::network::connection_settings: fn connection_settings (ssid : & str , security : WifiSecurity , options : & ConnectOptions ,) -> HashMap < String , HashMap < String , OwnedValue > >
+acanthus_services::platform::network::secret_keys: fn secret_keys (setting : & str , hints : & [String] , current : & HashMap < String , Properties >) -> Vec < String >
+acanthus_services::platform::network::secret_message: fn secret_message (hints : & [String]) -> String
+acanthus_services::platform::network::secret_settings: fn secret_settings (setting : & str , secrets : & HashMap < String , String > ,) -> HashMap < String , HashMap < String , OwnedValue > >
+acanthus_services::platform::network::security_from_flags: fn security_from_flags (flags : u32 , wpa : u32 , rsn : u32) -> WifiSecurity
+acanthus_services::platform::network_import::ImportError: enum [Debug, thiserror :: Error]
+acanthus_services::platform::network_import::ImportError::Invalid: variant { # [doc = " The setting that has the bad value."] key : String , # [doc = " The value found."] value : String , }
+acanthus_services::platform::network_import::ImportError::Io: variant (# [from] std :: io :: Error)
+acanthus_services::platform::network_import::ImportError::Missing: variant (& 'static str)
+acanthus_services::platform::network_import::ImportError::Unrecognised: variant 
+acanthus_services::platform::network_import::ImportOptions.base_dir: Option < PathBuf >
+acanthus_services::platform::network_import::ImportOptions.format: Option < ProfileFormat >
+acanthus_services::platform::network_import::ImportOptions.output_dir: Option < PathBuf >
+acanthus_services::platform::network_import::ImportOptions.types: HashMap < String , ValueType >
+acanthus_services::platform::network_import::ImportOptions: struct [Clone, Debug, Default]
+acanthus_services::platform::network_import::ImportedProfile.guessed: Vec < String >
+acanthus_services::platform::network_import::ImportedProfile.ignored: Vec < String >
+acanthus_services::platform::network_import::ImportedProfile.name: String
+acanthus_services::platform::network_import::ImportedProfile.settings: ConnectionSettings
+acanthus_services::platform::network_import::ImportedProfile: struct [Clone, Debug, Default]
+acanthus_services::platform::network_import::ProfileFormat: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::network_import::ProfileFormat::Keyfile: variant 
+acanthus_services::platform::network_import::ProfileFormat::L2tp: variant 
+acanthus_services::platform::network_import::ProfileFormat::OpenConnect: variant 
+acanthus_services::platform::network_import::ProfileFormat::OpenVpn: variant 
+acanthus_services::platform::network_import::ProfileFormat::Pptp: variant 
+acanthus_services::platform::network_import::ProfileFormat::StrongSwan: variant 
+acanthus_services::platform::network_import::ProfileFormat::WireGuard: variant 
+acanthus_services::platform::network_import::ProfileFormat::WpaSupplicant: variant 
+acanthus_services::platform::network_import::ValueType: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::network_import::ValueType::Bool: variant 
+acanthus_services::platform::network_import::ValueType::Cert: variant 
+acanthus_services::platform::network_import::ValueType::Hex: variant 
+acanthus_services::platform::network_import::ValueType::I32: variant 
+acanthus_services::platform::network_import::ValueType::I64: variant 
+acanthus_services::platform::network_import::ValueType::Mac: variant 
+acanthus_services::platform::network_import::ValueType::Ssid: variant 
+acanthus_services::platform::network_import::ValueType::Str: variant 
+acanthus_services::platform::network_import::ValueType::StrList: variant 
+acanthus_services::platform::network_import::ValueType::Ternary: variant 
+acanthus_services::platform::network_import::ValueType::U32: variant 
+acanthus_services::platform::network_import::ValueType::U64: variant 
+acanthus_services::platform::network_import::detect_format: fn detect_format (text : & str) -> Option < ProfileFormat >
+acanthus_services::platform::network_import::import_keyfile: fn import_keyfile (text : & str) -> Result < ImportedProfile , ImportError >
+acanthus_services::platform::network_import::import_keyfile_with: fn import_keyfile_with (text : & str , options : & ImportOptions) -> Result < ImportedProfile , ImportError >
+acanthus_services::platform::network_import::import_l2tp: fn import_l2tp (name_hint : & str , text : & str) -> Result < Vec < ImportedProfile > , ImportError >
+acanthus_services::platform::network_import::import_openconnect: fn import_openconnect (name : & str , text : & str) -> Result < ImportedProfile , ImportError >
+acanthus_services::platform::network_import::import_openvpn: fn import_openvpn (name : & str , text : & str , options : & ImportOptions) -> Result < ImportedProfile , ImportError >
+acanthus_services::platform::network_import::import_pptp: fn import_pptp (name_hint : & str , text : & str) -> Result < ImportedProfile , ImportError >
+acanthus_services::platform::network_import::import_profiles: fn import_profiles (name_hint : & str , text : & str , options : & ImportOptions ,) -> Result < Vec < ImportedProfile > , ImportError >
+acanthus_services::platform::network_import::import_strongswan: fn import_strongswan (name_hint : & str , text : & str) -> Result < Vec < ImportedProfile > , ImportError >
+acanthus_services::platform::network_import::import_wireguard: fn import_wireguard (name : & str , text : & str) -> Result < ImportedProfile , ImportError >
+acanthus_services::platform::network_import::import_wpa_supplicant: fn import_wpa_supplicant (text : & str) -> Result < Vec < ImportedProfile > , ImportError >
+acanthus_services::platform::notifications::Action.id: String
+acanthus_services::platform::notifications::Action.text: String
+acanthus_services::platform::notifications::Action: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::notifications::CloseReason: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::notifications::CloseReason::Closed: variant 
+acanthus_services::platform::notifications::CloseReason::Dismissed: variant 
+acanthus_services::platform::notifications::CloseReason::Expired: variant 
+acanthus_services::platform::notifications::CloseReason::Undefined: variant 
+acanthus_services::platform::notifications::CloseReason::code: fn code (self) -> u32
+acanthus_services::platform::notifications::Command: enum
+acanthus_services::platform::notifications::Command::Close: variant (u32 , CloseReason)
+acanthus_services::platform::notifications::Command::Invoke: variant (u32 , String)
+acanthus_services::platform::notifications::ImageData.bits_per_sample: i32
+acanthus_services::platform::notifications::ImageData.channels: i32
+acanthus_services::platform::notifications::ImageData.data: Vec < u8 >
+acanthus_services::platform::notifications::ImageData.has_alpha: bool
+acanthus_services::platform::notifications::ImageData.height: i32
+acanthus_services::platform::notifications::ImageData.rowstride: i32
+acanthus_services::platform::notifications::ImageData.width: i32
+acanthus_services::platform::notifications::ImageData: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::notifications::ImageData::to_rgba: fn to_rgba (& self) -> Option < Vec < u8 > >
+acanthus_services::platform::notifications::LocalNotifier: struct
+acanthus_services::platform::notifications::LocalNotifier::new: fn new (server : Rc < NotificationServer > , fallback : NotifySendNotifier) -> LocalNotifier
+acanthus_services::platform::notifications::Notification.actions: Vec < Action >
+acanthus_services::platform::notifications::Notification.app_icon: String
+acanthus_services::platform::notifications::Notification.app_name: String
+acanthus_services::platform::notifications::Notification.body: String
+acanthus_services::platform::notifications::Notification.category: String
+acanthus_services::platform::notifications::Notification.desktop_entry: String
+acanthus_services::platform::notifications::Notification.expire_timeout_ms: i32
+acanthus_services::platform::notifications::Notification.id: u32
+acanthus_services::platform::notifications::Notification.image_data: Option < ImageData >
+acanthus_services::platform::notifications::Notification.image_path: String
+acanthus_services::platform::notifications::Notification.replaced: bool
+acanthus_services::platform::notifications::Notification.resident: bool
+acanthus_services::platform::notifications::Notification.summary: String
+acanthus_services::platform::notifications::Notification.timestamp_ms: u64
+acanthus_services::platform::notifications::Notification.transient: bool
+acanthus_services::platform::notifications::Notification.urgency: Urgency
+acanthus_services::platform::notifications::Notification: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::notifications::Notification::image: fn image (& self) -> & str
+acanthus_services::platform::notifications::NotificationServer.live: Signal < Vec < Notification > >
+acanthus_services::platform::notifications::NotificationServer.running: Signal < bool >
+acanthus_services::platform::notifications::NotificationServer: struct
+acanthus_services::platform::notifications::NotificationServer::close: fn close (& self , id : u32 , reason : CloseReason)
+acanthus_services::platform::notifications::NotificationServer::invoke_action: fn invoke_action (& self , id : u32 , action_id : & str)
+acanthus_services::platform::notifications::NotificationServer::on_closed: fn on_closed (& self , listener : impl FnMut (u32) + 'static)
+acanthus_services::platform::notifications::NotificationServer::on_notification: fn on_notification (& self , listener : impl FnMut (& Notification) + 'static)
+acanthus_services::platform::notifications::NotificationServer::post_local: fn post_local (& self , notice : Notice) -> u32
+acanthus_services::platform::notifications::NotificationServer::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind , app : & str ,) -> Result < NotificationServer , IoError >
+acanthus_services::platform::notifications::Urgency: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::notifications::Urgency::Critical: variant 
+acanthus_services::platform::notifications::Urgency::Low: variant 
+acanthus_services::platform::notifications::Urgency::Normal: variant 
+acanthus_services::platform::notifications::build_notification: fn build_notification (id : u32 , app_name : & str , app_icon : & str , summary : & str , body : & str , actions : & [String] , hints : & HashMap < String , OwnedVariant > , expire_timeout : i32 , replaced : bool ,) -> Notification
+acanthus_services::platform::notifications::parse_actions: fn parse_actions (raw : & [String]) -> Vec < Action >
+acanthus_services::platform::pam::DEFAULT_CONFIG: const DEFAULT_CONFIG: & str
+acanthus_services::platform::pam::DEFAULT_CONFIG_DIRECTORY: const DEFAULT_CONFIG_DIRECTORY: & str
+acanthus_services::platform::pam::PamContext.state: PamState
+acanthus_services::platform::pam::PamContext: struct
+acanthus_services::platform::pam::PamContext::abort: fn abort (& self)
+acanthus_services::platform::pam::PamContext::config: fn config (& self) -> String
+acanthus_services::platform::pam::PamContext::config_directory: fn config_directory (& self) -> String
+acanthus_services::platform::pam::PamContext::is_active: fn is_active (& self) -> bool
+acanthus_services::platform::pam::PamContext::new: fn new < D : 'static > (handle : & LoopHandle < 'static , D > , on_event : impl FnMut (PamEvent) + 'static ,) -> Result < PamContext , IoError >
+acanthus_services::platform::pam::PamContext::respond: fn respond (& self , text : & str) -> bool
+acanthus_services::platform::pam::PamContext::set_config: fn set_config (& self , config : & str)
+acanthus_services::platform::pam::PamContext::set_config_directory: fn set_config_directory (& self , directory : & str)
+acanthus_services::platform::pam::PamContext::set_user: fn set_user (& self , user : Option < & str >)
+acanthus_services::platform::pam::PamContext::start: fn start (& self) -> bool
+acanthus_services::platform::pam::PamError: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::pam::PamError::InternalError: variant 
+acanthus_services::platform::pam::PamError::StartFailed: variant 
+acanthus_services::platform::pam::PamError::TryAuthFailed: variant 
+acanthus_services::platform::pam::PamEvent: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::pam::PamEvent::Completed: variant (PamResult)
+acanthus_services::platform::pam::PamEvent::Error: variant (PamError)
+acanthus_services::platform::pam::PamEvent::Message: variant 
+acanthus_services::platform::pam::PamResult: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::pam::PamResult::Error: variant 
+acanthus_services::platform::pam::PamResult::Failed: variant 
+acanthus_services::platform::pam::PamResult::MaxTries: variant 
+acanthus_services::platform::pam::PamResult::Success: variant 
+acanthus_services::platform::pam::PamState.active: Signal < bool >
+acanthus_services::platform::pam::PamState.message: Signal < String >
+acanthus_services::platform::pam::PamState.message_is_error: Signal < bool >
+acanthus_services::platform::pam::PamState.response_required: Signal < bool >
+acanthus_services::platform::pam::PamState.response_visible: Signal < bool >
+acanthus_services::platform::pam::PamState: struct [Clone]
+acanthus_services::platform::pam::classify: fn classify (code : c_int) -> u8
+acanthus_services::platform::pam::outcome: fn outcome (code : u8) -> Vec < PamEvent >
+acanthus_services::platform::pam::pam_available: fn pam_available () -> bool
+acanthus_services::platform::pam::service_exists: fn service_exists (directory : & Path , service : & str) -> bool
+acanthus_services::platform::pam_config::build_no_fingerprint_dir: fn build_no_fingerprint_dir (source : & Path , destination : & Path , service : & str) -> io :: Result < () >
+acanthus_services::platform::pam_config::fingerprint_available: fn fingerprint_available (directory : & Path , service : & str) -> bool
+acanthus_services::platform::pam_config::fingerprint_available_in: fn fingerprint_available_in (directory : & Path , path_dirs : & [PathBuf] , service : & str) -> bool
+acanthus_services::platform::pam_config::no_fingerprint_config: fn no_fingerprint_config (service : & str) -> String
+acanthus_services::platform::pipewire::Pipewire.state: PipewireState
+acanthus_services::platform::pipewire::Pipewire: struct
+acanthus_services::platform::pipewire::Pipewire::command: fn command (& self , command : PipewireCommand) -> bool
+acanthus_services::platform::pipewire::Pipewire::set_default_sink: fn set_default_sink (& self , name : & str) -> bool
+acanthus_services::platform::pipewire::Pipewire::set_default_source: fn set_default_source (& self , name : & str) -> bool
+acanthus_services::platform::pipewire::Pipewire::set_muted: fn set_muted (& self , id : u32 , muted : bool) -> bool
+acanthus_services::platform::pipewire::Pipewire::set_volume: fn set_volume (& self , id : u32 , volume : f32) -> bool
+acanthus_services::platform::pipewire::Pipewire::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , virtual_sink : & str) -> Result < Pipewire , IoError >
+acanthus_services::platform::pipewire::Pipewire::toggle_mute: fn toggle_mute (& self , id : u32) -> bool
+acanthus_services::platform::pipewire::PipewireCommand: enum [Clone, Debug, PartialEq]
+acanthus_services::platform::pipewire::PipewireCommand::SetDefaultSink: variant (String)
+acanthus_services::platform::pipewire::PipewireCommand::SetDefaultSource: variant (String)
+acanthus_services::platform::pipewire::PipewireCommand::SetMuted: variant (u32 , bool)
+acanthus_services::platform::pipewire::PipewireCommand::SetVolume: variant (u32 , f32)
+acanthus_services::platform::pipewire::PipewireSnapshot.default_sink: Option < String >
+acanthus_services::platform::pipewire::PipewireSnapshot.default_source: Option < String >
+acanthus_services::platform::pipewire::PipewireSnapshot.nodes: Vec < PwNode >
+acanthus_services::platform::pipewire::PipewireSnapshot: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::pipewire::PipewireState.available: Signal < bool >
+acanthus_services::platform::pipewire::PipewireState.default_sink: Signal < Option < String > >
+acanthus_services::platform::pipewire::PipewireState.default_source: Signal < Option < String > >
+acanthus_services::platform::pipewire::PipewireState.nodes: Signal < Vec < PwNode > >
+acanthus_services::platform::pipewire::PipewireState.ready: Signal < bool >
+acanthus_services::platform::pipewire::PipewireState.route: Signal < String >
+acanthus_services::platform::pipewire::PipewireState.virtual_sink: String
+acanthus_services::platform::pipewire::PipewireState: struct [Clone]
+acanthus_services::platform::pipewire::PipewireState::apply: fn apply (& self , snapshot : & PipewireSnapshot)
+acanthus_services::platform::pipewire::PipewireState::default_sink_node: fn default_sink_node (& self) -> Option < PwNode >
+acanthus_services::platform::pipewire::PipewireState::default_source_node: fn default_source_node (& self) -> Option < PwNode >
+acanthus_services::platform::pipewire::PipewireState::effective_default_sink: fn effective_default_sink (& self) -> Option < String >
+acanthus_services::platform::pipewire::PipewireState::node: fn node (& self , id : u32) -> Option < PwNode >
+acanthus_services::platform::pipewire::PipewireState::node_by_name: fn node_by_name (& self , name : & str) -> Option < PwNode >
+acanthus_services::platform::pipewire::PwNode.description: String
+acanthus_services::platform::pipewire::PwNode.has_audio: bool
+acanthus_services::platform::pipewire::PwNode.id: u32
+acanthus_services::platform::pipewire::PwNode.is_sink: bool
+acanthus_services::platform::pipewire::PwNode.is_stream: bool
+acanthus_services::platform::pipewire::PwNode.media_class: String
+acanthus_services::platform::pipewire::PwNode.muted: bool
+acanthus_services::platform::pipewire::PwNode.name: String
+acanthus_services::platform::pipewire::PwNode.nick: String
+acanthus_services::platform::pipewire::PwNode.properties: BTreeMap < String , String >
+acanthus_services::platform::pipewire::PwNode.volumes: Vec < f32 >
+acanthus_services::platform::pipewire::PwNode: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::pipewire::PwNode::display_name: fn display_name (& self) -> & str
+acanthus_services::platform::pipewire::PwNode::property: fn property (& self , key : & str) -> Option < & str >
+acanthus_services::platform::pipewire::PwNode::volume: fn volume (& self) -> f32
+acanthus_services::platform::pipewire::apps: fn apps (nodes : & [PwNode]) -> Vec < PwNode >
+acanthus_services::platform::pipewire::default_node_json: fn default_node_json (name : & str) -> String
+acanthus_services::platform::pipewire::effective_sink: fn effective_sink (default_sink : Option < & str > , route : & str , virtual_sink : & str) -> Option < String >
+acanthus_services::platform::pipewire::has_active_stream: fn has_active_stream (nodes : & [PwNode]) -> bool
+acanthus_services::platform::pipewire::inputs: fn inputs (nodes : & [PwNode]) -> Vec < PwNode >
+acanthus_services::platform::pipewire::mute_props: fn mute_props (muted : bool) -> Option < Vec < u8 > >
+acanthus_services::platform::pipewire::node_from_properties: fn node_from_properties (id : u32 , properties : & BTreeMap < String , String >) -> Option < PwNode >
+acanthus_services::platform::pipewire::outputs: fn outputs (nodes : & [PwNode]) -> Vec < PwNode >
+acanthus_services::platform::pipewire::parse_default_node: fn parse_default_node (value : & str) -> Option < String >
+acanthus_services::platform::pipewire::parse_props: fn parse_props (bytes : & [u8]) -> Option < (Option < Vec < f32 > > , Option < bool >) >
+acanthus_services::platform::pipewire::volume_props: fn volume_props (channels : usize , volume : f32) -> Option < Vec < u8 > >
+acanthus_services::platform::polkit::LineResult: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::LineResult::Failure: variant 
+acanthus_services::platform::polkit::LineResult::Ignored: variant 
+acanthus_services::platform::polkit::LineResult::Message: variant 
+acanthus_services::platform::polkit::LineResult::Prompt: variant 
+acanthus_services::platform::polkit::LineResult::Success: variant 
+acanthus_services::platform::polkit::Polkit.state: PolkitState
+acanthus_services::platform::polkit::Polkit: struct
+acanthus_services::platform::polkit::Polkit::cancel: fn cancel (& self) -> bool
+acanthus_services::platform::polkit::Polkit::select_identity: fn select_identity (& self , index : usize) -> bool
+acanthus_services::platform::polkit::Polkit::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind , options : PolkitOptions , mut on_event : impl FnMut (PolkitEvent) + 'static ,) -> Result < Polkit , IoError >
+acanthus_services::platform::polkit::Polkit::submit: fn submit (& self , response : impl Into < String >) -> bool
+acanthus_services::platform::polkit::PolkitError: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::PolkitError::Failed: variant 
+acanthus_services::platform::polkit::PolkitError::Message: variant (String)
+acanthus_services::platform::polkit::PolkitEvent: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::PolkitEvent::Cancelled: variant 
+acanthus_services::platform::polkit::PolkitEvent::Failed: variant 
+acanthus_services::platform::polkit::PolkitEvent::RequestStarted: variant 
+acanthus_services::platform::polkit::PolkitEvent::Succeeded: variant 
+acanthus_services::platform::polkit::PolkitFlow.action_id: String
+acanthus_services::platform::polkit::PolkitFlow.cookie: String
+acanthus_services::platform::polkit::PolkitFlow.details: BTreeMap < String , String >
+acanthus_services::platform::polkit::PolkitFlow.echo: bool
+acanthus_services::platform::polkit::PolkitFlow.icon_name: String
+acanthus_services::platform::polkit::PolkitFlow.identities: Vec < PolkitIdentity >
+acanthus_services::platform::polkit::PolkitFlow.input_prompt: String
+acanthus_services::platform::polkit::PolkitFlow.message: String
+acanthus_services::platform::polkit::PolkitFlow.response_required: bool
+acanthus_services::platform::polkit::PolkitFlow.selected: usize
+acanthus_services::platform::polkit::PolkitFlow.supplementary_is_error: bool
+acanthus_services::platform::polkit::PolkitFlow.supplementary_message: String
+acanthus_services::platform::polkit::PolkitFlow: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::PolkitFlow::apply_line: fn apply_line (& mut self , line : & str) -> LineResult
+acanthus_services::platform::polkit::PolkitFlow::identity: fn identity (& self) -> Option < & PolkitIdentity >
+acanthus_services::platform::polkit::PolkitIdentity.name: String
+acanthus_services::platform::polkit::PolkitIdentity.uid: u32
+acanthus_services::platform::polkit::PolkitIdentity: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::PolkitOptions.agent_path: String
+acanthus_services::platform::polkit::PolkitOptions.group: PathBuf
+acanthus_services::platform::polkit::PolkitOptions.locale: String
+acanthus_services::platform::polkit::PolkitOptions.passwd: PathBuf
+acanthus_services::platform::polkit::PolkitOptions.retry_delay: Duration
+acanthus_services::platform::polkit::PolkitOptions.session_id: Option < String >
+acanthus_services::platform::polkit::PolkitOptions.transport: Option < Transport >
+acanthus_services::platform::polkit::PolkitOptions.uid: u32
+acanthus_services::platform::polkit::PolkitOptions: struct [Clone, Debug]
+acanthus_services::platform::polkit::PolkitOptions::for_app: fn for_app (app : & str) -> Self
+acanthus_services::platform::polkit::PolkitState.available: Signal < bool >
+acanthus_services::platform::polkit::PolkitState.error: Signal < Option < PolkitError > >
+acanthus_services::platform::polkit::PolkitState.flow: Signal < Option < PolkitFlow > >
+acanthus_services::platform::polkit::PolkitState.registered: Signal < bool >
+acanthus_services::platform::polkit::PolkitState: struct [Clone]
+acanthus_services::platform::polkit::PolkitState::is_active: fn is_active (& self) -> bool
+acanthus_services::platform::polkit::RawIdentity.id: Option < u32 >
+acanthus_services::platform::polkit::RawIdentity.kind: String
+acanthus_services::platform::polkit::RawIdentity: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::Transport: enum [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::polkit::Transport::Socket: variant (PathBuf)
+acanthus_services::platform::polkit::Transport::Spawn: variant (PathBuf)
+acanthus_services::platform::polkit::Transport::discover: fn discover () -> Option < Transport >
+acanthus_services::platform::polkit::Transport::discover_with: fn discover_with (path_dirs : & [PathBuf] , exists : impl Fn (& Path) -> bool) -> Option < Transport >
+acanthus_services::platform::polkit::default_identity: fn default_identity (identities : & [PolkitIdentity] , uid : u32) -> usize
+acanthus_services::platform::polkit::parse_group: fn parse_group (text : & str) -> Vec < (u32 , Vec < String >) >
+acanthus_services::platform::polkit::parse_passwd: fn parse_passwd (text : & str) -> Vec < (String , u32 , u32) >
+acanthus_services::platform::polkit::resolve_identities: fn resolve_identities (raw : & [RawIdentity] , passwd : & str , group : & str) -> Vec < PolkitIdentity >
+acanthus_services::platform::power_profiles::PowerProfiles.state: PowerProfilesState
+acanthus_services::platform::power_profiles::PowerProfiles: struct
+acanthus_services::platform::power_profiles::PowerProfiles::set: fn set (& self , profile : Profile) -> bool
+acanthus_services::platform::power_profiles::PowerProfiles::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind) -> Result < PowerProfiles , IoError >
+acanthus_services::platform::power_profiles::PowerProfilesState.has_performance: Signal < bool >
+acanthus_services::platform::power_profiles::PowerProfilesState.profile: Signal < Profile >
+acanthus_services::platform::power_profiles::PowerProfilesState.ready: Signal < bool >
+acanthus_services::platform::power_profiles::PowerProfilesState: struct [Clone]
+acanthus_services::platform::power_profiles::Profile: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::power_profiles::Profile::Balanced: variant 
+acanthus_services::platform::power_profiles::Profile::Performance: variant 
+acanthus_services::platform::power_profiles::Profile::PowerSaver: variant 
+acanthus_services::platform::power_profiles::Profile::from_name: fn from_name (name : & str) -> Profile
+acanthus_services::platform::power_profiles::Profile::name: fn name (self) -> & 'static str
+acanthus_services::platform::screensaver::Inhibitions: struct [Debug, Default]
+acanthus_services::platform::screensaver::Inhibitions::expire: fn expire (& mut self , now : Instant)
+acanthus_services::platform::screensaver::Inhibitions::inhibit: fn inhibit (& mut self , sender : & str) -> u32
+acanthus_services::platform::screensaver::Inhibitions::inhibited: fn inhibited (& self , now : Instant) -> bool
+acanthus_services::platform::screensaver::Inhibitions::next_deadline: fn next_deadline (& self) -> Option < Instant >
+acanthus_services::platform::screensaver::Inhibitions::sender_vanished: fn sender_vanished (& mut self , name : & str)
+acanthus_services::platform::screensaver::Inhibitions::set_owner: fn set_owner (& mut self , owner : bool)
+acanthus_services::platform::screensaver::Inhibitions::simulate_activity: fn simulate_activity (& mut self , now : Instant , hold : Duration)
+acanthus_services::platform::screensaver::Inhibitions::uninhibit: fn uninhibit (& mut self , cookie : u32)
+acanthus_services::platform::screensaver::PowerEvent: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_services::platform::screensaver::PowerEvent::Sleep: variant 
+acanthus_services::platform::screensaver::PowerEvent::Wake: variant 
+acanthus_services::platform::screensaver::Screensaver.state: ScreensaverState
+acanthus_services::platform::screensaver::Screensaver: struct
+acanthus_services::platform::screensaver::Screensaver::set_sleep_lock: fn set_sleep_lock (& self , enabled : bool) -> bool
+acanthus_services::platform::screensaver::Screensaver::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , session : BusKind , system : BusKind , options : ScreensaverOptions , mut on_power : impl FnMut (PowerEvent) + 'static ,) -> Result < Screensaver , IoError >
+acanthus_services::platform::screensaver::ScreensaverOptions.activity_hold: Duration
+acanthus_services::platform::screensaver::ScreensaverOptions.inhibitor_name: String
+acanthus_services::platform::screensaver::ScreensaverOptions.lock_marker: PathBuf
+acanthus_services::platform::screensaver::ScreensaverOptions.lock_wait: Duration
+acanthus_services::platform::screensaver::ScreensaverOptions.poll_interval: Duration
+acanthus_services::platform::screensaver::ScreensaverOptions.retry_delay: Duration
+acanthus_services::platform::screensaver::ScreensaverOptions: struct [Clone, Debug]
+acanthus_services::platform::screensaver::ScreensaverOptions::new: fn new (lock_marker : PathBuf , inhibitor_name : impl Into < String >) -> Self
+acanthus_services::platform::screensaver::ScreensaverState.inhibited: Signal < bool >
+acanthus_services::platform::screensaver::ScreensaverState.sleep_lock_held: Signal < bool >
+acanthus_services::platform::screensaver::ScreensaverState.sleeping: Signal < bool >
+acanthus_services::platform::screensaver::ScreensaverState: struct [Clone]
+acanthus_services::platform::toplevels::Toplevel.activated: bool
+acanthus_services::platform::toplevels::Toplevel.app_id: String
+acanthus_services::platform::toplevels::Toplevel.fullscreen: bool
+acanthus_services::platform::toplevels::Toplevel.id: u64
+acanthus_services::platform::toplevels::Toplevel.maximized: bool
+acanthus_services::platform::toplevels::Toplevel.minimized: bool
+acanthus_services::platform::toplevels::Toplevel.outputs: Vec < String >
+acanthus_services::platform::toplevels::Toplevel.parent: Option < u64 >
+acanthus_services::platform::toplevels::Toplevel.title: String
+acanthus_services::platform::toplevels::Toplevel: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::toplevels::Toplevel::output: fn output (& self) -> & str
+acanthus_services::platform::toplevels::ToplevelCommand: enum [Clone, Debug, PartialEq]
+acanthus_services::platform::toplevels::ToplevelCommand::Activate: variant (u64)
+acanthus_services::platform::toplevels::ToplevelCommand::Close: variant (u64)
+acanthus_services::platform::toplevels::ToplevelCommand::SetFullscreen: variant (u64 , bool)
+acanthus_services::platform::toplevels::ToplevelCommand::SetMaximized: variant (u64 , bool)
+acanthus_services::platform::toplevels::ToplevelCommand::SetMinimized: variant (u64 , bool)
+acanthus_services::platform::toplevels::ToplevelFlags.activated: bool
+acanthus_services::platform::toplevels::ToplevelFlags.fullscreen: bool
+acanthus_services::platform::toplevels::ToplevelFlags.maximized: bool
+acanthus_services::platform::toplevels::ToplevelFlags.minimized: bool
+acanthus_services::platform::toplevels::ToplevelFlags: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::toplevels::ToplevelSnapshot.toplevels: Vec < Toplevel >
+acanthus_services::platform::toplevels::ToplevelSnapshot: struct [Clone, Debug, PartialEq]
+acanthus_services::platform::toplevels::Toplevels.state: ToplevelsState
+acanthus_services::platform::toplevels::Toplevels: struct
+acanthus_services::platform::toplevels::Toplevels::activate: fn activate (& self , id : u64) -> bool
+acanthus_services::platform::toplevels::Toplevels::close: fn close (& self , id : u64) -> bool
+acanthus_services::platform::toplevels::Toplevels::command: fn command (& self , command : ToplevelCommand) -> bool
+acanthus_services::platform::toplevels::Toplevels::set_fullscreen: fn set_fullscreen (& self , id : u64 , fullscreen : bool) -> bool
+acanthus_services::platform::toplevels::Toplevels::set_maximized: fn set_maximized (& self , id : u64 , maximized : bool) -> bool
+acanthus_services::platform::toplevels::Toplevels::set_minimized: fn set_minimized (& self , id : u64 , minimized : bool) -> bool
+acanthus_services::platform::toplevels::Toplevels::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D >) -> Result < Toplevels , IoError >
+acanthus_services::platform::toplevels::ToplevelsState.active: Signal < Option < u64 > >
+acanthus_services::platform::toplevels::ToplevelsState.available: Signal < bool >
+acanthus_services::platform::toplevels::ToplevelsState.ready: Signal < bool >
+acanthus_services::platform::toplevels::ToplevelsState.toplevels: Signal < Vec < Toplevel > >
+acanthus_services::platform::toplevels::ToplevelsState: struct [Clone]
+acanthus_services::platform::toplevels::ToplevelsState::active_toplevel: fn active_toplevel (& self) -> Option < Toplevel >
+acanthus_services::platform::toplevels::ToplevelsState::apply: fn apply (& self , snapshot : & ToplevelSnapshot)
+acanthus_services::platform::toplevels::ToplevelsState::new: fn new () -> Self
+acanthus_services::platform::toplevels::ToplevelsState::toplevel: fn toplevel (& self , id : u64) -> Option < Toplevel >
+acanthus_services::platform::toplevels::state_flags: fn state_flags (bytes : & [u8]) -> ToplevelFlags
+acanthus_services::platform::tray::MenuEntry.checked: bool
+acanthus_services::platform::tray::MenuEntry.children: Vec < MenuEntry >
+acanthus_services::platform::tray::MenuEntry.enabled: bool
+acanthus_services::platform::tray::MenuEntry.icon: String
+acanthus_services::platform::tray::MenuEntry.id: i32
+acanthus_services::platform::tray::MenuEntry.separator: bool
+acanthus_services::platform::tray::MenuEntry.text: String
+acanthus_services::platform::tray::MenuEntry.toggle: MenuToggle
+acanthus_services::platform::tray::MenuEntry: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::tray::MenuEntry::has_children: fn has_children (& self) -> bool
+acanthus_services::platform::tray::MenuToggle: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::tray::MenuToggle::Check: variant 
+acanthus_services::platform::tray::MenuToggle::None: variant 
+acanthus_services::platform::tray::MenuToggle::Radio: variant 
+acanthus_services::platform::tray::Tray.state: TrayState
+acanthus_services::platform::tray::Tray: struct
+acanthus_services::platform::tray::Tray::activate: fn activate (& self , key : & str , x : i32 , y : i32) -> bool
+acanthus_services::platform::tray::Tray::click_menu_entry: fn click_menu_entry (& self , key : & str , id : i32) -> bool
+acanthus_services::platform::tray::Tray::close_menu: fn close_menu (& self)
+acanthus_services::platform::tray::Tray::command: fn command (& self , command : TrayCommand) -> bool
+acanthus_services::platform::tray::Tray::context_menu: fn context_menu (& self , key : & str , x : i32 , y : i32) -> bool
+acanthus_services::platform::tray::Tray::load_menu: fn load_menu (& self , key : & str) -> bool
+acanthus_services::platform::tray::Tray::scroll: fn scroll (& self , key : & str , delta : i32 , horizontal : bool) -> bool
+acanthus_services::platform::tray::Tray::secondary_activate: fn secondary_activate (& self , key : & str , x : i32 , y : i32) -> bool
+acanthus_services::platform::tray::Tray::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind) -> Result < Tray , IoError >
+acanthus_services::platform::tray::TrayCommand: enum [Clone, Debug, PartialEq]
+acanthus_services::platform::tray::TrayCommand::Activate: variant (String , i32 , i32)
+acanthus_services::platform::tray::TrayCommand::CloseMenu: variant 
+acanthus_services::platform::tray::TrayCommand::ContextMenu: variant (String , i32 , i32)
+acanthus_services::platform::tray::TrayCommand::LoadMenu: variant (String)
+acanthus_services::platform::tray::TrayCommand::MenuClick: variant (String , i32)
+acanthus_services::platform::tray::TrayCommand::Scroll: variant (String , i32 , bool)
+acanthus_services::platform::tray::TrayCommand::SecondaryActivate: variant (String , i32 , i32)
+acanthus_services::platform::tray::TrayItem.attention_icon: String
+acanthus_services::platform::tray::TrayItem.category: String
+acanthus_services::platform::tray::TrayItem.icon: String
+acanthus_services::platform::tray::TrayItem.id: String
+acanthus_services::platform::tray::TrayItem.is_menu_only: bool
+acanthus_services::platform::tray::TrayItem.key: String
+acanthus_services::platform::tray::TrayItem.menu_path: Option < String >
+acanthus_services::platform::tray::TrayItem.overlay_icon: String
+acanthus_services::platform::tray::TrayItem.pixmap: Option < TrayPixmap >
+acanthus_services::platform::tray::TrayItem.status: TrayStatus
+acanthus_services::platform::tray::TrayItem.title: String
+acanthus_services::platform::tray::TrayItem.tooltip_icon: String
+acanthus_services::platform::tray::TrayItem.tooltip_pixmap: Option < TrayPixmap >
+acanthus_services::platform::tray::TrayItem.tooltip_text: String
+acanthus_services::platform::tray::TrayItem.tooltip_title: String
+acanthus_services::platform::tray::TrayItem: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::tray::TrayItem::display_name: fn display_name (& self) -> & str
+acanthus_services::platform::tray::TrayItem::has_menu: fn has_menu (& self) -> bool
+acanthus_services::platform::tray::TrayMenu.entries: Vec < MenuEntry >
+acanthus_services::platform::tray::TrayMenu.key: String
+acanthus_services::platform::tray::TrayMenu: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::tray::TrayPixmap.height: u32
+acanthus_services::platform::tray::TrayPixmap.rgba: Vec < u8 >
+acanthus_services::platform::tray::TrayPixmap.width: u32
+acanthus_services::platform::tray::TrayPixmap: struct [Clone, Debug, Eq, PartialEq]
+acanthus_services::platform::tray::TrayState.available: Signal < bool >
+acanthus_services::platform::tray::TrayState.items: Signal < Vec < TrayItem > >
+acanthus_services::platform::tray::TrayState.menu: Signal < Option < TrayMenu > >
+acanthus_services::platform::tray::TrayState.ready: Signal < bool >
+acanthus_services::platform::tray::TrayState: struct [Clone]
+acanthus_services::platform::tray::TrayState::item: fn item (& self , key : & str) -> Option < TrayItem >
+acanthus_services::platform::tray::TrayState::item_by_id: fn item_by_id (& self , id : & str) -> Option < TrayItem >
+acanthus_services::platform::tray::TrayStatus: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::tray::TrayStatus::Active: variant 
+acanthus_services::platform::tray::TrayStatus::NeedsAttention: variant 
+acanthus_services::platform::tray::TrayStatus::Passive: variant 
+acanthus_services::platform::tray::argb_to_rgba: fn argb_to_rgba (argb : & [u8]) -> Vec < u8 >
+acanthus_services::platform::tray::best_pixmap: fn best_pixmap (pixmaps : & Pixmaps) -> Option < TrayPixmap >
+acanthus_services::platform::tray::build_item: fn build_item (key : & str , props : & Props) -> TrayItem
+acanthus_services::platform::tray::item_address: fn item_address (service : & str , sender : & str) -> (String , String)
+acanthus_services::platform::tray::parse_layout: fn parse_layout (layout : & Layout) -> Vec < MenuEntry >
+acanthus_services::platform::tray::strip_mnemonic: fn strip_mnemonic (label : & str) -> String
+acanthus_services::platform::upower::BatteryState: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_services::platform::upower::BatteryState::Charging: variant 
+acanthus_services::platform::upower::BatteryState::Discharging: variant 
+acanthus_services::platform::upower::BatteryState::Empty: variant 
+acanthus_services::platform::upower::BatteryState::FullyCharged: variant 
+acanthus_services::platform::upower::BatteryState::PendingCharge: variant 
+acanthus_services::platform::upower::BatteryState::PendingDischarge: variant 
+acanthus_services::platform::upower::BatteryState::Unknown: variant 
+acanthus_services::platform::upower::BatteryState::from_raw: fn from_raw (raw : u32) -> Self
+acanthus_services::platform::upower::DeviceSnapshot.change_rate: f64
+acanthus_services::platform::upower::DeviceSnapshot.is_laptop_battery: bool
+acanthus_services::platform::upower::DeviceSnapshot.is_present: bool
+acanthus_services::platform::upower::DeviceSnapshot.percentage: f64
+acanthus_services::platform::upower::DeviceSnapshot.state: BatteryState
+acanthus_services::platform::upower::DeviceSnapshot.time_to_empty: i64
+acanthus_services::platform::upower::DeviceSnapshot.time_to_full: i64
+acanthus_services::platform::upower::DeviceSnapshot: struct [Clone, Debug, Default, PartialEq]
+acanthus_services::platform::upower::DisplayDevice.change_rate: Signal < f64 >
+acanthus_services::platform::upower::DisplayDevice.is_laptop_battery: Signal < bool >
+acanthus_services::platform::upower::DisplayDevice.is_present: Signal < bool >
+acanthus_services::platform::upower::DisplayDevice.percentage: Signal < f64 >
+acanthus_services::platform::upower::DisplayDevice.ready: Signal < bool >
+acanthus_services::platform::upower::DisplayDevice.state: Signal < BatteryState >
+acanthus_services::platform::upower::DisplayDevice.time_to_empty: Signal < i64 >
+acanthus_services::platform::upower::DisplayDevice.time_to_full: Signal < i64 >
+acanthus_services::platform::upower::DisplayDevice: struct [Clone]
+acanthus_services::platform::upower::DisplayDevice::apply: fn apply (& self , snapshot : & DeviceSnapshot)
+acanthus_services::platform::upower::DisplayDevice::is_charging: fn is_charging (& self) -> bool
+acanthus_services::platform::upower::DisplayDevice::new: fn new () -> Self
+acanthus_services::platform::upower::UPower.display_device: DisplayDevice
+acanthus_services::platform::upower::UPower: struct
+acanthus_services::platform::upower::UPower::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , bus : BusKind) -> Result < UPower , IoError >
+acanthus_services::prelude::Clock: trait
+acanthus_services::prelude::Clock::now: required fn now (& self) -> DateTime < Local >
+acanthus_services::prelude::Clock::unix_ms: provided fn unix_ms (& self) -> f64
+acanthus_services::prelude::Clock::unix_secs: provided fn unix_secs (& self) -> i64
+acanthus_services::prelude::Clock::unix_secs_f64: provided fn unix_secs_f64 (& self) -> f64
+acanthus_services::prelude::Notice.actions: Vec < (String , String) >
+acanthus_services::prelude::Notice.app_name: String
+acanthus_services::prelude::Notice.body: String
+acanthus_services::prelude::Notice.icon: String
+acanthus_services::prelude::Notice.on_action: Option < Box < dyn FnOnce (String) > >
+acanthus_services::prelude::Notice.summary: String
+acanthus_services::prelude::Notice.urgency: Urgency
+acanthus_services::prelude::Notice: struct
+acanthus_services::prelude::Notifier: trait
+acanthus_services::prelude::Notifier::notify: required fn notify (& self , notice : Notice)
+acanthus_services::prelude::Translator: trait
+acanthus_services::prelude::Translator::t: required fn t (& self , key : & str) -> String
+acanthus_services::prelude::Translator::t_args: required fn t_args (& self , key : & str , args : & [(& str , & str)]) -> String
+impl Clock for acanthus_services::kit::SystemClock
+impl Clone for acanthus_services::platform::bridge::EventSink
+impl Default for acanthus_services::kit::MemoryStore
+impl Default for acanthus_services::kit::daemon::DaemonState
+impl Default for acanthus_services::kit::feed::Policy
+impl Default for acanthus_services::platform::bluetooth::BluetoothState
+impl Default for acanthus_services::platform::network::NetworkState
+impl Default for acanthus_services::platform::toplevels::ToplevelsState
+impl Default for acanthus_services::platform::upower::DisplayDevice
+impl Drop for acanthus_services::kit::daemon::Daemon
+impl Drop for acanthus_services::kit::feed::Subscription
+impl Drop for acanthus_services::platform::bridge::ServiceHandle
+impl Drop for acanthus_services::platform::bridge::ThreadHandle
+impl Drop for acanthus_services::platform::idle::IdleMonitor
+impl Drop for acanthus_services::platform::pam::PamContext
+impl Drop for acanthus_services::platform::pipewire::Pipewire
+impl Exec for acanthus_services::kit::ProcessExec
+impl GammaBackend for acanthus_services::platform::gamma::Gamma
+impl Notifier for acanthus_services::kit::NotifySendNotifier
+impl Notifier for acanthus_services::platform::notifications::LocalNotifier
+impl Store < K , D > for acanthus_services::kit::ConfigStore
+impl Store < K , D > for acanthus_services::kit::DiskStore
+impl Store < K , D > for acanthus_services::kit::MemoryStore

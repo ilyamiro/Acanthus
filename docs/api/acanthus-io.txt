@@ -1,0 +1,102 @@
+acanthus_io::AppId.env_prefix: String
+acanthus_io::AppId.name: String
+acanthus_io::AppId: struct [Clone, Debug, Eq, PartialEq]
+acanthus_io::AppId::new: fn new (name : impl Into < String > , env_prefix : impl Into < String >) -> AppId
+acanthus_io::AppId::var: fn var (& self , suffix : & str) -> String
+acanthus_io::Dirs.app: AppId
+acanthus_io::Dirs.assets: PathBuf
+acanthus_io::Dirs.cache_dir: PathBuf
+acanthus_io::Dirs.config_dir: PathBuf
+acanthus_io::Dirs.data_dir: PathBuf
+acanthus_io::Dirs.home: PathBuf
+acanthus_io::Dirs.ipc_socket: PathBuf
+acanthus_io::Dirs.log_dir: PathBuf
+acanthus_io::Dirs.runtime_dir: PathBuf
+acanthus_io::Dirs.settings: PathBuf
+acanthus_io::Dirs.state_dir: PathBuf
+acanthus_io::Dirs.xdg_cache_home: PathBuf
+acanthus_io::Dirs.xdg_data_home: PathBuf
+acanthus_io::Dirs: struct [Clone, Debug, Eq, PartialEq]
+acanthus_io::Dirs::cache_for: fn cache_for (& self , widget : & str) -> PathBuf
+acanthus_io::Dirs::from_env: fn from_env (app : & AppId) -> Dirs
+acanthus_io::Dirs::from_vars: fn from_vars (app : & AppId , vars : impl IntoIterator < Item = (String , PathBuf) >) -> Dirs
+acanthus_io::Dirs::log_for: fn log_for (& self , widget : & str) -> PathBuf
+acanthus_io::Dirs::lyrics_cache: fn lyrics_cache (& self) -> PathBuf
+acanthus_io::Dirs::resolve: fn resolve (app : & AppId , env : impl Fn (& str) -> Option < PathBuf >) -> Dirs
+acanthus_io::Dirs::run_for: fn run_for (& self , widget : & str) -> PathBuf
+acanthus_io::Dirs::state_for: fn state_for (& self , widget : & str) -> PathBuf
+acanthus_io::Dirs::under: fn under (app : & AppId , root : & Path) -> Dirs
+acanthus_io::ExitInfo.code: Option < i32 >
+acanthus_io::ExitInfo.signal: Option < i32 >
+acanthus_io::ExitInfo.stderr: String
+acanthus_io::ExitInfo.stdout: String
+acanthus_io::ExitInfo: struct [Clone, Debug, Default, Eq, PartialEq]
+acanthus_io::ExitInfo::success: fn success (& self) -> bool
+acanthus_io::IoError: enum [Debug, thiserror :: Error]
+acanthus_io::IoError::Io: variant (# [from] std :: io :: Error)
+acanthus_io::IoError::Ipc: variant (String)
+acanthus_io::IoError::Json: variant (# [from] serde_json :: Error)
+acanthus_io::IoError::Register: variant (String)
+acanthus_io::IpcClient: struct
+acanthus_io::IpcClient::call: fn call (path : & Path , target : & str , method : & str , args : & [Value]) -> Result < Value , IoError >
+acanthus_io::IpcRegistry: struct [Clone, Default]
+acanthus_io::IpcRegistry::call: fn call (& self , target : & str , method : & str , args : & [Value]) -> Result < Value , String >
+acanthus_io::IpcRegistry::dispatch_line: fn dispatch_line (& self , line : & str) -> Value
+acanthus_io::IpcRegistry::methods: fn methods (& self) -> Vec < (String , String) >
+acanthus_io::IpcRegistry::new: fn new () -> Self
+acanthus_io::IpcRegistry::register: fn register (& self , target : & str , method : & str , handler : impl FnMut (& [Value]) -> Result < Value , String > + 'static ,)
+acanthus_io::IpcRegistry::unregister_target: fn unregister_target (& self , target : & str)
+acanthus_io::IpcServer: struct
+acanthus_io::IpcServer::bind: fn bind < D : 'static > (handle : & LoopHandle < 'static , D > , path : & Path , registry : IpcRegistry ,) -> Result < IpcServer , IoError >
+acanthus_io::IpcServer::path: fn path (& self) -> & Path
+acanthus_io::Process: struct
+acanthus_io::Process::arg: fn arg (mut self , arg : impl Into < OsString >) -> Self
+acanthus_io::Process::args: fn args < I , S > (mut self , args : I) -> Self where I : IntoIterator < Item = S > , S : Into < OsString > ,
+acanthus_io::Process::collect_output: fn collect_output (mut self) -> Self
+acanthus_io::Process::cwd: fn cwd (mut self , dir : impl Into < PathBuf >) -> Self
+acanthus_io::Process::env: fn env (mut self , key : impl Into < OsString > , value : impl Into < OsString >) -> Self
+acanthus_io::Process::kill_on_drop: fn kill_on_drop (mut self , kill : bool) -> Self
+acanthus_io::Process::new: fn new (program : impl Into < OsString >) -> Self
+acanthus_io::Process::on_exit: fn on_exit (mut self , f : impl FnOnce (ExitInfo) + 'static) -> Self
+acanthus_io::Process::on_stderr_line: fn on_stderr_line (mut self , f : impl FnMut (& str) + 'static) -> Self
+acanthus_io::Process::on_stdout_line: fn on_stdout_line (mut self , f : impl FnMut (& str) + 'static) -> Self
+acanthus_io::Process::spawn: fn spawn < D : 'static > (self , handle : & LoopHandle < 'static , D >) -> Result < ProcessHandle , IoError >
+acanthus_io::ProcessHandle: struct
+acanthus_io::ProcessHandle::detach: fn detach (mut self)
+acanthus_io::ProcessHandle::kill: fn kill (& self)
+acanthus_io::ProcessHandle::pid: fn pid (& self) -> i32
+acanthus_io::ProcessHandle::running: fn running (& self) -> Reactive < bool >
+acanthus_io::Watch: struct
+acanthus_io::Watch::directory: fn directory < D : 'static > (handle : & LoopHandle < 'static , D > , dir : & Path , mut on_change : impl FnMut (& WatchEvent) + 'static ,) -> Result < Watch , IoError >
+acanthus_io::Watch::file: fn file < D : 'static > (handle : & LoopHandle < 'static , D > , path : & Path , mut on_change : impl FnMut (& WatchEvent) + 'static ,) -> Result < Watch , IoError >
+acanthus_io::Watch::modify: fn modify < D : 'static > (handle : & LoopHandle < 'static , D > , path : & Path , mut on_change : impl FnMut () + 'static ,) -> Result < Watch , IoError >
+acanthus_io::WatchEvent.name: OsString
+acanthus_io::WatchEvent.removed: bool
+acanthus_io::WatchEvent: struct [Clone, Debug, Eq, PartialEq]
+acanthus_io::WeakHandle: struct< D : 'static >
+acanthus_io::WeakHandle::new: fn new (handle : & LoopHandle < 'static , D >) -> Self
+acanthus_io::WeakHandle::remove: fn remove (& self , token : RegistrationToken)
+acanthus_io::WeakHandle::upgrade: fn upgrade (& self) -> Option < LoopHandle < 'static , D > >
+acanthus_io::atomic_write: fn atomic_write (path : & Path , bytes : & [u8]) -> Result < () , IoError >
+acanthus_io::exec_detached: fn exec_detached < I , S > (argv : I) -> Result < () , IoError > where I : IntoIterator < Item = S > , S : Into < OsString > ,
+acanthus_io::read_to_string_lossy: fn read_to_string_lossy (path : & Path) -> Result < String , IoError >
+acanthus_io::run_to_completion: fn run_to_completion < I , S > (argv : I) -> Result < ExitInfo , IoError > where I : IntoIterator < Item = S > , S : Into < OsString > ,
+acanthus_io::timer::Scheduler: type Scheduler = std :: rc :: Rc < dyn Fn (Duration , Box < dyn FnMut () -> Option < Duration > >) -> Option < TimerHandle > >
+acanthus_io::timer::TimerHandle: struct
+acanthus_io::timer::TimerHandle::cancel: fn cancel (mut self)
+acanthus_io::timer::TimerHandle::detach: fn detach (mut self)
+acanthus_io::timer::TimerHandle::from_fn: fn from_fn (remove : impl FnOnce () + 'static) -> TimerHandle
+acanthus_io::timer::after: fn after < D : 'static > (handle : & LoopHandle < 'static , D > , delay : Duration , f : impl FnOnce () + 'static ,) -> Result < TimerHandle , IoError >
+acanthus_io::timer::dynamic: fn dynamic < D : 'static > (handle : & LoopHandle < 'static , D > , first : Duration , mut f : impl FnMut () -> Option < Duration > + 'static ,) -> Result < TimerHandle , IoError >
+acanthus_io::timer::every: fn every < D : 'static > (handle : & LoopHandle < 'static , D > , interval : Duration , mut f : impl FnMut () + 'static ,) -> Result < TimerHandle , IoError >
+acanthus_io::timer::scheduler: fn scheduler < D : 'static > (handle : & LoopHandle < 'static , D >) -> Scheduler
+impl Clone for acanthus_io::WeakHandle
+impl Drop for acanthus_io::IpcServer
+impl Drop for acanthus_io::ProcessHandle
+impl Drop for acanthus_io::Watch
+impl Drop for acanthus_io::timer::TimerHandle
+impl From < calloop :: InsertError < T > > for acanthus_io::IoError
+impl From < rustix :: io :: Errno > for acanthus_io::IoError
+impl std :: fmt :: Debug for acanthus_io::ProcessHandle
+impl std :: fmt :: Debug for acanthus_io::Watch
+impl std :: fmt :: Debug for acanthus_io::timer::TimerHandle

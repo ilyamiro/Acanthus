@@ -1,0 +1,67 @@
+acanthus_image::Animation.delays_ms: Vec < u32 >
+acanthus_image::Animation.frames: Vec < Vec < u8 > >
+acanthus_image::Animation: struct [Debug, Eq, PartialEq]
+acanthus_image::DecodeError: enum [Debug]
+acanthus_image::DecodeError::Empty: variant 
+acanthus_image::DecodeError::Image: variant (image :: ImageError)
+acanthus_image::DecodeError::Io: variant (std :: io :: Error)
+acanthus_image::DecodeError::Svg: variant (String)
+acanthus_image::Decoded.animation: Option < Arc < Animation > >
+acanthus_image::Decoded.height: u32
+acanthus_image::Decoded.rgba: Vec < u8 >
+acanthus_image::Decoded.width: u32
+acanthus_image::Decoded: struct [Clone, Debug, Eq, PartialEq]
+acanthus_image::Decoded::delay_ms: fn delay_ms (& self , frame : usize) -> u32
+acanthus_image::Decoded::frame_count: fn frame_count (& self) -> usize
+acanthus_image::Decoded::frame_rgba: fn frame_rgba (& self , frame : usize) -> & [u8]
+acanthus_image::FillMode: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_image::FillMode::PreserveAspectCrop: variant 
+acanthus_image::FillMode::PreserveAspectFit: variant 
+acanthus_image::FillMode::Stretch: variant 
+acanthus_image::FillMode::Tile: variant 
+acanthus_image::IconLookup: struct
+acanthus_image::IconLookup::from_environment: fn from_environment () -> Self
+acanthus_image::IconLookup::lookup: fn lookup (& self , name : & str , size : u32) -> Option < PathBuf >
+acanthus_image::IconLookup::new: fn new (bases : Vec < PathBuf > , pixmaps : Vec < PathBuf > , theme : & str) -> Self
+acanthus_image::IconLookup::set_theme: fn set_theme (& self , theme : & str)
+acanthus_image::IconLookup::theme: fn theme (& self) -> String
+acanthus_image::ImageHandle: struct
+acanthus_image::ImageHandle::id: fn id (& self) -> ImageId
+acanthus_image::ImageId: struct [Clone, Copy, Debug, Eq, Hash, PartialEq]
+acanthus_image::ImageSource: enum [Clone, Debug, Eq, Hash, PartialEq]
+acanthus_image::ImageSource::File: variant (PathBuf)
+acanthus_image::ImageSource::Icon: variant (String)
+acanthus_image::ImageSource::Memory: variant (u64)
+acanthus_image::ImageSource::None: variant 
+acanthus_image::ImageSource::parse: fn parse (source : & str) -> ImageSource
+acanthus_image::ImageStatus: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_image::ImageStatus::Error: variant 
+acanthus_image::ImageStatus::Loading: variant 
+acanthus_image::ImageStatus::Null: variant 
+acanthus_image::ImageStatus::Ready: variant 
+acanthus_image::ImageStore: struct [Clone]
+acanthus_image::ImageStore::generation: fn generation (& self) -> Signal < u64 >
+acanthus_image::ImageStore::get: fn get (& self , id : ImageId) -> Option < Arc < Decoded > >
+acanthus_image::ImageStore::icons: fn icons (& self) -> & Arc < IconLookup >
+acanthus_image::ImageStore::is_empty: fn is_empty (& self) -> bool
+acanthus_image::ImageStore::len: fn len (& self) -> usize
+acanthus_image::ImageStore::new: fn new () -> Self
+acanthus_image::ImageStore::poll: fn poll (& self) -> bool
+acanthus_image::ImageStore::ptr_eq: fn ptr_eq (& self , other : & ImageStore) -> bool
+acanthus_image::ImageStore::request: fn request (& self , source : & str , target : Option < (u32 , u32) >) -> Option < ImageHandle >
+acanthus_image::ImageStore::status: fn status (& self , id : ImageId) -> ImageStatus
+acanthus_image::ImageStore::with_icons: fn with_icons (icons : Arc < IconLookup >) -> Self
+acanthus_image::ImageStore::with_waker: fn with_waker (icons : Arc < IconLookup > , waker : Arc < dyn Fn () + Send + Sync >) -> Self
+acanthus_image::Placement.rect: Rect
+acanthus_image::Placement.repeat: bool
+acanthus_image::Placement.uv: [f32 ; 4]
+acanthus_image::Placement: struct [Clone, Copy, Debug, PartialEq]
+acanthus_image::decode_file: fn decode_file (path : & Path , target : Option < (u32 , u32) >) -> Result < Decoded , DecodeError >
+acanthus_image::decode_raster: fn decode_raster (bytes : & [u8] , target : Option < (u32 , u32) >) -> Result < Decoded , DecodeError >
+acanthus_image::decode_svg: fn decode_svg (bytes : & [u8] , target : Option < (u32 , u32) >) -> Result < Decoded , DecodeError >
+acanthus_image::place: fn place (mode : FillMode , source : Vec2 , dest : Rect) -> Placement
+acanthus_image::register: fn register (width : u32 , height : u32 , rgba : & [u8]) -> String
+impl Default for acanthus_image::ImageStore
+impl Drop for acanthus_image::ImageHandle
+impl fmt :: Display for acanthus_image::DecodeError
+impl std :: error :: Error for acanthus_image::DecodeError

@@ -1,0 +1,95 @@
+acanthus_wayland::App: struct
+acanthus_wayland::App::after: fn after (& self , delay : Duration , f : impl FnOnce () + 'static) -> Result < () , AppError >
+acanthus_wayland::App::close_surface: fn close_surface (& mut self , id : SurfaceId)
+acanthus_wayland::App::every: fn every (& self , interval : Duration , mut f : impl FnMut () + 'static) -> Result < () , AppError >
+acanthus_wayland::App::fonts: fn fonts (& self) -> & Fonts
+acanthus_wayland::App::handle: fn handle (& self) -> AppHandle
+acanthus_wayland::App::images: fn images (& self) -> & ImageStore
+acanthus_wayland::App::layer_surface: fn layer_surface (& mut self , config : LayerConfig , build : impl FnOnce (& mut Scene) ,) -> Result < SurfaceId , AppError >
+acanthus_wayland::App::loop_handle: fn loop_handle (& self) -> calloop :: LoopHandle < 'static , State >
+acanthus_wayland::App::new: fn new () -> Result < Self , AppError >
+acanthus_wayland::App::outputs: fn outputs (& self) -> Signal < Vec < OutputInfo > >
+acanthus_wayland::App::per_output: fn per_output (& mut self , config : impl Fn (& OutputInfo) -> LayerConfig + 'static , build : impl FnMut (& mut Scene , & OutputInfo) + 'static ,)
+acanthus_wayland::App::per_output_lazy: fn per_output_lazy (& mut self , open : Signal < bool > , linger : Duration , config : impl Fn (& OutputInfo) -> LayerConfig + 'static , build : impl FnMut (& mut Scene , & OutputInfo) + 'static ,)
+acanthus_wayland::App::pointer_output: fn pointer_output (& self) -> Signal < Option < u32 > >
+acanthus_wayland::App::popup: fn popup (& mut self , parent : SurfaceId , config : PopupConfig , build : impl FnOnce (& mut Scene) ,) -> Result < SurfaceId , AppError >
+acanthus_wayland::App::run: fn run (mut self) -> Result < () , AppError >
+acanthus_wayland::App::scene_mut: fn scene_mut (& mut self , id : SurfaceId) -> Option < & mut Scene >
+acanthus_wayland::AppError: enum [Debug, thiserror :: Error]
+acanthus_wayland::AppError::Bind: variant (# [from] BindError)
+acanthus_wayland::AppError::Connect: variant (# [from] ConnectError)
+acanthus_wayland::AppError::EventLoop: variant (# [from] calloop :: Error)
+acanthus_wayland::AppError::Globals: variant (# [from] GlobalError)
+acanthus_wayland::AppError::Gpu: variant (# [from] GpuError)
+acanthus_wayland::AppError::Insert: variant (String)
+acanthus_wayland::AppError::NoPopups: variant 
+acanthus_wayland::AppError::Popup: variant (String)
+acanthus_wayland::AppError::UnknownSurface: variant 
+acanthus_wayland::AppHandle: struct [Clone, Default]
+acanthus_wayland::AppHandle::open_popup: fn open_popup (& self , parent : SurfaceId , config : PopupConfig , build : impl FnOnce (& mut Scene) + 'static)
+acanthus_wayland::AppHandle::set_idle_inhibit: fn set_idle_inhibit (& self , surface : SurfaceId , inhibit : bool)
+acanthus_wayland::LayerConfig.anchor: Anchor
+acanthus_wayland::LayerConfig.clear: Color
+acanthus_wayland::LayerConfig.exclusive_zone: i32
+acanthus_wayland::LayerConfig.height: u32
+acanthus_wayland::LayerConfig.keyboard: KeyboardInteractivity
+acanthus_wayland::LayerConfig.layer: Layer
+acanthus_wayland::LayerConfig.margin: [i32 ; 4]
+acanthus_wayland::LayerConfig.namespace: String
+acanthus_wayland::LayerConfig.output: Option < wl_output :: WlOutput >
+acanthus_wayland::LayerConfig.width: u32
+acanthus_wayland::LayerConfig: struct [Clone, Debug]
+acanthus_wayland::LayerConfig::anchor: fn anchor (self , anchor : Anchor) -> Self
+acanthus_wayland::LayerConfig::clear: fn clear (self , clear : Color) -> Self
+acanthus_wayland::LayerConfig::exclusive_zone: fn exclusive_zone (self , exclusive_zone : i32) -> Self
+acanthus_wayland::LayerConfig::keyboard: fn keyboard (self , keyboard : KeyboardInteractivity) -> Self
+acanthus_wayland::LayerConfig::layer: fn layer (self , layer : Layer) -> Self
+acanthus_wayland::LayerConfig::margin: fn margin (self , top : i32 , right : i32 , bottom : i32 , left : i32) -> Self
+acanthus_wayland::LayerConfig::new: fn new (namespace : impl Into < String >) -> Self
+acanthus_wayland::LayerConfig::output: fn output (self , output : wl_output :: WlOutput) -> Self
+acanthus_wayland::LayerConfig::size: fn size (self , width : u32 , height : u32) -> Self
+acanthus_wayland::OutputInfo.id: u32
+acanthus_wayland::OutputInfo.make: String
+acanthus_wayland::OutputInfo.model: String
+acanthus_wayland::OutputInfo.name: String
+acanthus_wayland::OutputInfo.output: WlOutput
+acanthus_wayland::OutputInfo.position: (i32 , i32)
+acanthus_wayland::OutputInfo.scale: i32
+acanthus_wayland::OutputInfo.size: (i32 , i32)
+acanthus_wayland::OutputInfo: struct [Clone, Debug, PartialEq]
+acanthus_wayland::PopupConfig.adjustment: ConstraintAdjustment
+acanthus_wayland::PopupConfig.anchor: PopupEdge
+acanthus_wayland::PopupConfig.anchor_rect: (i32 , i32 , i32 , i32)
+acanthus_wayland::PopupConfig.clear: Color
+acanthus_wayland::PopupConfig.grab: bool
+acanthus_wayland::PopupConfig.gravity: PopupEdge
+acanthus_wayland::PopupConfig.offset: (i32 , i32)
+acanthus_wayland::PopupConfig.size: (u32 , u32)
+acanthus_wayland::PopupConfig: struct [Clone, Debug]
+acanthus_wayland::PopupConfig::adjustment: fn adjustment (self , adjustment : ConstraintAdjustment) -> Self
+acanthus_wayland::PopupConfig::anchor: fn anchor (self , anchor : PopupEdge) -> Self
+acanthus_wayland::PopupConfig::clear: fn clear (self , clear : Color) -> Self
+acanthus_wayland::PopupConfig::grab: fn grab (self , grab : bool) -> Self
+acanthus_wayland::PopupConfig::gravity: fn gravity (self , gravity : PopupEdge) -> Self
+acanthus_wayland::PopupConfig::new: fn new (anchor_rect : (i32 , i32 , i32 , i32) , size : (u32 , u32)) -> Self
+acanthus_wayland::PopupConfig::offset: fn offset (self , x : i32 , y : i32) -> Self
+acanthus_wayland::PopupEdge: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_wayland::PopupEdge::Bottom: variant 
+acanthus_wayland::PopupEdge::BottomLeft: variant 
+acanthus_wayland::PopupEdge::BottomRight: variant 
+acanthus_wayland::PopupEdge::Left: variant 
+acanthus_wayland::PopupEdge::None: variant 
+acanthus_wayland::PopupEdge::Right: variant 
+acanthus_wayland::PopupEdge::Top: variant 
+acanthus_wayland::PopupEdge::TopLeft: variant 
+acanthus_wayland::PopupEdge::TopRight: variant 
+acanthus_wayland::State: struct
+impl CompositorHandler for acanthus_wayland::State
+impl KeyboardHandler for acanthus_wayland::State
+impl LayerShellHandler for acanthus_wayland::State
+impl OutputHandler for acanthus_wayland::State
+impl PointerHandler for acanthus_wayland::State
+impl PopupHandler for acanthus_wayland::State
+impl ProvidesRegistryState for acanthus_wayland::State
+impl SeatHandler for acanthus_wayland::State
+impl WindowHandler for acanthus_wayland::State

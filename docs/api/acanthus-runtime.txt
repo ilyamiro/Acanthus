@@ -1,0 +1,253 @@
+acanthus_runtime::Clock: struct [Clone]
+acanthus_runtime::Clock::attach: fn attach < D : 'static > (& self , handle : & LoopHandle < 'static , D >) -> Result < () , acanthus_io :: IoError >
+acanthus_runtime::Clock::format: fn format (& self , pattern : & str) -> String
+acanthus_runtime::Clock::new: fn new (source : impl Fn () -> NaiveDateTime + 'static , format : Signal < String > , language : Signal < String > , full_date_pattern : Signal < String > ,) -> Clock
+acanthus_runtime::Clock::next_delay: fn next_delay (& self) -> Duration
+acanthus_runtime::Clock::simple: fn simple (format : & str) -> Clock
+acanthus_runtime::Clock::tick: fn tick (& self)
+acanthus_runtime::ColorGenError: enum [Debug, thiserror :: Error]
+acanthus_runtime::ColorGenError::Color: variant (String)
+acanthus_runtime::ColorGenError::Config: variant (String)
+acanthus_runtime::ColorGenError::Image: variant (PathBuf , String)
+acanthus_runtime::ColorGenError::Index: variant (usize)
+acanthus_runtime::ColorGenError::Io: variant (# [from] std :: io :: Error)
+acanthus_runtime::ColorGenError::NoColors: variant 
+acanthus_runtime::ColorGenError::Write: variant (# [from] acanthus_io :: IoError)
+acanthus_runtime::ColorTable.dark_default: bool
+acanthus_runtime::ColorTable.image: Option < String >
+acanthus_runtime::ColorTable.roles: BTreeMap < String , ModeColors >
+acanthus_runtime::ColorTable: struct [Clone, Debug, PartialEq]
+acanthus_runtime::ColorTable::default_for: fn default_for (& self , role : & str) -> Option < Argb >
+acanthus_runtime::ColorTable::from_json: fn from_json (value : & Value , dark_default : bool) -> Result < ColorTable , ColorGenError >
+acanthus_runtime::ColorTable::from_schemes: fn from_schemes (dark : Vec < (String , Argb) > , light : Vec < (String , Argb) > , source : Argb , dark_default : bool ,) -> ColorTable
+acanthus_runtime::Config: struct [Clone]
+acanthus_runtime::Config::attach: fn attach < D : 'static > (& self , handle : & LoopHandle < 'static , D >) -> Result < () , acanthus_io :: IoError >
+acanthus_runtime::Config::current: fn current (& self , path : & str) -> Value
+acanthus_runtime::Config::dump: fn dump (& self) -> String
+acanthus_runtime::Config::error: fn error (& self) -> Signal < Option < ConfigError > >
+acanthus_runtime::Config::flush: fn flush (& self)
+acanthus_runtime::Config::get: fn get < T > (& self , path : & str , default : T) -> Signal < T > where T : DeserializeOwned + PartialEq + Clone + 'static ,
+acanthus_runtime::Config::get_now: fn get_now < T : DeserializeOwned > (& self , path : & str , default : T) -> T
+acanthus_runtime::Config::load: fn load (path : & Path) -> Config
+acanthus_runtime::Config::load_with_defaults: fn load_with_defaults (path : & Path , defaults : Value) -> Config
+acanthus_runtime::Config::path: fn path (& self) -> & Path
+acanthus_runtime::Config::raw: fn raw (& self) -> Value
+acanthus_runtime::Config::reload: fn reload (& self)
+acanthus_runtime::Config::revision: fn revision (& self) -> Signal < u64 >
+acanthus_runtime::Config::section: fn section < T > (& self , path : & str) -> Section < T > where T : DeserializeOwned + Default + Clone + PartialEq + 'static ,
+acanthus_runtime::Config::section_with: fn section_with < T > (& self , paths : & [& str] , shape : impl Fn (& [Value]) -> Value + 'static) -> Section < T > where T : DeserializeOwned + Default + Clone + PartialEq + 'static ,
+acanthus_runtime::Config::set: fn set (& self , path : & str , value : Value)
+acanthus_runtime::Config::set_many: fn set_many (& self , updates : Vec < (String , Value) >)
+acanthus_runtime::Config::unset: fn unset (& self , path : & str)
+acanthus_runtime::Config::user_value: fn user_value (& self , path : & str) -> Option < Value >
+acanthus_runtime::Config::value: fn value (& self , path : & str) -> Signal < Value >
+acanthus_runtime::ConfigError.column: usize
+acanthus_runtime::ConfigError.line: usize
+acanthus_runtime::ConfigError.message: String
+acanthus_runtime::ConfigError: struct [Clone, Debug, Eq, PartialEq]
+acanthus_runtime::DEFAULT_FULL_DATE: const DEFAULT_FULL_DATE: & str
+acanthus_runtime::DEFAULT_TIME_FORMAT: const DEFAULT_TIME_FORMAT: & str
+acanthus_runtime::FontCatalog: struct [Clone, Debug, Default]
+acanthus_runtime::FontCatalog::find: fn find (& self , family : & str) -> Option < & FontEntry >
+acanthus_runtime::FontCatalog::is_empty: fn is_empty (& self) -> bool
+acanthus_runtime::FontCatalog::len: fn len (& self) -> usize
+acanthus_runtime::FontCatalog::names: fn names (& self) -> & [String]
+acanthus_runtime::FontCatalog::scan: fn scan (dirs : & [PathBuf]) -> FontCatalog
+acanthus_runtime::FontEntry.name: String
+acanthus_runtime::FontEntry.path: PathBuf
+acanthus_runtime::FontEntry: struct [Clone, Debug, Default, Eq, PartialEq]
+acanthus_runtime::I18n: struct [Clone]
+acanthus_runtime::I18n::attach: fn attach < D : 'static > (& self , handle : & LoopHandle < 'static , D >) -> Result < () , acanthus_io :: IoError >
+acanthus_runtime::I18n::available_languages: fn available_languages (& self) -> Vec < String >
+acanthus_runtime::I18n::language: fn language (& self) -> Signal < String >
+acanthus_runtime::I18n::new: fn new (dir : & Path , lang : & str) -> I18n
+acanthus_runtime::I18n::ready: fn ready (& self) -> Signal < bool >
+acanthus_runtime::I18n::revision: fn revision (& self) -> Signal < u64 >
+acanthus_runtime::I18n::rtl: fn rtl (& self) -> bool
+acanthus_runtime::I18n::set_language: fn set_language (& self , lang : & str)
+acanthus_runtime::I18n::t: fn t (& self , key : & str) -> String
+acanthus_runtime::I18n::t_args: fn t_args (& self , key : & str , args : & [(& str , & str)]) -> String
+acanthus_runtime::I18n::tr: fn tr (& self , key : & str , fallback : & str) -> String
+acanthus_runtime::I18n::translate: fn translate (& self , key : & str) -> Option < String >
+acanthus_runtime::ImageRequest.contrast: Option < f64 >
+acanthus_runtime::ImageRequest.mode: Mode
+acanthus_runtime::ImageRequest.path: PathBuf
+acanthus_runtime::ImageRequest.scheme: SchemeType
+acanthus_runtime::ImageRequest.source_index: usize
+acanthus_runtime::ImageRequest: struct [Clone, Debug]
+acanthus_runtime::Matugen: struct
+acanthus_runtime::Matugen::finished: fn finished (& self) -> Signal < u64 >
+acanthus_runtime::Matugen::generate: fn generate (self : & Rc < Self > , image : & str , mode : Option < & str > , scheme : Option < & str >) -> bool
+acanthus_runtime::Matugen::generate_from_static: fn generate_from_static (self : & Rc < Self > , colors : & Value , mode : Option < & str >) -> bool
+acanthus_runtime::Matugen::is_matugen_theme: fn is_matugen_theme (& self) -> bool
+acanthus_runtime::Matugen::last_result: fn last_result (& self) -> Signal < Option < bool > >
+acanthus_runtime::Matugen::last_wallpaper: fn last_wallpaper (& self) -> String
+acanthus_runtime::Matugen::new: fn new (config : & Config , keys : & SettingKeys , paths : & Paths , runner : Rc < dyn MatugenRunner >) -> Rc < Matugen >
+acanthus_runtime::Matugen::running: fn running (& self) -> Signal < bool >
+acanthus_runtime::Matugen::state_dir: fn state_dir (& self) -> & Path
+acanthus_runtime::Matugen::with_hooks: fn with_hooks (config : & Config , keys : & SettingKeys , paths : & Paths , runner : Rc < dyn MatugenRunner > , hooks : Rc < dyn MatugenHooks > ,) -> Rc < Matugen >
+acanthus_runtime::MatugenHooks: trait
+acanthus_runtime::MatugenHooks::after_success: required fn after_success (& self , request : & MatugenRequest)
+acanthus_runtime::MatugenJob: enum [Clone, Debug, PartialEq]
+acanthus_runtime::MatugenJob::Image: variant { # [doc = " Image file."] path : PathBuf , # [doc = " Dark, light or smart."] mode : String , # [doc = " Scheme variant name."] scheme : String , # [doc = " Template configuration to render."] config : PathBuf , }
+acanthus_runtime::MatugenJob::Static: variant { # [doc = " Colour table as JSON."] colors : Value , # [doc = " Template configuration to render."] config : PathBuf , }
+acanthus_runtime::MatugenRequest: enum [Clone, Debug, PartialEq]
+acanthus_runtime::MatugenRequest::Image: variant { # [doc = " Image file."] path : String , # [doc = " Dark, light or smart."] mode : String , # [doc = " Scheme variant name."] scheme : String , }
+acanthus_runtime::MatugenRequest::Static: variant { # [doc = " Colour table as JSON."] colors : Value , # [doc = " Dark or light."] mode : String , }
+acanthus_runtime::MatugenRunner: trait
+acanthus_runtime::MatugenRunner::run: required fn run (& self , job : MatugenJob , done : Box < dyn FnOnce (bool) >)
+acanthus_runtime::Mode: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_runtime::Mode::Dark: variant 
+acanthus_runtime::Mode::Light: variant 
+acanthus_runtime::Mode::Smart: variant 
+acanthus_runtime::Mode::name: fn name (self) -> & 'static str
+acanthus_runtime::Mode::parse: fn parse (text : & str) -> Option < Mode >
+acanthus_runtime::MotionTokens.base: u32
+acanthus_runtime::MotionTokens.fast: u32
+acanthus_runtime::MotionTokens.slow: u32
+acanthus_runtime::MotionTokens: struct [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_runtime::NativeRunner: struct
+acanthus_runtime::NativeRunner::new: fn new < D : 'static > (handle : & calloop :: LoopHandle < 'static , D > , home : PathBuf ,) -> Result < Rc < NativeRunner > , acanthus_io :: IoError >
+acanthus_runtime::Paths: struct [Clone, Debug, Eq, PartialEq]
+acanthus_runtime::Paths::dirs: fn dirs (& self) -> Dirs
+acanthus_runtime::Paths::from_env: fn from_env (app : & AppId) -> Paths
+acanthus_runtime::Paths::from_env_with: fn from_env_with (app : & AppId , fallbacks : & [PathBuf]) -> Paths
+acanthus_runtime::Paths::language_file: fn language_file (& self , lang : & str) -> PathBuf
+acanthus_runtime::Paths::languages_dir: fn languages_dir (& self) -> PathBuf
+acanthus_runtime::Paths::resolve: fn resolve (app : & AppId , env : impl Fn (& str) -> Option < PathBuf >) -> Paths
+acanthus_runtime::Paths::resolve_with: fn resolve_with (app : & AppId , env : impl Fn (& str) -> Option < PathBuf > , fallbacks : & [PathBuf]) -> Paths
+acanthus_runtime::Paths::themes_dir: fn themes_dir (& self) -> PathBuf
+acanthus_runtime::RadiusTokens.lg: f32
+acanthus_runtime::RadiusTokens.md: f32
+acanthus_runtime::RadiusTokens.pill: f32
+acanthus_runtime::RadiusTokens.sm: f32
+acanthus_runtime::RadiusTokens: struct [Clone, Copy, Debug, PartialEq]
+acanthus_runtime::Runtime.clock: Clock
+acanthus_runtime::Runtime.config: Config
+acanthus_runtime::Runtime.fonts: Fonts
+acanthus_runtime::Runtime.i18n: I18n
+acanthus_runtime::Runtime.ipc: IpcRegistry
+acanthus_runtime::Runtime.matugen: Rc < Matugen >
+acanthus_runtime::Runtime.paths: Paths
+acanthus_runtime::Runtime.scaler: Rc < Scaler >
+acanthus_runtime::Runtime.theme: ThemeService
+acanthus_runtime::Runtime: struct
+acanthus_runtime::Runtime::effects: fn effects (& self) -> usize
+acanthus_runtime::Runtime::flush: fn flush (& self)
+acanthus_runtime::Runtime::ipc_path: fn ipc_path (& self) -> Option < & std :: path :: Path >
+acanthus_runtime::Runtime::start: fn start < D : 'static > (handle : & LoopHandle < 'static , D > , fonts : Fonts , paths : Paths , defaults : Value , keys : & SettingKeys , serve_ipc : bool ,) -> Result < Runtime , acanthus_io :: IoError >
+acanthus_runtime::Scaler: struct
+acanthus_runtime::Scaler::new: fn new (config : & Config , keys : & SettingKeys) -> Scaler
+acanthus_runtime::Scaler::scale_for: fn scale_for (& self , screen : & str) -> Signal < f32 >
+acanthus_runtime::Section.errors: Signal < Vec < String > >
+acanthus_runtime::Section.value: Signal < T >
+acanthus_runtime::Section: struct< T : 'static >
+acanthus_runtime::Section::get_untracked: fn get_untracked (& self) -> T
+acanthus_runtime::Section::path: fn path (& self) -> & str
+acanthus_runtime::Section::schema: fn schema (& self) -> Value
+acanthus_runtime::Section::select: fn select < U : PartialEq + 'static > (& self , field : impl Fn (& T) -> U + 'static) -> Memo < U >
+acanthus_runtime::SettingKeys.language: String
+acanthus_runtime::SettingKeys.reduced_motion: String
+acanthus_runtime::SettingKeys.screen_scale: String
+acanthus_runtime::SettingKeys.theme: String
+acanthus_runtime::SettingKeys.time_format: Vec < String >
+acanthus_runtime::SettingKeys.ui_scale: String
+acanthus_runtime::SettingKeys.wallpaper: String
+acanthus_runtime::SettingKeys: struct [Clone, Debug, Eq, PartialEq]
+acanthus_runtime::SettingKeys::screen_scale_for: fn screen_scale_for (& self , screen : & str) -> String
+acanthus_runtime::SpacingTokens.lg: f32
+acanthus_runtime::SpacingTokens.md: f32
+acanthus_runtime::SpacingTokens.sm: f32
+acanthus_runtime::SpacingTokens.xl: f32
+acanthus_runtime::SpacingTokens.xs: f32
+acanthus_runtime::SpacingTokens: struct [Clone, Copy, Debug, PartialEq]
+acanthus_runtime::TemplateSpec.enabled: bool
+acanthus_runtime::TemplateSpec.input: PathBuf
+acanthus_runtime::TemplateSpec.name: String
+acanthus_runtime::TemplateSpec.output: PathBuf
+acanthus_runtime::TemplateSpec: struct [Clone, Debug, Eq, PartialEq]
+acanthus_runtime::Theme.blur_background: Signal < bool >
+acanthus_runtime::Theme.border_radius: Signal < i64 >
+acanthus_runtime::Theme.clamped_border_radius: Signal < i64 >
+acanthus_runtime::Theme.element_opacity: Signal < f32 >
+acanthus_runtime::Theme.font_family: Signal < String >
+acanthus_runtime::Theme.glass_active: Signal < bool >
+acanthus_runtime::Theme.icon_family: Signal < Option < String > >
+acanthus_runtime::Theme.icon_font: Signal < String >
+acanthus_runtime::Theme.palette: Palette
+acanthus_runtime::Theme.primary: Signal < Color >
+acanthus_runtime::Theme.reduced_motion: Signal < bool >
+acanthus_runtime::Theme.reduced_motion_forced: Signal < bool >
+acanthus_runtime::Theme.reduced_motion_setting: Signal < bool >
+acanthus_runtime::Theme.standalone: Signal < bool >
+acanthus_runtime::Theme.subtext0: Signal < Color >
+acanthus_runtime::Theme.subtext1: Signal < Color >
+acanthus_runtime::Theme.text: Signal < Color >
+acanthus_runtime::Theme.tokens: Tokens
+acanthus_runtime::Theme: struct
+acanthus_runtime::Theme::apply_colors: fn apply_colors (& self , colors : & Value) -> usize
+acanthus_runtime::Theme::apply_config: fn apply_config (& self , theme : & Value)
+acanthus_runtime::Theme::base_fill: fn base_fill (& self) -> Color
+acanthus_runtime::Theme::faded: fn faded (& self , color : Color) -> Color
+acanthus_runtime::Theme::font_names: fn font_names (& self) -> Vec < String >
+acanthus_runtime::Theme::new: fn new () -> Rc < Theme >
+acanthus_runtime::Theme::radius_or: fn radius_or (& self , fallback : f32) -> f32
+acanthus_runtime::Theme::set_catalog: fn set_catalog (& self , catalog : FontCatalog)
+acanthus_runtime::Theme::set_matugen_colors: fn set_matugen_colors (& self , colors : Option < Value >)
+acanthus_runtime::Theme::surface_fill: fn surface_fill (& self) -> Color
+acanthus_runtime::ThemeService.theme: Rc < Theme >
+acanthus_runtime::ThemeService: struct
+acanthus_runtime::ThemeService::bindings: fn bindings (& self) -> usize
+acanthus_runtime::ThemeService::start: fn start < D : 'static > (config : & Config , keys : & SettingKeys , paths : & Paths , fonts : & Fonts , handle : & LoopHandle < 'static , D > ,) -> Result < ThemeService , acanthus_io :: IoError >
+acanthus_runtime::TimeFormat.am_pm: & 'static str
+acanthus_runtime::TimeFormat.full: String
+acanthus_runtime::TimeFormat.has_seconds: bool
+acanthus_runtime::TimeFormat.hour: & 'static str
+acanthus_runtime::TimeFormat.is_12_hour: bool
+acanthus_runtime::TimeFormat.minute: & 'static str
+acanthus_runtime::TimeFormat.second: & 'static str
+acanthus_runtime::TimeFormat: struct [Clone, Debug, Eq, PartialEq]
+acanthus_runtime::TimeFormat::parse: fn parse (format : & str) -> TimeFormat
+acanthus_runtime::Tokens.motion: MotionTokens
+acanthus_runtime::Tokens.radii: RadiusTokens
+acanthus_runtime::Tokens.spacing: SpacingTokens
+acanthus_runtime::Tokens: struct [Clone, Copy, Debug, Default, PartialEq]
+acanthus_runtime::WRITE_DEBOUNCE: const WRITE_DEBOUNCE: Duration
+acanthus_runtime::apply_templates: fn apply_templates (specs : & [TemplateSpec] , table : & ColorTable) -> Result < Vec < PathBuf > , ColorGenError >
+acanthus_runtime::clamp_border_radius: fn clamp_border_radius (radius : i64) -> i64
+acanthus_runtime::execute_job: fn execute_job (job : & MatugenJob , home : & Path) -> Result < () , ColorGenError >
+acanthus_runtime::format_qt: fn format_qt (dt : & NaiveDateTime , pattern : & str , locale : Locale) -> String
+acanthus_runtime::get_path: fn get_path < 'a > (root : & 'a Value , path : & str) -> Option < & 'a Value >
+acanthus_runtime::is_matugen_theme: fn is_matugen_theme (theme : & Value) -> bool
+acanthus_runtime::is_rtl: fn is_rtl (lang : & str) -> bool
+acanthus_runtime::lenient::integer: fn integer < 'de , D : Deserializer < 'de > > (deserializer : D) -> Result < Option < i64 > , D :: Error >
+acanthus_runtime::lenient::is_on: fn is_on (value : & Value) -> bool
+acanthus_runtime::lenient::is_truthy: fn is_truthy (value : & Value) -> bool
+acanthus_runtime::lenient::number: fn number < 'de , D : Deserializer < 'de > > (deserializer : D) -> Result < Option < f64 > , D :: Error >
+acanthus_runtime::lenient::number_of: fn number_of (value : & Value) -> Option < f64 >
+acanthus_runtime::lenient::switch: fn switch < 'de , D : Deserializer < 'de > > (deserializer : D) -> Result < bool , D :: Error >
+acanthus_runtime::lenient::text: fn text < 'de , D : Deserializer < 'de > > (deserializer : D) -> Result < Option < String > , D :: Error >
+acanthus_runtime::lenient::truthy: fn truthy < 'de , D : Deserializer < 'de > > (deserializer : D) -> Result < bool , D :: Error >
+acanthus_runtime::load_preset: fn load_preset (themes_dir : & Path , name : & str) -> Option < Value >
+acanthus_runtime::local_now: fn local_now () -> NaiveDateTime
+acanthus_runtime::locale_for: fn locale_for (lang : & str) -> Locale
+acanthus_runtime::parse_scalar: fn parse_scalar (text : & str) -> Value
+acanthus_runtime::parse_template_config: fn parse_template_config (text : & str , config_dir : & Path , home : & Path) -> Result < Vec < TemplateSpec > , ColorGenError >
+acanthus_runtime::preset_names: fn preset_names (themes_dir : & Path) -> Vec < String >
+acanthus_runtime::remove_path: fn remove_path (root : & mut Value , path : & str) -> bool
+acanthus_runtime::render_template: fn render_template (text : & str , table : & ColorTable) -> (String , Vec < String >)
+acanthus_runtime::set_path: fn set_path (root : & mut Value , path : & str , value : Value)
+acanthus_runtime::signal_processes_named: fn signal_processes_named (names : & [& str] , signal : rustix :: process :: Signal) -> usize
+acanthus_runtime::system_language: fn system_language (env : impl Fn (& str) -> Option < String >) -> String
+acanthus_runtime::table_from_image: fn table_from_image (request : & ImageRequest) -> Result < ColorTable , ColorGenError >
+acanthus_runtime::table_from_source: fn table_from_source (source : Argb , kind : SchemeType , contrast : Option < f64 > , dark_default : bool) -> ColorTable
+acanthus_runtime::to_md3: fn to_md3 (colors : & Value) -> Value
+impl Default for acanthus_runtime::MotionTokens
+impl Default for acanthus_runtime::RadiusTokens
+impl Default for acanthus_runtime::SettingKeys
+impl Default for acanthus_runtime::SpacingTokens
+impl Deref for acanthus_runtime::Paths
+impl DerefMut for acanthus_runtime::Paths
+impl Drop for acanthus_runtime::NativeRunner
+impl MatugenRunner for acanthus_runtime::NativeRunner
+impl std :: fmt :: Display for acanthus_runtime::ConfigError
