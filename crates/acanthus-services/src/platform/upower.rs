@@ -5,8 +5,9 @@ use futures_lite::StreamExt;
 use zbus::proxy;
 
 use crate::platform::bridge::{EventSink, ServiceHandle, spawn_supervised};
-use crate::platform::dbus::BusKind;
+use crate::platform::dbus::{BusKind, wait_for_owner, while_owned};
 
+const SERVICE: &str = "org.freedesktop.UPower";
 const DISPLAY_DEVICE: &str = "/org/freedesktop/UPower/devices/DisplayDevice";
 const TYPE_BATTERY: u32 = 2;
 
@@ -179,27 +180,33 @@ async fn read_snapshot(proxy: &DeviceProxy<'_>) -> zbus::Result<DeviceSnapshot> 
 async fn run(bus: BusKind, events: EventSink<Event>, _commands: async_channel::Receiver<()>) {
     let result: zbus::Result<()> = async {
         let connection = bus.connect_shared().await?;
-        let proxy = DeviceProxy::builder(&connection)
-            .path(DISPLAY_DEVICE)
-            .cache_properties(zbus::proxy::CacheProperties::No)
-            .build()
-            .await?;
-        let properties = zbus::fdo::PropertiesProxy::builder(&connection)
-            .destination("org.freedesktop.UPower")
-            .path(DISPLAY_DEVICE)
-            .build()
-            .await?;
-        let mut changes = properties.receive_properties_changed().await?;
-        events.send(Event::Snapshot(read_snapshot(&proxy).await?));
-        while changes.next().await.is_some() {
+        while_owned(&connection, SERVICE, async {
+            let proxy = DeviceProxy::builder(&connection)
+                .path(DISPLAY_DEVICE)
+                .cache_properties(zbus::proxy::CacheProperties::No)
+                .build()
+                .await?;
+            let properties = zbus::fdo::PropertiesProxy::builder(&connection)
+                .destination(SERVICE)
+                .path(DISPLAY_DEVICE)
+                .build()
+                .await?;
+            let mut changes = properties.receive_properties_changed().await?;
             events.send(Event::Snapshot(read_snapshot(&proxy).await?));
-        }
-        Ok(())
+            while changes.next().await.is_some() {
+                events.send(Event::Snapshot(read_snapshot(&proxy).await?));
+            }
+            Ok(())
+        })
+        .await
     }
     .await;
     if let Err(e) = result {
         tracing::info!("upower unavailable: {e}");
         events.send(Event::Unavailable);
+        if let Ok(connection) = bus.connect_shared().await {
+            wait_for_owner(&connection, &[SERVICE]).await.ok();
+        }
     }
 }
 
@@ -332,6 +339,32 @@ mod tests {
         assert!(pump_until(&mut event_loop, || device.state.get_untracked() == BatteryState::Charging));
         assert_eq!(device.percentage.get_untracked(), 81.0);
         assert!(device.is_charging());
+    }
+
+    #[test]
+    fn a_restarted_daemon_is_read_again() {
+        let bus = TestBus::start();
+        let (update_tx, update_rx) = mpsc::channel();
+        let (ready_tx, ready_rx) = mpsc::channel();
+        serve_fake(bus.address.clone(), update_rx, ready_tx.clone());
+        ready_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+
+        let mut event_loop: EventLoop<'static, ()> = EventLoop::try_new().unwrap();
+        let upower = UPower::start(&event_loop.handle(), bus.kind()).unwrap();
+        let device = upower.display_device.clone();
+        assert!(pump_until(&mut event_loop, || device.ready.get_untracked()));
+        update_tx.send((1, 81.0)).unwrap();
+        assert!(pump_until(&mut event_loop, || device.state.get_untracked() == BatteryState::Charging));
+
+        drop(update_tx);
+        assert!(pump_until(&mut event_loop, || !device.ready.get_untracked()));
+
+        let (_update_tx, update_rx) = mpsc::channel();
+        serve_fake(bus.address.clone(), update_rx, ready_tx);
+        ready_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        assert!(pump_until(&mut event_loop, || device.ready.get_untracked()));
+        assert_eq!(device.state.get_untracked(), BatteryState::Discharging);
+        assert_eq!(device.percentage.get_untracked(), 80.0);
     }
 
     #[test]

@@ -1,6 +1,9 @@
 use std::sync::Mutex;
 
+use futures_lite::{FutureExt, StreamExt};
 use serde_json::{Map, Number, Value as Json};
+use zbus::fdo::DBusProxy;
+use zbus::names::BusName;
 use zbus::{Connection, Variant};
 
 /// Which message bus to connect to.
@@ -62,6 +65,43 @@ impl BusKind {
 pub fn forget_all_shared() {
     BusKind::System.forget_shared();
     BusKind::Session.forget_shared();
+}
+
+/// Runs `body` as long as the well-known `name` keeps the owner it had when the call started.
+///
+/// When the service behind `name` exits, restarts or is replaced, `body` is dropped and the call
+/// fails, so a supervised worker reconnects and reads the state of the new owner from scratch
+/// instead of keeping the old one.
+pub async fn while_owned<T>(
+    connection: &Connection,
+    name: &str,
+    body: impl Future<Output = zbus::Result<T>>,
+) -> zbus::Result<T> {
+    let dbus = DBusProxy::new(connection).await?;
+    let mut changes = dbus.receive_name_owner_changed_with_args(&[(0, name)]).await?;
+    let changed = async {
+        changes.next().await;
+        Err(zbus::Error::Failure(format!("{name} changed owner")))
+    };
+    body.or(changed).await
+}
+
+/// Waits until one of the well-known `names` has an owner; returns at once when one has.
+pub async fn wait_for_owner(connection: &Connection, names: &[&str]) -> zbus::Result<()> {
+    let dbus = DBusProxy::new(connection).await?;
+    let mut changes = dbus.receive_name_owner_changed().await?;
+    for name in names {
+        if dbus.name_has_owner(BusName::try_from(*name)?).await? {
+            return Ok(());
+        }
+    }
+    while let Some(change) = changes.next().await {
+        let Ok(args) = change.args() else { continue };
+        if args.new_owner().is_some() && names.contains(&args.name().as_str()) {
+            return Ok(());
+        }
+    }
+    Ok(())
 }
 
 /// Converts a D-Bus value to JSON; dictionaries become objects and unsupported values become null.
@@ -167,6 +207,63 @@ mod tests {
     use zbus::OwnedVariant;
 
     use super::*;
+
+    const WATCHED: &str = "org.example.Watched";
+
+    async fn owner(bus: &BusKind) -> Connection {
+        let connection = bus.connect().await.unwrap();
+        connection.request_name(WATCHED).await.unwrap();
+        connection
+    }
+
+    async fn within<T>(seconds: u64, work: impl Future<Output = T>) -> Option<T> {
+        async { Some(work.await) }
+            .or(async {
+                async_io::Timer::after(std::time::Duration::from_secs(seconds)).await;
+                None
+            })
+            .await
+    }
+
+    #[test]
+    fn a_body_stops_when_its_service_changes_owner() {
+        let test_bus = testbus::TestBus::start();
+        async_io::block_on(async {
+            let bus = test_bus.kind();
+            let service = owner(&bus).await;
+            let client = bus.connect().await.unwrap();
+            let watched = while_owned(&client, WATCHED, std::future::pending::<zbus::Result<()>>());
+            let stopper = async {
+                async_io::Timer::after(std::time::Duration::from_millis(100)).await;
+                drop(service);
+                std::future::pending::<zbus::Result<()>>().await
+            };
+            let result = within(5, watched.or(stopper)).await.expect("the owner change was not noticed");
+            assert!(matches!(result, Err(zbus::Error::Failure(message)) if message.contains(WATCHED)));
+            assert_eq!(within(5, while_owned(&client, WATCHED, async { Ok(7) })).await.unwrap().unwrap(), 7);
+        });
+    }
+
+    #[test]
+    fn waiting_for_an_owner_ends_when_the_service_appears() {
+        let test_bus = testbus::TestBus::start();
+        async_io::block_on(async {
+            let bus = test_bus.kind();
+            let client = bus.connect().await.unwrap();
+            let names = ["org.example.Other", WATCHED];
+            let appear = async {
+                async_io::Timer::after(std::time::Duration::from_millis(100)).await;
+                let service = owner(&bus).await;
+                std::future::pending::<zbus::Result<()>>().await?;
+                drop(service);
+                Ok(())
+            };
+            let waited = within(5, wait_for_owner(&client, &names).or(appear)).await;
+            assert!(matches!(waited, Some(Ok(()))));
+            let _service = owner(&bus).await;
+            assert!(matches!(within(5, wait_for_owner(&client, &names)).await, Some(Ok(()))));
+        });
+    }
 
     #[test]
     fn shared_connection_is_reused_until_forgotten() {

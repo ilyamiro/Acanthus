@@ -5,7 +5,7 @@ use futures_lite::StreamExt;
 use zbus::OwnedVariant;
 
 use crate::platform::bridge::{EventSink, ServiceHandle, spawn_supervised};
-use crate::platform::dbus::BusKind;
+use crate::platform::dbus::{BusKind, wait_for_owner, while_owned};
 
 const ENDPOINTS: [(&str, &str); 2] = [
     ("org.freedesktop.UPower.PowerProfiles", "/org/freedesktop/UPower/PowerProfiles"),
@@ -113,28 +113,34 @@ async fn run(bus: BusKind, events: EventSink<Event>, commands: async_channel::Re
         let Some((proxy, service, path)) = locate(&connection).await else {
             return Err(zbus::Error::Failure("no power profiles daemon".to_owned()));
         };
-        let properties =
-            zbus::fdo::PropertiesProxy::builder(&connection).destination(service).path(path).build().await?;
-        let changes = properties.receive_properties_changed().await?.map(|_| Item::Changed);
-        let commands = commands.map(Item::Command);
-        let mut stream = std::pin::pin!(changes.or(commands));
-        events.send(Event::Snapshot(read_snapshot(&proxy).await?));
-        while let Some(item) = stream.next().await {
-            if let Item::Command(profile) = item
-                && let Err(e) = proxy.set_property("ActiveProfile", profile.name()).await
-            {
-                tracing::info!("power profile change failed: {e}");
+        while_owned(&connection, service, async {
+            let properties =
+                zbus::fdo::PropertiesProxy::builder(&connection).destination(service).path(path).build().await?;
+            let changes = properties.receive_properties_changed().await?.map(|_| Item::Changed);
+            let commands = commands.map(Item::Command);
+            let mut stream = std::pin::pin!(changes.or(commands));
+            events.send(Event::Snapshot(read_snapshot(&proxy).await?));
+            while let Some(item) = stream.next().await {
+                if let Item::Command(profile) = item
+                    && let Err(e) = proxy.set_property("ActiveProfile", profile.name()).await
+                {
+                    tracing::info!("power profile change failed: {e}");
+                }
+                if let Ok(snapshot) = read_snapshot(&proxy).await {
+                    events.send(Event::Snapshot(snapshot));
+                }
             }
-            if let Ok(snapshot) = read_snapshot(&proxy).await {
-                events.send(Event::Snapshot(snapshot));
-            }
-        }
-        Ok(())
+            Ok(())
+        })
+        .await
     }
     .await;
     if let Err(e) = result {
         tracing::info!("power profiles unavailable: {e}");
         events.send(Event::Unavailable);
+        if let Ok(connection) = bus.connect_shared().await {
+            wait_for_owner(&connection, &ENDPOINTS.map(|(service, _)| service)).await.ok();
+        }
     }
 }
 

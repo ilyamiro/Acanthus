@@ -10,7 +10,7 @@ use zbus::Connection;
 use zbus::{OwnedVariant as OwnedValue, Variant as ZValue};
 
 use crate::platform::bridge::{EventSink, ServiceHandle, spawn_supervised};
-use crate::platform::dbus::BusKind;
+use crate::platform::dbus::{BusKind, wait_for_owner, while_owned};
 use crate::platform::network_import::{ImportError, ImportOptions, import_profiles};
 
 const SERVICE: &str = "org.freedesktop.NetworkManager";
@@ -1265,66 +1265,73 @@ enum Item {
 async fn run(bus: BusKind, app: String, events: EventSink<Event>, commands: async_channel::Receiver<NetworkCommand>) {
     let result: zbus::Result<()> = async {
         let connection = bus.connect_shared().await?;
-        let rule = zbus::MatchRule::builder()
-            .msg_type(zbus::message::Type::Signal)
-            .sender(SERVICE)
-            .path_namespace(ROOT_PATH)
-            .build()?;
-        let changes =
-            zbus::MessageStream::for_match_rule(rule, &connection, None).await?.map(|m| m.map(|_| Item::Changed));
-        let cmds = commands.map(|c| Ok(Item::Command(c)));
-        let ticks = async_io::Timer::interval(SCAN_INTERVAL).map(|_| Ok(Item::Tick));
-        let mut stream = std::pin::pin!(changes.or(cmds).or(ticks));
+        while_owned(&connection, SERVICE, async {
+            let rule = zbus::MatchRule::builder()
+                .msg_type(zbus::message::Type::Signal)
+                .sender(SERVICE)
+                .path_namespace(ROOT_PATH)
+                .build()?;
+            let changes =
+                zbus::MessageStream::for_match_rule(rule, &connection, None).await?.map(|m| m.map(|_| Item::Changed));
+            let cmds = commands.map(|c| Ok(Item::Command(c)));
+            let ticks = async_io::Timer::interval(SCAN_INTERVAL).map(|_| Ok(Item::Tick));
+            let mut stream = std::pin::pin!(changes.or(cmds).or(ticks));
 
-        let pending: Pending = Arc::default();
-        if let Err(e) = register_agent(&connection, &app, events.clone(), pending.clone()).await {
-            tracing::info!("network secret agent not registered: {e}");
-        }
-        let mut scanning = false;
+            let pending: Pending = Arc::default();
+            if let Err(e) = register_agent(&connection, &app, events.clone(), pending.clone()).await {
+                tracing::info!("network secret agent not registered: {e}");
+            }
+            let mut scanning = false;
 
-        let (mut current, mut profiles) = read_snapshot(&connection).await?;
-        events.send(Event::Snapshot(Box::new(current.clone())));
-        while let Some(item) = stream.next().await {
-            let Ok(item) = item else { continue };
-            match item {
-                Item::Command(command) => {
-                    if let NetworkCommand::SetScanning(on) = &command {
-                        scanning = *on;
+            let (mut current, mut profiles) = read_snapshot(&connection).await?;
+            events.send(Event::Snapshot(Box::new(current.clone())));
+            while let Some(item) = stream.next().await {
+                let Ok(item) = item else { continue };
+                match item {
+                    Item::Command(command) => {
+                        if let NetworkCommand::SetScanning(on) = &command {
+                            scanning = *on;
+                        }
+                        run_command(&connection, &current, &profiles, &pending, &events, command).await;
+                        continue;
                     }
-                    run_command(&connection, &current, &profiles, &pending, &events, command).await;
-                    continue;
-                }
-                Item::Tick => {
-                    if scanning && current.wifi_enabled {
-                        run_command(&connection, &current, &profiles, &pending, &events, NetworkCommand::Scan).await;
+                    Item::Tick => {
+                        if scanning && current.wifi_enabled {
+                            run_command(&connection, &current, &profiles, &pending, &events, NetworkCommand::Scan)
+                                .await;
+                        }
+                        continue;
                     }
-                    continue;
+                    Item::Changed => {}
                 }
-                Item::Changed => {}
-            }
-            async_io::Timer::after(COALESCE).await;
-            while let Some(Some(Ok(extra))) = futures_lite::future::poll_once(stream.next()).await {
-                if let Item::Command(command) = extra {
-                    run_command(&connection, &current, &profiles, &pending, &events, command).await;
-                }
-            }
-            match read_snapshot(&connection).await {
-                Ok((next, next_profiles)) => {
-                    profiles = next_profiles;
-                    if next != current {
-                        current = next;
-                        events.send(Event::Snapshot(Box::new(current.clone())));
+                async_io::Timer::after(COALESCE).await;
+                while let Some(Some(Ok(extra))) = futures_lite::future::poll_once(stream.next()).await {
+                    if let Item::Command(command) = extra {
+                        run_command(&connection, &current, &profiles, &pending, &events, command).await;
                     }
                 }
-                Err(e) => tracing::debug!("network refresh failed: {e}"),
+                match read_snapshot(&connection).await {
+                    Ok((next, next_profiles)) => {
+                        profiles = next_profiles;
+                        if next != current {
+                            current = next;
+                            events.send(Event::Snapshot(Box::new(current.clone())));
+                        }
+                    }
+                    Err(e) => tracing::debug!("network refresh failed: {e}"),
+                }
             }
-        }
-        Ok(())
+            Ok(())
+        })
+        .await
     }
     .await;
     if let Err(e) = result {
         tracing::info!("network unavailable: {e}");
         events.send(Event::Unavailable);
+        if let Ok(connection) = bus.connect_shared().await {
+            wait_for_owner(&connection, &[SERVICE]).await.ok();
+        }
     }
 }
 
