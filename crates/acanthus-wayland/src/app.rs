@@ -43,27 +43,38 @@ use crate::scale::{FractionalData, ScaleGlobal, ScaleManagers, ScaleObjects};
 use crate::surface::{LayerConfig, Role, SurfaceWindow};
 
 slotmap::new_key_type! {
+    /// Identifies a surface of the application.
     pub struct SurfaceId;
 }
 
+/// Errors of the Wayland application.
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
+    /// Connecting to the compositor failed.
     #[error("cannot connect to the Wayland compositor: {0}")]
     Connect(#[from] ConnectError),
+    /// Reading the compositor's globals failed.
     #[error("cannot read Wayland globals: {0}")]
     Globals(#[from] GlobalError),
+    /// A required protocol is missing or could not be bound.
     #[error("compositor lacks a required protocol: {0}")]
     Bind(#[from] BindError),
+    /// The event loop failed.
     #[error("event loop error: {0}")]
     EventLoop(#[from] calloop::Error),
+    /// Registering an event source failed.
     #[error("cannot register event source: {0}")]
     Insert(String),
+    /// The GPU could not be initialised.
     #[error(transparent)]
     Gpu(#[from] GpuError),
+    /// The compositor does not support popups.
     #[error("the compositor does not offer xdg_wm_base, so popups are unavailable")]
     NoPopups,
+    /// The surface does not exist.
     #[error("the parent surface no longer exists")]
     UnknownSurface,
+    /// Creating a popup failed.
     #[error("cannot create popup: {0}")]
     Popup(String),
 }
@@ -74,6 +85,7 @@ struct PopupRequest {
     build: Box<dyn FnOnce(&mut Scene)>,
 }
 
+/// Cloneable handle that queues requests for the application from inside callbacks.
 #[derive(Clone, Default)]
 pub struct AppHandle {
     popups: std::rc::Rc<std::cell::RefCell<Vec<PopupRequest>>>,
@@ -81,10 +93,12 @@ pub struct AppHandle {
 }
 
 impl AppHandle {
+    /// Queues a popup of `parent`; `build` fills its scene.
     pub fn open_popup(&self, parent: SurfaceId, config: PopupConfig, build: impl FnOnce(&mut Scene) + 'static) {
         self.popups.borrow_mut().push(PopupRequest { parent, config, build: Box::new(build) });
     }
 
+    /// Queues turning the idle inhibitor of `surface` on or off.
     pub fn set_idle_inhibit(&self, surface: SurfaceId, inhibit: bool) {
         self.idle_inhibits.borrow_mut().push((surface, inhibit));
     }
@@ -108,6 +122,7 @@ struct Variants {
     lazy: Option<(Signal<bool>, LazyGate)>,
 }
 
+/// The state of the application: surfaces, outputs, input and the GPU, passed to every event source.
 pub struct State {
     conn: Connection,
     qh: QueueHandle<State>,
@@ -142,12 +157,14 @@ pub struct State {
     exit: bool,
 }
 
+/// A Wayland application: its event loop and state.
 pub struct App {
     event_loop: EventLoop<'static, State>,
     state: State,
 }
 
 impl App {
+    /// Connects to the compositor and prepares the GPU.
     pub fn new() -> Result<Self, AppError> {
         let conn = Connection::connect_to_env()?;
         let (globals, queue) = registry_queue_init(&conn)?;
@@ -208,18 +225,22 @@ impl App {
         Ok(App { event_loop, state })
     }
 
+    /// Fonts shared by all scenes.
     pub fn fonts(&self) -> &Fonts {
         &self.state.fonts
     }
 
+    /// Images shared by all scenes.
     pub fn images(&self) -> &ImageStore {
         &self.state.images
     }
 
+    /// Handle for adding event sources to the loop.
     pub fn loop_handle(&self) -> calloop::LoopHandle<'static, State> {
         self.event_loop.handle()
     }
 
+    /// Creates a layer surface; `build` fills its scene.
     pub fn layer_surface(
         &mut self,
         config: LayerConfig,
@@ -228,6 +249,7 @@ impl App {
         self.state.create_layer(config, build)
     }
 
+    /// Creates a popup of `parent`; `build` fills its scene.
     pub fn popup(
         &mut self,
         parent: SurfaceId,
@@ -237,22 +259,27 @@ impl App {
         self.state.create_popup(parent, config, build)
     }
 
+    /// Handle for queueing requests from callbacks.
     pub fn handle(&self) -> AppHandle {
         self.state.handle.clone()
     }
 
+    /// Destroys a surface.
     pub fn close_surface(&mut self, id: SurfaceId) {
         self.state.remove_surface(id);
     }
 
+    /// Signal of the connected outputs.
     pub fn outputs(&self) -> Signal<Vec<OutputInfo>> {
         self.state.outputs.clone()
     }
 
+    /// Signal of the output the pointer is on, by output id.
     pub fn pointer_output(&self) -> Signal<Option<u32>> {
         self.state.pointer_output.clone()
     }
 
+    /// Keeps one layer surface per output, built with `build`; `config` decides its placement. Surfaces follow outputs as they come and go.
     pub fn per_output(
         &mut self,
         config: impl Fn(&OutputInfo) -> LayerConfig + 'static,
@@ -267,6 +294,7 @@ impl App {
         self.state.sync_variants();
     }
 
+    /// Like [`App::per_output`], but the surfaces exist only while `open` is true and for `linger` after it turns false.
     pub fn per_output_lazy(
         &mut self,
         open: Signal<bool>,
@@ -283,10 +311,12 @@ impl App {
         self.state.sync_variants();
     }
 
+    /// Scene of a surface.
     pub fn scene_mut(&mut self, id: SurfaceId) -> Option<&mut Scene> {
         self.state.surfaces.get_mut(id).map(|s| &mut s.scene)
     }
 
+    /// Calls `f` every `interval`.
     pub fn every(&self, interval: Duration, mut f: impl FnMut() + 'static) -> Result<(), AppError> {
         self.event_loop
             .handle()
@@ -298,6 +328,7 @@ impl App {
             .map_err(|e| AppError::Insert(e.error.to_string()))
     }
 
+    /// Calls `f` once after `delay`.
     pub fn after(&self, delay: Duration, f: impl FnOnce() + 'static) -> Result<(), AppError> {
         let mut f = Some(f);
         self.event_loop
@@ -312,6 +343,7 @@ impl App {
             .map_err(|e| AppError::Insert(e.error.to_string()))
     }
 
+    /// Runs the event loop until the application exits.
     pub fn run(mut self) -> Result<(), AppError> {
         loop {
             let idle_animation = acanthus_anim::is_active() && !self.state.surfaces.values().any(|s| s.frame_pending);

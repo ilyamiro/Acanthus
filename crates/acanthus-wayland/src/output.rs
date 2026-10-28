@@ -1,15 +1,24 @@
 use smithay_client_toolkit::output::OutputInfo as RawOutputInfo;
 use wayland_client::protocol::wl_output::WlOutput;
 
+/// A connected output.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputInfo {
+    /// Stable id of the output.
     pub id: u32,
+    /// Connector name such as `DP-1`.
     pub name: String,
+    /// Manufacturer.
     pub make: String,
+    /// Model.
     pub model: String,
+    /// Position in the compositor space in logical pixels.
     pub position: (i32, i32),
+    /// Size in logical pixels.
     pub size: (i32, i32),
+    /// Integer scale factor.
     pub scale: i32,
+    /// The protocol object, for placing surfaces on this output.
     pub output: WlOutput,
 }
 

@@ -1,3 +1,6 @@
+//! Wayland platform layer: connection, layer-shell and popup surfaces, outputs, input and the event loop that renders scenes into them.
+
+#![deny(missing_docs)]
 mod app;
 mod idle_inhibit;
 mod lazy;

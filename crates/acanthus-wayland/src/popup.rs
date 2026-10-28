@@ -3,17 +3,27 @@ use smithay_client_toolkit::reexports::protocols::xdg::shell::client::xdg_positi
     Anchor, ConstraintAdjustment, Gravity,
 };
 
+/// Edge or corner of the anchor rectangle or of the popup.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PopupEdge {
+    /// Centred.
     #[default]
     None,
+    /// Top edge.
     Top,
+    /// Bottom edge.
     Bottom,
+    /// Left edge.
     Left,
+    /// Right edge.
     Right,
+    /// Top left corner.
     TopLeft,
+    /// Top right corner.
     TopRight,
+    /// Bottom left corner.
     BottomLeft,
+    /// Bottom right corner.
     BottomRight,
 }
 
@@ -47,19 +57,29 @@ impl PopupEdge {
     }
 }
 
+/// Placement of a popup relative to its parent.
 #[derive(Debug, Clone)]
 pub struct PopupConfig {
+    /// Rectangle in the parent the popup attaches to: x, y, width, height.
     pub anchor_rect: (i32, i32, i32, i32),
+    /// Size of the popup in logical pixels.
     pub size: (u32, u32),
+    /// Point of the anchor rectangle the popup attaches to.
     pub anchor: PopupEdge,
+    /// Direction in which the popup extends from the anchor point.
     pub gravity: PopupEdge,
+    /// Offset from the anchor point.
     pub offset: (i32, i32),
+    /// How the compositor may move the popup to keep it on screen.
     pub adjustment: ConstraintAdjustment,
+    /// Whether the popup grabs input, so clicks outside dismiss it.
     pub grab: bool,
+    /// Colour the popup is cleared to before drawing.
     pub clear: Color,
 }
 
 impl PopupConfig {
+    /// Popup of `size` at `anchor_rect`, anchored bottom left, extending bottom right, adjusted by sliding and flipping.
     pub fn new(anchor_rect: (i32, i32, i32, i32), size: (u32, u32)) -> Self {
         PopupConfig {
             anchor_rect,
@@ -76,26 +96,32 @@ impl PopupConfig {
         }
     }
 
+    /// Sets the anchor point.
     pub fn anchor(self, anchor: PopupEdge) -> Self {
         PopupConfig { anchor, ..self }
     }
 
+    /// Sets the gravity.
     pub fn gravity(self, gravity: PopupEdge) -> Self {
         PopupConfig { gravity, ..self }
     }
 
+    /// Sets the offset from the anchor point.
     pub fn offset(self, x: i32, y: i32) -> Self {
         PopupConfig { offset: (x, y), ..self }
     }
 
+    /// Sets the constraint adjustment.
     pub fn adjustment(self, adjustment: ConstraintAdjustment) -> Self {
         PopupConfig { adjustment, ..self }
     }
 
+    /// Sets whether the popup grabs input.
     pub fn grab(self, grab: bool) -> Self {
         PopupConfig { grab, ..self }
     }
 
+    /// Sets the clear colour.
     pub fn clear(self, clear: Color) -> Self {
         PopupConfig { clear, ..self }
     }

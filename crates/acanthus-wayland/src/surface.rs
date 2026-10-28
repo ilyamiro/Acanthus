@@ -11,21 +11,33 @@ use wayland_client::protocol::{wl_output, wl_surface};
 use crate::app::{State, SurfaceId};
 use crate::scale::{ScaleObjects, buffer_size};
 
+/// Placement and behaviour of a layer-shell surface.
 #[derive(Debug, Clone)]
 pub struct LayerConfig {
+    /// Namespace the compositor sees.
     pub namespace: String,
+    /// Layer the surface lives on.
     pub layer: Layer,
+    /// Edges the surface is anchored to.
     pub anchor: Anchor,
+    /// Width in logical pixels, 0 to stretch between anchors.
     pub width: u32,
+    /// Height in logical pixels, 0 to stretch between anchors.
     pub height: u32,
+    /// Space reserved for the surface, -1 to ignore other surfaces' zones.
     pub exclusive_zone: i32,
+    /// Margins: top, right, bottom, left.
     pub margin: [i32; 4],
+    /// Keyboard focus behaviour.
     pub keyboard: KeyboardInteractivity,
+    /// Colour the surface is cleared to before drawing.
     pub clear: Color,
+    /// Output the surface is placed on, `None` to let the compositor choose.
     pub output: Option<wl_output::WlOutput>,
 }
 
 impl LayerConfig {
+    /// Config for `namespace` on the top layer, unanchored, with no reserved space and no keyboard focus.
     pub fn new(namespace: impl Into<String>) -> Self {
         LayerConfig {
             namespace: namespace.into(),
@@ -41,34 +53,42 @@ impl LayerConfig {
         }
     }
 
+    /// Places the surface on `output`.
     pub fn output(self, output: wl_output::WlOutput) -> Self {
         LayerConfig { output: Some(output), ..self }
     }
 
+    /// Sets the layer.
     pub fn layer(self, layer: Layer) -> Self {
         LayerConfig { layer, ..self }
     }
 
+    /// Sets the anchored edges.
     pub fn anchor(self, anchor: Anchor) -> Self {
         LayerConfig { anchor, ..self }
     }
 
+    /// Sets the size in logical pixels.
     pub fn size(self, width: u32, height: u32) -> Self {
         LayerConfig { width, height, ..self }
     }
 
+    /// Sets the exclusive zone.
     pub fn exclusive_zone(self, exclusive_zone: i32) -> Self {
         LayerConfig { exclusive_zone, ..self }
     }
 
+    /// Sets the margins.
     pub fn margin(self, top: i32, right: i32, bottom: i32, left: i32) -> Self {
         LayerConfig { margin: [top, right, bottom, left], ..self }
     }
 
+    /// Sets the keyboard interactivity.
     pub fn keyboard(self, keyboard: KeyboardInteractivity) -> Self {
         LayerConfig { keyboard, ..self }
     }
 
+    /// Sets the clear colour.
     pub fn clear(self, clear: Color) -> Self {
         LayerConfig { clear, ..self }
     }
