@@ -186,6 +186,55 @@ acanthus_widgets::marquee::can_marquee: fn can_marquee (active : bool , text_wid
 acanthus_widgets::marquee::scroll_distance: fn scroll_distance (text_width : f32 , spacing : f32) -> f32
 acanthus_widgets::marquee::scroll_duration_ms: fn scroll_duration_ms (distance : f32 , speed : f32) -> u32
 acanthus_widgets::marquee::scroll_x: fn scroll_x (progress : f32 , distance : f32) -> f32
+acanthus_widgets::menu::Menu.entries: Rc < Vec < MenuEntry > >
+acanthus_widgets::menu::Menu.highlighted: Signal < Option < usize > >
+acanthus_widgets::menu::Menu.node: NodeId
+acanthus_widgets::menu::Menu.size: Signal < Vec2 >
+acanthus_widgets::menu::Menu: struct
+acanthus_widgets::menu::MenuEntry: enum [Clone]
+acanthus_widgets::menu::MenuEntry::Item: variant (MenuItem)
+acanthus_widgets::menu::MenuEntry::Separator: variant 
+acanthus_widgets::menu::MenuItem.checked: Option < Signal < bool > >
+acanthus_widgets::menu::MenuItem.enabled: Signal < bool >
+acanthus_widgets::menu::MenuItem.id: String
+acanthus_widgets::menu::MenuItem.label: Signal < String >
+acanthus_widgets::menu::MenuItem.shortcut: Option < String >
+acanthus_widgets::menu::MenuItem.submenu: bool
+acanthus_widgets::menu::MenuItem: struct [Clone]
+acanthus_widgets::menu::MenuItem::action: fn action (id : impl Into < String > , label : impl Into < String >) -> MenuItem
+acanthus_widgets::menu::MenuItem::checked: fn checked (self , checked : & Signal < bool >) -> MenuItem
+acanthus_widgets::menu::MenuItem::enabled: fn enabled (self , enabled : & Signal < bool >) -> MenuItem
+acanthus_widgets::menu::MenuItem::shortcut: fn shortcut (self , shortcut : impl Into < String >) -> MenuItem
+acanthus_widgets::menu::MenuItem::submenu: fn submenu (id : impl Into < String > , label : impl Into < String >) -> MenuItem
+acanthus_widgets::menu::MenuSpec.entries: Vec < MenuEntry >
+acanthus_widgets::menu::MenuSpec.on_outcome: Rc < dyn Fn (Outcome) >
+acanthus_widgets::menu::MenuSpec.style: MenuStyle
+acanthus_widgets::menu::MenuSpec: struct
+acanthus_widgets::menu::MenuStyle.background: Signal < Color >
+acanthus_widgets::menu::MenuStyle.border: Signal < Color >
+acanthus_widgets::menu::MenuStyle.family: Signal < String >
+acanthus_widgets::menu::MenuStyle.font_size: f32
+acanthus_widgets::menu::MenuStyle.highlight: Signal < Color >
+acanthus_widgets::menu::MenuStyle.highlight_text: Signal < Color >
+acanthus_widgets::menu::MenuStyle.min_width: f32
+acanthus_widgets::menu::MenuStyle.muted: Signal < Color >
+acanthus_widgets::menu::MenuStyle.radius: f32
+acanthus_widgets::menu::MenuStyle.text: Signal < Color >
+acanthus_widgets::menu::MenuStyle: struct
+acanthus_widgets::menu::Outcome: enum [Clone, Debug, Eq, PartialEq]
+acanthus_widgets::menu::Outcome::Close: variant 
+acanthus_widgets::menu::Outcome::None: variant 
+acanthus_widgets::menu::Outcome::OpenSubmenu: variant (usize)
+acanthus_widgets::menu::Outcome::Run: variant (String)
+acanthus_widgets::menu::PADDING: const PADDING: f32
+acanthus_widgets::menu::ROW_HEIGHT: const ROW_HEIGHT: f32
+acanthus_widgets::menu::SEPARATOR_HEIGHT: const SEPARATOR_HEIGHT: f32
+acanthus_widgets::menu::activation: fn activation (entries : & [MenuEntry] , index : usize) -> Outcome
+acanthus_widgets::menu::edge: fn edge (entries : & [MenuEntry] , last : bool) -> Option < usize >
+acanthus_widgets::menu::menu: fn menu (scene : & mut Scene , parent : NodeId , spec : MenuSpec) -> Menu
+acanthus_widgets::menu::row_span: fn row_span (entries : & [MenuEntry] , index : usize) -> (f32 , f32)
+acanthus_widgets::menu::step: fn step (entries : & [MenuEntry] , from : Option < usize > , step : i32) -> Option < usize >
+acanthus_widgets::menu::typeahead: fn typeahead (entries : & [MenuEntry] , from : Option < usize > , typed : char) -> Option < usize >
 acanthus_widgets::scrollbar::ScrollBar.color: C
 acanthus_widgets::scrollbar::ScrollBar.flickable: Flickable
 acanthus_widgets::scrollbar::ScrollBar.radius: f32

@@ -46,6 +46,9 @@ acanthus_app::dismiss::attach: fn attach (scene : & mut Scene , parent : NodeId 
 acanthus_app::dismiss::bind_input_region: fn bind_input_region (scene : & Scene , keep : & mut Keep , viewport : & Signal < Vec2 > , alive : & Signal < bool > , reserved : Rc < dyn Fn (Vec2) -> Rect > , popup : Option < Rc < dyn Fn () -> Rect > > ,)
 acanthus_app::dismiss::free_area: fn free_area (reserved : Rect , size : Vec2) -> Rect
 acanthus_app::dismiss::regions: fn regions (reserved : Rect , size : Vec2 , popup : Rect) -> Vec < Rect >
+acanthus_app::menu::SUBMENU_OVERLAP: const SUBMENU_OVERLAP: i32
+acanthus_app::menu::context_popup: fn context_popup (anchor : (i32 , i32 , i32 , i32) , size : (u32 , u32)) -> PopupConfig
+acanthus_app::menu::submenu_popup: fn submenu_popup (parent_width : i32 , row_top : i32 , row_height : i32 , size : (u32 , u32)) -> PopupConfig
 acanthus_app::popup::Popup: trait
 acanthus_app::popup::Popup::close: required fn close (& self)
 acanthus_app::popup::Popup::group: provided fn group (& self) -> Option < & 'static str >

@@ -13,4 +13,5 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 - `PropSpec::themed`, `Registry::with_colors` and `Theme::role`: colour props follow theme roles when not given.
 - `PortalSettings` (feature `portal-settings`) and `Theme::reduced_motion_system`: the desktop's animation preference.
 - `acanthus_app::testing`: `Headless` (offscreen shots, scripted pointer and key replay on a virtual 60 Hz clock, stall injection, JSON frame log), `Script`, `Image`, `Run`.
+- `acanthus_widgets::menu` (`menu`, `MenuItem`, `MenuEntry`, `Outcome`, keyboard helpers) and `acanthus_app::menu` (`context_popup`, `submenu_popup`).
 - Examples `hello-bar`, `hello-popup` and `hello-widget`.

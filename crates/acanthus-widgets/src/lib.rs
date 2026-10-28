@@ -2,6 +2,7 @@ pub mod button;
 pub mod component;
 pub mod dropdown;
 pub mod marquee;
+pub mod menu;
 pub mod scrollbar;
 pub mod search_field;
 pub mod slider;

@@ -3,6 +3,7 @@
 
 pub mod actions;
 pub mod dismiss;
+pub mod menu;
 mod module;
 pub mod popup;
 mod slot;
