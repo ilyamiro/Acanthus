@@ -1,3 +1,4 @@
+use crate::component::{Component, Prop, PropSpec, Props};
 use acanthus_anim::Keep;
 use acanthus_core::{Color, Rect, Signal, Vec2};
 use acanthus_scene::{Anchors, FillMode, LayerEffect, Node, NodeId, Scene};
@@ -89,6 +90,45 @@ pub fn backdrop(scene: &mut Scene, parent: NodeId, spec: Spec) -> NodeId {
     outer
 }
 
+/// The blurred wallpaper backdrop as a [`Component`] named `WallpaperBlur`; corner radii follow `radius`.
+pub struct WallpaperBlurComponent;
+
+impl Component for WallpaperBlurComponent {
+    fn name(&self) -> &'static str {
+        "WallpaperBlur"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::bool("active", || Prop::bool(true)),
+            PropSpec::text("source", || Prop::text("")),
+            PropSpec::point("screen", || Prop::Point(Signal::new(Vec2::ZERO))),
+            PropSpec::point("origin", || Prop::Point(Signal::new(Vec2::ZERO))),
+            PropSpec::number("fill_alpha", || Prop::number(1.0)),
+            PropSpec::number("radius", || Prop::number(0.0)),
+            PropSpec::number("scale", || Prop::number(1.0)),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        backdrop(
+            scene,
+            parent,
+            Spec {
+                active: props.bool("active"),
+                source: props.text("source"),
+                screen: props.point("screen"),
+                origin: props.point("origin"),
+                fill_alpha: props.number("fill_alpha"),
+                radius: props.number("radius"),
+                radii: Signal::new(None),
+                scale: props.number("scale").get_untracked(),
+            },
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,5 +209,15 @@ mod tests {
         active.set(false);
         scene.frame();
         assert!(!visible(&scene));
+    }
+
+    #[test]
+    fn the_registry_builds_a_backdrop_with_defaults_only() {
+        let mut registry = crate::component::Registry::new();
+        registry.register(WallpaperBlurComponent);
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let node = registry.build("WallpaperBlur", &mut scene, root, vec![]).unwrap();
+        assert!(scene.get(node).is_some());
     }
 }

@@ -3,9 +3,10 @@
 use std::rc::Rc;
 
 use acanthus_anim::{Easing, Keep};
-use acanthus_core::{Color, Signal};
+use acanthus_core::{Color, Effect, Signal};
 use acanthus_scene::{Anchors, CursorShape, MouseArea, Node, NodeId, Scene, TextInput, TextInputStyle};
 
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use crate::timing::FAST;
 
 const CLEAR_GLYPH: &str = "\u{f01b4}";
@@ -109,4 +110,110 @@ pub fn search_field(scene: &mut Scene, parent: NodeId, keep: &mut Keep, field: S
         clear,
         Node::text(&glyph).font_family(&tokens.icon_font).font_size(font_size).color(&ink).anchors(Anchors::center()),
     );
+}
+
+/// The search field as a [`Component`] named `SearchField`: it owns its text input and mirrors the
+/// typed text into the `text` prop, and a change of the prop is written back into the input.
+pub struct SearchFieldComponent;
+
+impl Component for SearchFieldComponent {
+    fn name(&self) -> &'static str {
+        "SearchField"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::text("text", || Prop::text("")),
+            PropSpec::text("placeholder", || Prop::text("")),
+            PropSpec::text("font_family", || Prop::text("")),
+            PropSpec::text("icon_font", || Prop::text("")),
+            PropSpec::number("font_size", || Prop::number(14.0)),
+            PropSpec::number("pad", || Prop::number(10.0)),
+            PropSpec::number("gap", || Prop::number(6.0)),
+            PropSpec::number("width", || Prop::number(200.0)),
+            PropSpec::number("height", || Prop::number(32.0)),
+            PropSpec::bool("focus", || Prop::bool(false)),
+            PropSpec::required("text_color", Kind::Color),
+            PropSpec::required("muted", Kind::Color),
+            PropSpec::required("accent", Kind::Color),
+            PropSpec::event("on_clear"),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        let tokens = SearchTokens {
+            font_family: props.text("font_family"),
+            icon_font: props.text("icon_font"),
+            text: props.color("text_color"),
+            muted: props.color("muted"),
+            accent: props.color("accent"),
+        };
+        let text = props.text("text");
+        let input = TextInput::new(text.get_untracked());
+        let mut keep = Keep::default();
+        keep.add(Effect::new({
+            let (text, typed) = (text.clone(), input.text());
+            move || {
+                let value = typed.get();
+                if text.get_untracked() != value {
+                    text.set(value);
+                }
+            }
+        }));
+        keep.add(Effect::new({
+            let (text, input) = (text, input.clone());
+            move || {
+                let value = text.get();
+                if input.text().get_untracked() != value {
+                    input.set_text(value);
+                }
+            }
+        }));
+        let height = props.number("height").get_untracked();
+        let root = scene.add(parent, Node::item().width(props.number("width")).height(height));
+        search_field(
+            scene,
+            root,
+            &mut keep,
+            SearchField {
+                tokens: &tokens,
+                input: &input,
+                placeholder: props.text("placeholder"),
+                font_size: props.number("font_size").get_untracked(),
+                pad: props.number("pad").get_untracked(),
+                gap: props.number("gap").get_untracked(),
+                width: props.number("width"),
+                height,
+                focus: props.bool("focus"),
+                on_clear: props.event("on_clear"),
+            },
+        );
+        if let Some(node) = scene.get_mut(root) {
+            node.keep(keep);
+        }
+        root
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::component::Registry;
+
+    #[test]
+    fn the_registry_builds_a_search_field_and_mirrors_the_typed_text() {
+        let mut registry = Registry::new();
+        registry.register(SearchFieldComponent);
+        let text = Signal::new("abc".to_owned());
+        let mut given: Vec<(String, Prop)> =
+            ["text_color", "muted", "accent"].map(|name| (name.to_owned(), Prop::color(Color::hex(0x778899)))).to_vec();
+        given.push(("text".to_owned(), Prop::Text(text.clone())));
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let node = registry.build("SearchField", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
+        text.set("abcd".to_owned());
+        assert_eq!(text.get_untracked(), "abcd");
+    }
 }

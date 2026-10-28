@@ -1,6 +1,7 @@
 //! Thin scroll indicator for a [`Flickable`]: visible only while the content moves and only when
 //! the content is taller than the view.
 
+use crate::component::{Component, Kind, Prop, PropSpec, Props};
 use acanthus_anim::Keep;
 use acanthus_core::{Color, Signal, Vec2};
 use acanthus_scene::{Flickable, IntoSignal, Node, NodeId, Scene};
@@ -62,6 +63,44 @@ pub fn scroll_bar<X: IntoSignal<f32>, C: IntoSignal<Color>>(
     )
 }
 
+/// The scroll bar as a [`Component`] named `ScrollBar`.
+pub struct ScrollBarComponent;
+
+impl Component for ScrollBarComponent {
+    fn name(&self) -> &'static str {
+        "ScrollBar"
+    }
+
+    fn props(&self) -> &'static [PropSpec] {
+        const PROPS: &[PropSpec] = &[
+            PropSpec::number("x", || Prop::number(0.0)),
+            PropSpec::number("top", || Prop::number(0.0)),
+            PropSpec::number("width", || Prop::number(4.0)),
+            PropSpec::number("radius", || Prop::number(2.0)),
+            PropSpec::point("view", || Prop::Point(Signal::new(Vec2::ZERO))),
+            PropSpec::required("flickable", Kind::Flickable),
+            PropSpec::required("color", Kind::Color),
+        ];
+        PROPS
+    }
+
+    fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
+        scroll_bar(
+            scene,
+            parent,
+            ScrollBar {
+                flickable: props.flickable("flickable"),
+                view: props.point("view"),
+                x: props.number("x"),
+                top: props.number("top").get_untracked(),
+                width: props.number("width").get_untracked(),
+                radius: props.number("radius").get_untracked(),
+                color: props.color("color"),
+            },
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,5 +119,23 @@ mod tests {
         assert_eq!(scroll_handle(600.0, 300.0, 300.0), Some((150.0, 150.0)));
         assert_eq!(scroll_handle(600.0, 300.0, 900.0), Some((150.0, 150.0)));
         assert_eq!(scroll_handle(600.0, 300.0, -20.0), Some((0.0, 150.0)));
+    }
+
+    #[test]
+    fn the_registry_builds_a_scroll_bar_that_follows_its_flickable() {
+        let mut registry = crate::component::Registry::new();
+        registry.register(ScrollBarComponent);
+        let flickable = Flickable::default();
+        flickable.content_height.set(600.0);
+        let view = Signal::new(Vec2::new(100.0, 300.0));
+        let given = vec![
+            ("flickable".to_owned(), Prop::Flickable(flickable.clone())),
+            ("view".to_owned(), Prop::Point(view)),
+            ("color".to_owned(), Prop::color(Color::hex(0x888888))),
+        ];
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let node = registry.build("ScrollBar", &mut scene, root, given).unwrap();
+        assert!(scene.get(node).is_some());
     }
 }

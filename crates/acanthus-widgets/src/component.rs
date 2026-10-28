@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
-use acanthus_core::{Color, Signal};
-use acanthus_scene::{NodeId, Scene};
+use acanthus_core::{Color, Signal, Vec2};
+use acanthus_scene::{Flickable, NodeId, Scene};
 
 /// The type of a prop.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,6 +38,10 @@ pub enum Kind {
     TextSlots,
     /// A node of the scene.
     Node,
+    /// A point or size signal.
+    Point,
+    /// The scrolling state of a flickable.
+    Flickable,
 }
 
 impl Kind {
@@ -56,6 +60,8 @@ impl Kind {
             Kind::TextList => "text list",
             Kind::TextSlots => "text slots",
             Kind::Node => "node",
+            Kind::Point => "point",
+            Kind::Flickable => "flickable",
         }
     }
 }
@@ -87,6 +93,10 @@ pub enum Prop {
     TextSlots(Vec<Signal<String>>),
     /// A node of the scene.
     Node(NodeId),
+    /// A point or size signal.
+    Point(Signal<Vec2>),
+    /// The scrolling state of a flickable.
+    Flickable(Flickable),
 }
 
 impl Prop {
@@ -105,6 +115,8 @@ impl Prop {
             Prop::TextList(_) => Kind::TextList,
             Prop::TextSlots(_) => Kind::TextSlots,
             Prop::Node(_) => Kind::Node,
+            Prop::Point(_) => Kind::Point,
+            Prop::Flickable(_) => Kind::Flickable,
         }
     }
 
@@ -168,6 +180,11 @@ impl PropSpec {
     /// An optional callback receiving a number; it does nothing by default.
     pub const fn number_event(name: &'static str) -> PropSpec {
         PropSpec { name, kind: Kind::NumberEvent, default: Some(|| Prop::NumberEvent(Rc::new(|_| {}))) }
+    }
+
+    /// An optional point prop.
+    pub const fn point(name: &'static str, default: fn() -> Prop) -> PropSpec {
+        PropSpec { name, kind: Kind::Point, default: Some(default) }
     }
 
     /// An optional index prop.
@@ -318,6 +335,28 @@ impl Props {
         match self.get(name) {
             Prop::Node(node) => *node,
             other => panic!("prop `{name}` is a {}, not a node", other.kind().word()),
+        }
+    }
+
+    /// The point prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as a point.
+    pub fn point(&self, name: &str) -> Signal<Vec2> {
+        match self.get(name) {
+            Prop::Point(signal) => signal.clone(),
+            other => panic!("prop `{name}` is a {}, not a point", other.kind().word()),
+        }
+    }
+
+    /// The flickable prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as a flickable.
+    pub fn flickable(&self, name: &str) -> Flickable {
+        match self.get(name) {
+            Prop::Flickable(flickable) => flickable.clone(),
+            other => panic!("prop `{name}` is a {}, not a flickable", other.kind().word()),
         }
     }
 
