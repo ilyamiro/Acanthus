@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 mod drag;
 
-use crate::display::{DisplayCx, Primitive};
+use crate::display::{DisplayCx, Painted, Primitive};
 use crate::dynamic::Host;
 use crate::flick::Flickable;
 use crate::input::{MouseButton, ScrollDelta};
@@ -91,8 +91,11 @@ pub struct Scene {
     pub(crate) tracker: Rc<Tracker>,
     layout_tracker: Rc<Tracker>,
     boundaries: SecondaryMap<NodeId, Rc<Tracker>>,
+    painted: SecondaryMap<NodeId, Painted>,
     layout_runs: u64,
     boundary_runs: u64,
+    paint_builds: u64,
+    paint_epoch: u64,
     primitives: Vec<Primitive>,
     pub(crate) pointer: Option<Vec2>,
     hovered: Vec<NodeId>,
@@ -145,8 +148,11 @@ impl Scene {
             tracker: Rc::new(Tracker::new()),
             layout_tracker: Rc::new(Tracker::new()),
             boundaries: SecondaryMap::new(),
+            painted: SecondaryMap::new(),
             layout_runs: 0,
             boundary_runs: 0,
+            paint_builds: 0,
+            paint_epoch: 1,
             primitives: Vec::new(),
             pointer: None,
             hovered: Vec::new(),
@@ -332,7 +338,10 @@ impl Scene {
 
     /// True when something changed since the last [`Scene::frame`].
     pub fn needs_frame(&self) -> bool {
-        self.tracker.is_dirty() || self.layout_tracker.is_dirty() || self.boundaries.values().any(|t| t.is_dirty())
+        self.tracker.is_dirty()
+            || self.layout_tracker.is_dirty()
+            || self.boundaries.values().any(|t| t.is_dirty())
+            || self.painted.values().any(|p| p.tracker.is_dirty())
     }
 
     /// Statistics of the rebuilt frames, published at most twice a second from [`Scene::frame`]; reading it in the scene costs one extra frame per update.
@@ -340,7 +349,7 @@ impl Scene {
         self.stats.clone()
     }
 
-    /// Updates layout when one of its inputs changed and returns the display list; a paint-only change (colour, opacity, transform) rebuilds the display list without relayout, and a change inside a node with an explicit width and height lays out only that node's subtree. Cheap and unchanged when nothing is dirty.
+    /// Updates layout when one of its inputs changed and returns the display list; a paint-only change (colour, opacity, transform) rebuilds the display list without relayout, and a change inside a node with an explicit width and height lays out only that node's subtree, and such a node whose subtree, opacity, clip and transform are unchanged reuses its part of the previous display list. Cheap and unchanged when nothing is dirty.
     pub fn frame(&mut self) -> Frame<'_> {
         if !self.needs_frame() {
             return Frame { changed: false, primitives: &self.primitives };
@@ -365,10 +374,15 @@ impl Scene {
             }
         }
         let laid_out = Instant::now();
+        let dirty: Vec<NodeId> = self.painted.iter().filter(|(_, p)| p.tracker.is_dirty()).map(|(id, _)| id).collect();
+        for id in dirty {
+            self.painted[id].tracker.track(|| ());
+            self.repaint(id);
+        }
         let tracker = self.tracker.clone();
         let next = tracker.track(|| {
             let mut next = Vec::with_capacity(self.primitives.len());
-            DisplayCx {
+            let mut cx = DisplayCx {
                 nodes: &self.nodes,
                 geometry: &self.geometry,
                 texts: &self.texts,
@@ -379,10 +393,17 @@ impl Scene {
                 forced: None,
                 smooth: false,
                 snap: self.units != 1.0,
-            }
-            .build(self.root, viewport);
+                painted: &mut self.painted,
+                previous: &self.primitives,
+                epoch: self.paint_epoch,
+                cross: false,
+                built: 0,
+            };
+            cx.build(self.root, viewport);
+            self.paint_builds += cx.built;
             next
         });
+        self.paint_epoch += 1;
         let built = Instant::now();
         let changed = next != self.primitives;
         self.primitives = next;
@@ -404,13 +425,36 @@ impl Scene {
         self.stats.set(FrameStats { layout, display, primitives: self.primitives.len(), fps });
     }
 
+    fn repaint(&mut self, id: NodeId) {
+        let mut up = Some(id);
+        while let Some(node) = up {
+            if let Some(painted) = self.painted.get_mut(node) {
+                painted.stale = true;
+            }
+            up = self.nodes.get(node).and_then(|n| n.parent);
+        }
+    }
+
     fn run_layout(&mut self, viewport: Rect) {
         self.layout_runs += 1;
+        let nodes = &self.nodes;
+        self.painted.retain(|id, painted| {
+            painted.stale = true;
+            nodes.contains_key(id)
+        });
         self.layout_cx(|cx, root| cx.run(root, viewport));
     }
 
     fn relayout(&mut self, id: NodeId) {
         self.boundary_runs += 1;
+        self.repaint(id);
+        let mut stack = self.nodes.get(id).map_or(Vec::new(), |n| n.children.clone());
+        while let Some(child) = stack.pop() {
+            if let Some(painted) = self.painted.get_mut(child) {
+                painted.stale = true;
+            }
+            stack.extend_from_slice(&self.nodes[child].children);
+        }
         self.layout_cx(|cx, _| cx.relayout(id));
     }
 
@@ -1362,6 +1406,53 @@ mod tests {
         label.set("abc".to_owned());
         assert_eq!(glyph_xs(&mut s).len(), glyphs + 2);
         assert_eq!(s.layout_runs, runs + 2);
+    }
+
+    #[test]
+    fn fixed_size_subtrees_reuse_their_display_list_until_they_change() {
+        let mut s = scene(300.0, 100.0);
+        let root = s.root();
+        let fade = Signal::new(1.0);
+        let (outer, inner, other) = (Signal::new(Color::WHITE), Signal::new(Color::BLACK), Signal::new(Color::WHITE));
+        let label = Signal::new("a".to_owned());
+        let group = s.add(root, Node::item().opacity(fade.clone()).layout(Layout::row(0.0)));
+        let a = s.add(group, Node::rect().size(50.0, 50.0).color(outer.clone()));
+        s.add(a, Node::rect().size(20.0, 20.0).color(inner.clone()));
+        let c = s.add(group, Node::rect().size(50.0, 50.0).color(other.clone()));
+        s.add(c, Node::text(label.clone()));
+        let fresh = |s: &mut Scene| {
+            let kept = s.frame().primitives.to_vec();
+            s.painted.clear();
+            s.tracker.mark_dirty();
+            assert_eq!(s.frame().primitives, &kept[..]);
+        };
+        s.frame();
+        let mut builds = s.paint_builds;
+        assert_eq!(builds, 3);
+        let mut step = |s: &mut Scene, change: &dyn Fn(), rebuilt: u64| {
+            change();
+            assert!(s.needs_frame());
+            assert!(s.frame().changed);
+            assert_eq!(s.paint_builds - builds, rebuilt);
+            fresh(s);
+            builds = s.paint_builds;
+        };
+        step(&mut s, &|| other.set(Color::BLACK), 1);
+        step(&mut s, &|| inner.set(Color::WHITE), 2);
+        step(&mut s, &|| fade.set(0.5), 3);
+        step(&mut s, &|| label.set("abc".to_owned()), 1);
+        assert!(!s.needs_frame());
+
+        let shown = Signal::new(true);
+        let hidden_color = Signal::new(Color::WHITE);
+        let holder = s.add(root, Node::item().visible(shown.clone()));
+        s.add(holder, Node::rect().size(10.0, 10.0).color(hidden_color.clone()));
+        s.frame();
+        shown.set(false);
+        s.frame();
+        hidden_color.set(Color::BLACK);
+        s.frame();
+        assert!(!s.needs_frame());
     }
 
     #[test]

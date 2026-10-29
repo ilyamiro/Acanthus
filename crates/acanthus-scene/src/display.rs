@@ -1,4 +1,4 @@
-use acanthus_core::{Affine2, Color, Rect, Vec2};
+use acanthus_core::{Affine2, Color, Rect, Tracker, Vec2};
 use cosmic_text::CacheKey;
 use slotmap::{SecondaryMap, SlotMap};
 
@@ -232,6 +232,24 @@ pub enum Primitive {
     LayerEnd,
 }
 
+#[derive(PartialEq)]
+struct PaintKey {
+    opacity: f32,
+    own_opacity: bool,
+    clip: Clip,
+    parent: Affine2,
+    smooth: bool,
+}
+
+pub(crate) struct Painted {
+    pub tracker: Tracker,
+    key: PaintKey,
+    range: std::ops::Range<usize>,
+    extent: Option<Rect>,
+    seen: u64,
+    pub stale: bool,
+}
+
 pub(crate) struct DisplayCx<'a> {
     pub nodes: &'a SlotMap<NodeId, Node>,
     pub geometry: &'a SecondaryMap<NodeId, Rect>,
@@ -243,6 +261,11 @@ pub(crate) struct DisplayCx<'a> {
     pub forced: Option<NodeId>,
     pub smooth: bool,
     pub snap: bool,
+    pub painted: &'a mut SecondaryMap<NodeId, Painted>,
+    pub previous: &'a [Primitive],
+    pub epoch: u64,
+    pub cross: bool,
+    pub built: u64,
 }
 
 impl DisplayCx<'_> {
@@ -296,6 +319,7 @@ impl DisplayCx<'_> {
                         is_mask: true,
                         source: None,
                     }));
+                    self.cross = true;
                     let world = self.nodes[mask].parent.map_or(Affine2::IDENTITY, |p| self.world(p));
                     self.forced = Some(mask);
                     self.draw(mask, 1.0, true, clip, world);
@@ -371,6 +395,40 @@ impl DisplayCx<'_> {
     }
 
     fn draw(&mut self, id: NodeId, parent_opacity: f32, own_opacity: bool, clip: Clip, parent: Affine2) {
+        let node = &self.nodes[id];
+        if self.forced.is_some() || node.width.is_none() || node.height.is_none() {
+            return self.paint(id, parent_opacity, own_opacity, clip, parent);
+        }
+        let key = PaintKey { opacity: parent_opacity, own_opacity, clip, parent, smooth: self.smooth };
+        if let Some(painted) = self.painted.get_mut(id)
+            && !painted.stale
+            && painted.seen + 1 == self.epoch
+            && painted.key == key
+        {
+            let begin = self.out.len();
+            self.out.extend_from_slice(&self.previous[painted.range.clone()]);
+            painted.range = begin..self.out.len();
+            painted.seen = self.epoch;
+            if let Some(extent) = painted.extent {
+                self.extent = Some(union(self.extent, extent));
+            }
+            return;
+        }
+        let begin = self.out.len();
+        let outer = self.extent.take();
+        let cross = std::mem::take(&mut self.cross);
+        let tracker = self.painted.remove(id).map_or_else(Tracker::new, |p| p.tracker);
+        tracker.track(|| self.paint(id, parent_opacity, own_opacity, clip, parent));
+        self.built += 1;
+        let extent = self.extent;
+        self.extent = extent.map_or(outer, |e| Some(union(outer, e)));
+        let painted =
+            Painted { tracker, key, range: begin..self.out.len(), extent, seen: self.epoch, stale: self.cross };
+        self.painted.insert(id, painted);
+        self.cross |= cross;
+    }
+
+    fn paint(&mut self, id: NodeId, parent_opacity: f32, own_opacity: bool, clip: Clip, parent: Affine2) {
         let node = &self.nodes[id];
         if !node.visible.get() && self.forced != Some(id) {
             return;
@@ -452,6 +510,7 @@ impl DisplayCx<'_> {
                     let mut sources = [false; 2];
                     for (slot, source) in style.sources.iter().enumerate() {
                         if let Some(source) = source.filter(|s| *s != id && self.nodes.contains_key(*s)) {
+                            self.cross = true;
                             sources[slot] = self.emit_source(source, slot as u8);
                         }
                     }
