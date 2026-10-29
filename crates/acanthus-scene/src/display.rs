@@ -5,7 +5,7 @@ use slotmap::{SecondaryMap, SlotMap};
 use crate::layout::ImageEntry;
 use crate::node::{Kind, LayerEffect, Node, NodeId, Orientation, paint_order};
 use crate::shader::{ShaderData, ShaderEffect, ShaderParams};
-use crate::text::{HAlign, ShapedText};
+use crate::text::ShapedText;
 use acanthus_image::{ImageId, place};
 
 /// A rounded-rectangle clip applied on top of a rectangular one.
@@ -471,10 +471,8 @@ impl DisplayCx<'_> {
             Kind::Text(style) => {
                 if let Some(shaped) = self.texts.get(id) {
                     let color = style.color.get().fade(opacity);
-                    let h_align = match style.h_align.get() {
-                        _ if !style.h_align_explicit && shaped.rtl => HAlign::Right,
-                        align => align,
-                    };
+                    let link_color = if shaped.links.is_empty() { color } else { style.link_color.get().fade(opacity) };
+                    let h_align = style.shown_h_align(shaped.rtl);
                     let reach = Rect::new(
                         phys.x,
                         phys.y,
@@ -489,6 +487,7 @@ impl DisplayCx<'_> {
                         let whole = phys.y.floor();
                         (whole, transform * Affine2::from_translation(Vec2::new(0.0, phys.y - whole)))
                     };
+                    let base = transform;
                     let k = raster_scale(transform);
                     let raster = self.scale * k;
                     let transform =
@@ -502,9 +501,39 @@ impl DisplayCx<'_> {
                                 key: p.cache_key,
                                 x: p.x,
                                 y: p.y + line_y,
-                                color,
+                                color: if g.metadata > 0 { link_color } else { color },
                                 clip,
                                 transform,
+                            }));
+                        }
+                        for span in run.decorations {
+                            let glyphs = &run.glyphs[span.glyph_range.clone()];
+                            let (left, right) = glyphs
+                                .iter()
+                                .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), g| (l.min(g.x), r.max(g.x + g.w)));
+                            if right <= left {
+                                continue;
+                            }
+                            let metrics = span.data.underline_metrics;
+                            let thickness = (metrics.thickness * span.font_size).max(1.0).ceil();
+                            let y = run.line_y - metrics.offset * span.font_size;
+                            let linked = glyphs.first().is_some_and(|g| g.metadata > 0);
+                            self.out.push(Primitive::Quad(Quad {
+                                rect: Rect::new(
+                                    phys.x + dx + left * self.scale,
+                                    origin_y + dy + (y * self.scale).round(),
+                                    (right - left) * self.scale,
+                                    thickness * self.scale,
+                                ),
+                                start: if linked { link_color } else { color },
+                                end: if linked { link_color } else { color },
+                                orientation: None,
+                                radius: 0.0,
+                                radii: [0.0; 4],
+                                border_width: 0.0,
+                                border_color: Color::TRANSPARENT,
+                                clip,
+                                transform: base,
                             }));
                         }
                     }

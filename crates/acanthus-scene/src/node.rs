@@ -326,6 +326,17 @@ pub struct TextStyle {
     pub letter_spacing: Signal<f32>,
     /// Letter case applied when shaping.
     pub capitalization: Signal<Capitalization>,
+    /// Colour of links in styled text, QML `linkColor`.
+    pub link_color: Signal<Color>,
+}
+
+impl TextStyle {
+    pub(crate) fn shown_h_align(&self, rtl: bool) -> HAlign {
+        match self.h_align.get() {
+            _ if !self.h_align_explicit && rtl => HAlign::Right,
+            align => align,
+        }
+    }
 }
 
 /// Properties of an image node.
@@ -401,6 +412,8 @@ pub(crate) type KeyHandler = Box<dyn FnMut(&KeyEvent) -> bool>;
 
 pub(crate) type PointerHandler = Box<dyn FnMut(PointerEvent)>;
 
+pub(crate) type LinkHandler = Box<dyn FnMut(&str)>;
+
 /// A node of the scene tree under construction: its kind, geometry, appearance, layout and input properties. Built with chained methods and added with [`Scene::add`](crate::Scene::add).
 pub struct Node {
     pub(crate) parent: Option<NodeId>,
@@ -465,6 +478,7 @@ pub struct Node {
     pub active_focus: Signal<bool>,
     pub(crate) key: Option<KeyHandler>,
     pub(crate) pointer: Option<PointerHandler>,
+    pub(crate) link: Option<LinkHandler>,
     pub(crate) drop: Option<crate::drag::DropArea>,
     pub(crate) drag_source: Option<crate::drag::DragSource>,
     pub(crate) owned: Vec<Box<dyn Any>>,
@@ -506,6 +520,7 @@ impl Node {
             active_focus: Signal::new(false),
             key: None,
             pointer: None,
+            link: None,
             drop: None,
             drag_source: None,
             owned: Vec::new(),
@@ -548,6 +563,7 @@ impl Node {
             line_height: Signal::new(None),
             letter_spacing: Signal::new(0.0),
             capitalization: Signal::new(Capitalization::MixedCase),
+            link_color: Signal::new(Color::hex(0x0000ff)),
         }))
     }
 
@@ -1010,6 +1026,21 @@ impl Node {
             Kind::Text(s) => s.capitalization = v.into_signal(),
             _ => tracing::warn!("capitalization() only applies to Text"),
         }
+        self
+    }
+
+    /// Sets the colour of links in a styled text node (QML `linkColor`, blue by default).
+    pub fn link_color(mut self, v: impl IntoSignal<Color>) -> Self {
+        match &mut self.kind {
+            Kind::Text(s) => s.link_color = v.into_signal(),
+            _ => tracing::warn!("link_color() only applies to Text"),
+        }
+        self
+    }
+
+    /// Sets the handler run with the `href` of a link in styled text that was pressed and released (QML `linkActivated`).
+    pub fn on_link(mut self, f: impl FnMut(&str) + 'static) -> Self {
+        self.link = Some(Box::new(f));
         self
     }
 

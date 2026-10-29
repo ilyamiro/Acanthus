@@ -452,6 +452,7 @@ acanthus_scene::Node::layer_effect: fn layer_effect (mut self , v : impl IntoSig
 acanthus_scene::Node::layout: fn layout (mut self , v : impl IntoSignal < Layout >) -> Self
 acanthus_scene::Node::letter_spacing: fn letter_spacing (mut self , v : impl IntoSignal < f32 >) -> Self
 acanthus_scene::Node::line_height: fn line_height (mut self , v : impl IntoSignal < Option < f32 > >) -> Self
+acanthus_scene::Node::link_color: fn link_color (mut self , v : impl IntoSignal < Color >) -> Self
 acanthus_scene::Node::margins: fn margins (self , v : Margins) -> Self
 acanthus_scene::Node::mask_source: fn mask_source (mut self) -> Self
 acanthus_scene::Node::max_lines: fn max_lines (mut self , v : impl IntoSignal < usize >) -> Self
@@ -460,6 +461,7 @@ acanthus_scene::Node::min_size: fn min_size (self , w : f32 , h : f32) -> Self
 acanthus_scene::Node::mipmap: fn mipmap (mut self , v : impl IntoSignal < bool >) -> Self
 acanthus_scene::Node::mouse: fn mouse (mut self , area : MouseArea) -> Self
 acanthus_scene::Node::on_key: fn on_key (mut self , f : impl FnMut (& KeyEvent) -> bool + 'static) -> Self
+acanthus_scene::Node::on_link: fn on_link (mut self , f : impl FnMut (& str) + 'static) -> Self
 acanthus_scene::Node::on_pointer: fn on_pointer (mut self , f : impl FnMut (PointerEvent) + 'static) -> Self
 acanthus_scene::Node::opacity: fn opacity (mut self , v : impl IntoSignal < f32 >) -> Self
 acanthus_scene::Node::own: fn own (mut self , value : impl Any) -> Self
@@ -569,6 +571,7 @@ acanthus_scene::Scene::keyboard_on_demand: fn keyboard_on_demand (& self) -> Sig
 acanthus_scene::Scene::layer_geometry: fn layer_geometry (& self) -> Signal < Option < LayerGeometry > >
 acanthus_scene::Scene::layer_raised: fn layer_raised (& self) -> Signal < Option < bool > >
 acanthus_scene::Scene::len: fn len (& self) -> usize
+acanthus_scene::Scene::link_at: fn link_at (& self , id : NodeId , point : Vec2) -> Option < String >
 acanthus_scene::Scene::list_view: fn list_view < T , K > (& mut self , parent : NodeId , viewport : Node , config : ListViewConfig , model : & ListSignal < T > , key : impl Fn (& T) -> K + 'static , delegate : impl FnMut (& mut Scene , NodeId , Item < T >) -> NodeId + 'static ,) -> ListView where T : Clone + PartialEq + 'static , K : Eq + Hash + Clone + 'static ,
 acanthus_scene::Scene::loader: fn loader (& mut self , container : NodeId , active : impl IntoSignal < bool > , build : impl FnMut (& mut Scene , NodeId) -> NodeId + 'static ,) -> Loader
 acanthus_scene::Scene::needs_frame: fn needs_frame (& self) -> bool
@@ -724,6 +727,7 @@ acanthus_scene::TextStyle.h_align: Signal < HAlign >
 acanthus_scene::TextStyle.h_align_explicit: bool
 acanthus_scene::TextStyle.letter_spacing: Signal < f32 >
 acanthus_scene::TextStyle.line_height: Signal < Option < f32 > >
+acanthus_scene::TextStyle.link_color: Signal < Color >
 acanthus_scene::TextStyle.max_lines: Signal < usize >
 acanthus_scene::TextStyle.size: Signal < f32 >
 acanthus_scene::TextStyle.styled: bool

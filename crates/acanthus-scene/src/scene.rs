@@ -11,7 +11,7 @@ use crate::flick::Flickable;
 use crate::input::{MouseButton, ScrollDelta};
 use crate::keyboard::{Clipboard, CursorShape, KeyEvent, PointerEvent, PointerPhase};
 use crate::layout::{ImageEntry, LayoutCx};
-use crate::node::{Node, NodeId, paint_order};
+use crate::node::{Kind, Node, NodeId, paint_order};
 use crate::text::{Fonts, ShapedText};
 use acanthus_image::ImageStore;
 
@@ -99,6 +99,7 @@ pub struct Scene {
     pressed: Option<(NodeId, MouseButton)>,
     flick_drag: Option<NodeId>,
     pointer_capture: Option<NodeId>,
+    link_press: Option<(NodeId, String)>,
     drag: Option<drag::DragSession>,
     drag_pending: Option<(NodeId, Vec2)>,
     drag_position: Vec2,
@@ -152,6 +153,7 @@ impl Scene {
             pressed: None,
             flick_drag: None,
             pointer_capture: None,
+            link_press: None,
             drag: None,
             drag_pending: None,
             drag_position: Vec2::ZERO,
@@ -481,6 +483,7 @@ impl Scene {
             || node.cursor.is_some()
             || node.focusable
             || node.pointer.is_some()
+            || node.link.is_some()
             || node.drop.is_some()
             || node.drag_source.is_some();
         if interactive && inside {
@@ -615,6 +618,15 @@ impl Scene {
         }
     }
 
+    /// The `href` of the styled-text link at `point` in the node's own coordinates, QML `Text.linkAt`.
+    pub fn link_at(&self, id: NodeId, point: Vec2) -> Option<String> {
+        let Kind::Text(style) = &self.nodes.get(id)?.kind else { return None };
+        let shaped = self.texts.get(id)?;
+        let rect = self.geometry.get(id)?;
+        let h_align = style.shown_h_align(shaped.rtl);
+        shaped.link_at(point, h_align, style.v_align.get(), Vec2::new(rect.w, rect.h)).map(str::to_owned)
+    }
+
     /// Presses or releases a button, timestamped from the scene's own clock.
     pub fn pointer_button(&mut self, button: MouseButton, down: bool) {
         let time = self.now();
@@ -639,6 +651,13 @@ impl Scene {
                     self.flick_drag = Some(id);
                 }
             }
+            if button == MouseButton::Left {
+                self.link_press =
+                    hits.iter().rev().copied().filter(|id| self.nodes[*id].link.is_some()).find_map(|id| {
+                        let local = self.local_point(id, pos)?;
+                        Some((id, self.link_at(id, local)?))
+                    });
+            }
             let focus_target = hits.iter().rev().copied().find(|id| self.nodes[*id].focusable);
             self.set_focus(focus_target);
             if button == MouseButton::Left
@@ -661,6 +680,12 @@ impl Scene {
         if button == MouseButton::Left {
             self.release_flick(time);
             self.release_capture(pos, time);
+            if let Some((id, href)) = self.link_press.take()
+                && self.local_point(id, pos).and_then(|local| self.link_at(id, local)).as_ref() == Some(&href)
+                && let Some(f) = self.nodes.get_mut(id).and_then(|n| n.link.as_mut())
+            {
+                f(&href);
+            }
             if self.drag_pointer_released(pos) {
                 return;
             }
@@ -1383,6 +1408,61 @@ mod tests {
         let (last, full) = justified_starts.split_last().unwrap();
         assert!(full.iter().all(|x| *x <= 1), "{justified_starts:?}");
         assert!((*last - *starts.last().unwrap()).abs() <= 1, "{justified_starts:?} {starts:?}");
+    }
+
+    #[test]
+    fn styled_links_are_underlined_coloured_and_activate_on_click() {
+        let mut s = scene(400.0, 100.0);
+        let root = s.root();
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let log = seen.clone();
+        let red = Color::hex(0xff0000);
+        let text = s.add(
+            root,
+            Node::text("go <a href=\"https://x.y\">there</a> now")
+                .styled(true)
+                .font_size(16.0)
+                .link_color(red)
+                .on_link(move |href| log.borrow_mut().push(href.to_owned())),
+        );
+        let frame = s.frame();
+        let linked = frame.primitives.iter().filter(|p| matches!(p, Primitive::Glyph(g) if g.color == red)).count();
+        assert_eq!(linked, 5);
+        let lines: Vec<&Quad> =
+            frame.primitives.iter().filter_map(|p| if let Primitive::Quad(q) = p { Some(q) } else { None }).collect();
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].start == red && lines[0].rect.w > 20.0 && lines[0].rect.h >= 1.0, "{:?}", lines[0].rect);
+        assert!(lines[0].rect.y > 10.0 && lines[0].rect.y < 20.0, "{:?}", lines[0].rect);
+
+        let on_link = (0..200).map(|x| x as f32).find(|x| s.link_at(text, Vec2::new(*x, 8.0)).is_some()).unwrap();
+        let x = on_link + 5.0;
+        assert_eq!(s.link_at(text, Vec2::new(x, 8.0)).as_deref(), Some("https://x.y"));
+        assert_eq!(s.link_at(text, Vec2::new(1.0, 8.0)), None);
+        assert_eq!(s.link_at(text, Vec2::new(x, 60.0)), None);
+
+        s.pointer_motion(Vec2::new(x, 8.0));
+        s.pointer_button(MouseButton::Left, true);
+        s.pointer_motion(Vec2::new(1.0, 8.0));
+        s.pointer_button(MouseButton::Left, false);
+        assert!(seen.borrow().is_empty());
+        s.pointer_motion(Vec2::new(x, 8.0));
+        s.pointer_button(MouseButton::Left, true);
+        s.pointer_button(MouseButton::Left, false);
+        assert_eq!(*seen.borrow(), vec!["https://x.y".to_owned()]);
+    }
+
+    #[test]
+    fn styled_headings_are_taller_than_body_text() {
+        let height = |markup: &str| {
+            let mut s = scene(400.0, 200.0);
+            let root = s.root();
+            let id = s.add(root, Node::text(markup).styled(true).font_size(16.0));
+            s.frame();
+            s.geometry(id).unwrap().h
+        };
+        let body = height("Title");
+        assert!(height("<h1>Title</h1>") > body * 1.8, "{body} {}", height("<h1>Title</h1>"));
+        assert!(height("<h6>Title</h6>") < body);
     }
 
     #[test]
