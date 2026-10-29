@@ -330,12 +330,10 @@ acanthus_scene::Layout::grid: fn grid (columns : usize , column_spacing : f32 , 
 acanthus_scene::Layout::padding: fn padding (self , x : f32 , y : f32) -> Self
 acanthus_scene::Layout::row: fn row (spacing : f32) -> Self
 acanthus_scene::Layout::stack: fn stack () -> Self
-acanthus_scene::ListTransitions.add_opacity_ms: u32
-acanthus_scene::ListTransitions.add_scale_from: f32
-acanthus_scene::ListTransitions.add_scale_ms: u32
-acanthus_scene::ListTransitions.easing: Easing
-acanthus_scene::ListTransitions.remove_opacity_ms: u32
-acanthus_scene::ListTransitions: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::ListTransitions.add: Vec < NumberAnimation >
+acanthus_scene::ListTransitions.displaced: Vec < NumberAnimation >
+acanthus_scene::ListTransitions.remove: Vec < NumberAnimation >
+acanthus_scene::ListTransitions: struct [Clone, Debug, Default, PartialEq]
 acanthus_scene::ListView.count: Signal < usize >
 acanthus_scene::ListView.current_index: Signal < usize >
 acanthus_scene::ListView.flickable: Flickable
@@ -353,8 +351,8 @@ acanthus_scene::ListViewConfig.highlight_resize_ms: Option < u32 >
 acanthus_scene::ListViewConfig.highlight_resize_velocity: f32
 acanthus_scene::ListViewConfig.orientation: Orientation
 acanthus_scene::ListViewConfig.spacing: f32
-acanthus_scene::ListViewConfig.transitions: Option < ListTransitions >
-acanthus_scene::ListViewConfig: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::ListViewConfig.transitions: ListTransitions
+acanthus_scene::ListViewConfig: struct [Clone, Debug, PartialEq]
 acanthus_scene::ListViewConfig::cache_buffer: fn cache_buffer (mut self , cache_buffer : f32) -> Self
 acanthus_scene::ListViewConfig::horizontal: fn horizontal () -> Self
 acanthus_scene::ListViewConfig::spacing: fn spacing (mut self , spacing : f32) -> Self
@@ -497,6 +495,16 @@ acanthus_scene::Node::wrap_mode: fn wrap_mode (mut self , v : impl IntoSignal < 
 acanthus_scene::Node::x: fn x (mut self , v : impl IntoSignal < f32 >) -> Self
 acanthus_scene::Node::y: fn y (mut self , v : impl IntoSignal < f32 >) -> Self
 acanthus_scene::Node::z: fn z (mut self , v : impl IntoSignal < f32 >) -> Self
+acanthus_scene::NumberAnimation.easing: Easing
+acanthus_scene::NumberAnimation.from: Option < f32 >
+acanthus_scene::NumberAnimation.ms: u32
+acanthus_scene::NumberAnimation.prop: Prop
+acanthus_scene::NumberAnimation.to: Option < f32 >
+acanthus_scene::NumberAnimation: struct [Clone, Copy, Debug, PartialEq]
+acanthus_scene::NumberAnimation::from: fn from (mut self , from : f32) -> Self
+acanthus_scene::NumberAnimation::new: fn new (prop : Prop) -> Self
+acanthus_scene::NumberAnimation::over: fn over (mut self , ms : u32 , easing : Easing) -> Self
+acanthus_scene::NumberAnimation::to: fn to (mut self , to : f32) -> Self
 acanthus_scene::Orientation: enum [Clone, Copy, Debug, Default, PartialEq]
 acanthus_scene::Orientation::Horizontal: variant 
 acanthus_scene::Orientation::Vertical: variant 

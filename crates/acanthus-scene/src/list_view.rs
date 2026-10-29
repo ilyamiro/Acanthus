@@ -3,9 +3,10 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::rc::Rc;
 
-use acanthus_anim::{AnimHandle, Animation, Easing, Smoothed, Tween};
+use acanthus_anim::{AnimHandle, Animation, Easing, Parallel, Smoothed, Tween};
 use acanthus_core::{Effect, ListSignal, Signal, Vec2, batch, untrack};
 
+use crate::animate::Prop;
 use crate::dynamic::{Host, Item};
 use crate::flick::Flickable;
 use crate::node::{Node, NodeId, Orientation};
@@ -30,23 +31,60 @@ pub enum ViewPosition {
     Contain,
 }
 
-/// Animation of items entering and leaving a list view.
+/// One property animated by a view transition, a QML `NumberAnimation` inside a `Transition`.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ListTransitions {
-    /// Initial scale of an entering item.
-    pub add_scale_from: f32,
-    /// Duration of the entering scale in milliseconds.
-    pub add_scale_ms: u32,
-    /// Duration of the entering fade in milliseconds.
-    pub add_opacity_ms: u32,
-    /// Duration of the leaving fade in milliseconds.
-    pub remove_opacity_ms: u32,
-    /// Easing shared by all transitions.
+pub struct NumberAnimation {
+    /// The animated property: [`Prop::X`], [`Prop::Y`], [`Prop::Opacity`], [`Prop::Scale`] or [`Prop::Rotation`]; others are ignored.
+    pub prop: Prop,
+    /// Start value, or `None` for the item's value when the transition starts.
+    pub from: Option<f32>,
+    /// End value, or `None` for the end state: the item's destination for `x` and `y`, the value when the transition starts otherwise.
+    pub to: Option<f32>,
+    /// Duration in milliseconds (QML default 250).
+    pub ms: u32,
+    /// Easing curve (QML default linear).
     pub easing: Easing,
 }
 
+impl NumberAnimation {
+    /// Animates `prop` over 250 ms, linear, from its current value to its end state, as a bare QML `NumberAnimation`.
+    pub fn new(prop: Prop) -> Self {
+        NumberAnimation { prop, from: None, to: None, ms: 250, easing: Easing::Linear }
+    }
+
+    /// Sets the start value.
+    pub fn from(mut self, from: f32) -> Self {
+        self.from = Some(from);
+        self
+    }
+
+    /// Sets the end value.
+    pub fn to(mut self, to: f32) -> Self {
+        self.to = Some(to);
+        self
+    }
+
+    /// Sets the duration in milliseconds and the easing.
+    pub fn over(mut self, ms: u32, easing: Easing) -> Self {
+        self.ms = ms;
+        self.easing = easing;
+        self
+    }
+}
+
+/// The view transitions of a list, QML `add`, `remove` and `displaced`; an empty list means no transition (the item jumps, as in Qt).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ListTransitions {
+    /// Run on an item added to the model, placed at its destination first.
+    pub add: Vec<NumberAnimation>,
+    /// Run on an item removed from the model, which is destroyed when it finishes.
+    pub remove: Vec<NumberAnimation>,
+    /// Run on items whose position changes because others were added, removed or moved, from the old position to the new one.
+    pub displaced: Vec<NumberAnimation>,
+}
+
 /// Static options of a list view.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ListViewConfig {
     /// Direction items are laid out along.
     pub orientation: Orientation,
@@ -54,8 +92,8 @@ pub struct ListViewConfig {
     pub spacing: f32,
     /// Extent outside the viewport in which items stay instantiated.
     pub cache_buffer: f32,
-    /// Item add and remove animation, or `None` for none.
-    pub transitions: Option<ListTransitions>,
+    /// Add, remove and displaced transitions.
+    pub transitions: ListTransitions,
     /// Speed of the highlight moving to a new current item in pixels per second, QML `highlightMoveVelocity` (400).
     pub highlight_move_velocity: f32,
     /// Longest highlight move in milliseconds, QML `highlightMoveDuration` (`None`, the velocity alone).
@@ -72,7 +110,7 @@ impl Default for ListViewConfig {
             orientation: Orientation::Vertical,
             spacing: 0.0,
             cache_buffer: DEFAULT_CACHE_BUFFER,
-            transitions: None,
+            transitions: ListTransitions::default(),
             highlight_move_velocity: 400.0,
             highlight_move_ms: None,
             highlight_resize_velocity: 400.0,
@@ -99,9 +137,9 @@ impl ListViewConfig {
         self
     }
 
-    /// Enables item add and remove animation.
+    /// Sets the add, remove and displaced transitions.
     pub fn transitions(mut self, transitions: ListTransitions) -> Self {
-        self.transitions = Some(transitions);
+        self.transitions = transitions;
         self
     }
 }
@@ -288,6 +326,48 @@ impl Drop for Highlight {
 struct Entry<T> {
     node: NodeId,
     item: Item<T>,
+    start: f32,
+    run: Option<AnimHandle>,
+}
+
+fn run_transition(
+    scene: &Scene,
+    node: NodeId,
+    anims: &[NumberAnimation],
+    start: f32,
+    vertical: bool,
+) -> Option<Parallel> {
+    let target = scene.get(node)?;
+    let dest =
+        if vertical { Vec2::new(target.x.get_untracked(), start) } else { Vec2::new(start, target.y.get_untracked()) };
+    let mut group = None::<Parallel>;
+    let mut moved = [false; 2];
+    for anim in anims {
+        let (signal, end) = match anim.prop {
+            Prop::X => (&target.x, Some(dest.x)),
+            Prop::Y => (&target.y, Some(dest.y)),
+            Prop::Opacity => (&target.opacity, None),
+            Prop::Scale => (&target.scale, None),
+            Prop::Rotation => (&target.rotation, None),
+            other => {
+                tracing::warn!("view transition cannot animate {}", other.name());
+                continue;
+            }
+        };
+        moved[0] |= anim.prop == Prop::X;
+        moved[1] |= anim.prop == Prop::Y;
+        let current = signal.get_untracked();
+        let to = anim.to.or(end).unwrap_or(current);
+        let tween = Tween::new(signal, to, anim.ms, anim.easing).from(anim.from.unwrap_or(current));
+        group = Some(group.unwrap_or_default().with(tween));
+    }
+    if !moved[0] {
+        target.x.set(dest.x);
+    }
+    if !moved[1] {
+        target.y.set(dest.y);
+    }
+    group
 }
 
 type Delegate<T> = Box<dyn FnMut(&mut Scene, NodeId, Item<T>) -> NodeId>;
@@ -297,19 +377,19 @@ struct Leaving {
     done: Rc<Cell<bool>>,
 }
 
-struct Fade {
-    tween: Tween<f32>,
+struct Reaped {
+    group: Parallel,
     done: Rc<Cell<bool>>,
     reap: Signal<u32>,
 }
 
-impl Animation for Fade {
+impl Animation for Reaped {
     fn start(&mut self) {
-        self.tween.start();
+        self.group.start();
     }
 
     fn advance(&mut self, dt: f32) -> Option<f32> {
-        let rest = self.tween.advance(dt);
+        let rest = self.group.advance(dt);
         if rest.is_some() {
             self.done.set(true);
             self.reap.update(|n| *n += 1);
@@ -332,7 +412,7 @@ struct ListHost<T, K> {
     count: Signal<usize>,
     instantiated: Signal<usize>,
     view_size: Signal<Vec2>,
-    known: HashSet<K>,
+    order: Vec<K>,
     primed: bool,
     leaving: Vec<Leaving>,
     reap: Signal<u32>,
@@ -348,32 +428,20 @@ impl<T, K> ListHost<T, K> {
         self.config.orientation == Orientation::Vertical
     }
 
-    fn enter(&self, scene: &Scene, node: NodeId) {
-        let Some(transitions) = self.config.transitions else { return };
-        let Some(target) = scene.get(node) else { return };
-        if transitions.add_scale_ms > 0 {
-            let scale = target.scale.clone();
-            let tween = Tween::new(&scale, 1.0, transitions.add_scale_ms, transitions.easing);
-            acanthus_anim::start(tween.from(transitions.add_scale_from));
+    fn retire(&mut self, scene: &mut Scene, entry: Entry<T>) {
+        if let Some(run) = entry.run {
+            run.stop();
         }
-        if transitions.add_opacity_ms > 0 {
-            let opacity = target.opacity.clone();
-            let tween = Tween::new(&opacity, 1.0, transitions.add_opacity_ms, transitions.easing);
-            acanthus_anim::start(tween.from(0.0));
-        }
-    }
-
-    fn retire(&mut self, scene: &mut Scene, node: NodeId) {
-        let ms = self.config.transitions.map_or(0, |t| t.remove_opacity_ms);
-        let (Some(target), true) = (scene.get(node), ms > 0) else {
+        let node = entry.node;
+        let vertical = self.vertical();
+        let at =
+            scene.get(node).map_or(entry.start, |n| if vertical { n.y.get_untracked() } else { n.x.get_untracked() });
+        let Some(group) = run_transition(scene, node, &self.config.transitions.remove, at, vertical) else {
             scene.remove(node);
             return;
         };
-        let opacity = target.opacity.clone();
-        let easing = self.config.transitions.map_or(Easing::default(), |t| t.easing);
         let done = Rc::new(Cell::new(false));
-        let tween = Tween::new(&opacity, 0.0, ms, easing);
-        acanthus_anim::start(Fade { tween, done: done.clone(), reap: self.reap.clone() });
+        acanthus_anim::start(Reaped { group, done: done.clone(), reap: self.reap.clone() });
         self.leaving.push(Leaving { node, done });
     }
 }
@@ -408,6 +476,9 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
     fn sync(&mut self, scene: &mut Scene) -> bool {
         if !scene.contains(self.viewport) || !scene.contains(self.content) {
             for (_, entry) in self.entries.drain() {
+                if let Some(run) = entry.run {
+                    run.stop();
+                }
                 scene.remove(entry.node);
             }
             for gone in self.leaving.drain(..) {
@@ -429,13 +500,19 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
         let stale: Vec<K> = self.entries.keys().filter(|k| !seen.contains(*k)).cloned().collect();
         for key in stale {
             if let Some(entry) = self.entries.remove(&key) {
-                self.retire(scene, entry.node);
+                self.retire(scene, entry);
             }
         }
         self.extents.borrow_mut().retain(|k, _| seen.contains(k));
-        let added: HashSet<K> =
-            if self.primed { seen.difference(&self.known).cloned().collect() } else { HashSet::new() };
-        self.known = seen.clone();
+        let order: Vec<K> = keyed.iter().map(|(k, _)| k.clone()).collect();
+        let added: HashSet<K> = if self.primed {
+            let known: HashSet<&K> = self.order.iter().collect();
+            order.iter().filter(|k| !known.contains(k)).cloned().collect()
+        } else {
+            HashSet::new()
+        };
+        let displacing = self.primed && self.order != order;
+        self.order = order;
         self.primed = true;
 
         let measured: Vec<f32> = {
@@ -481,6 +558,9 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
         let out_of_range: Vec<K> = self.entries.keys().filter(|k| !wanted.contains(*k)).cloned().collect();
         for key in out_of_range {
             if let Some(entry) = self.entries.remove(&key) {
+                if let Some(run) = entry.run {
+                    run.stop();
+                }
                 scene.remove(entry.node);
             }
         }
@@ -490,27 +570,28 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
                 if index < first || index >= last {
                     continue;
                 }
-                let entry = match self.entries.get(&key) {
+                let start = starts[index];
+                let transitions = &self.config.transitions;
+                match self.entries.get_mut(&key) {
                     Some(entry) => {
                         entry.item.value.set(value);
                         entry.item.index.set(index);
-                        entry.node
+                        if entry.start == start {
+                            continue;
+                        }
+                        entry.start = start;
+                        if let Some(run) = entry.run.take() {
+                            run.stop();
+                        }
+                        let anims: &[NumberAnimation] = if displacing { &transitions.displaced } else { &[] };
+                        entry.run = run_transition(scene, entry.node, anims, start, vertical).map(acanthus_anim::start);
                     }
                     None => {
                         let item = Item { value: Signal::new(value), index: Signal::new(index) };
                         let node = untrack(|| (self.delegate)(scene, self.content, item.clone()));
-                        if added.contains(&key) {
-                            self.enter(scene, node);
-                        }
-                        self.entries.insert(key, Entry { node, item });
-                        node
-                    }
-                };
-                if let Some(node) = scene.get(entry) {
-                    if vertical {
-                        node.y.set(starts[index]);
-                    } else {
-                        node.x.set(starts[index]);
+                        let anims: &[NumberAnimation] = if added.contains(&key) { &transitions.add } else { &[] };
+                        let run = run_transition(scene, node, anims, start, vertical).map(acanthus_anim::start);
+                        self.entries.insert(key, Entry { node, item, start, run });
                     }
                 }
             }
@@ -575,6 +656,7 @@ impl Scene {
         K: Eq + Hash + Clone + 'static,
     {
         let flickable = Flickable::new();
+        let orientation = config.orientation;
         let nodes = self.flickable(parent, viewport, &flickable);
         let count = Signal::new(0);
         let instantiated = Signal::new(0);
@@ -597,7 +679,7 @@ impl Scene {
             count: count.clone(),
             instantiated: instantiated.clone(),
             view_size: view_size.clone(),
-            known: HashSet::new(),
+            order: Vec::new(),
             primed: false,
             leaving: Vec::new(),
             reap: Signal::new(0),
@@ -617,7 +699,7 @@ impl Scene {
             instantiated,
             view_size,
             current_index,
-            orientation: config.orientation,
+            orientation,
             metrics,
             highlight,
             follow,

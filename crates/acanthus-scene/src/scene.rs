@@ -2446,12 +2446,11 @@ mod tests {
         let mut s = scene(100.0, 100.0);
         let root = s.root();
         let model = ListSignal::new(vec![0u32, 1]);
+        let linear = |prop| crate::NumberAnimation::new(prop).over(100, acanthus_anim::Easing::Linear);
         let transitions = crate::ListTransitions {
-            add_scale_from: 0.5,
-            add_scale_ms: 100,
-            add_opacity_ms: 100,
-            remove_opacity_ms: 100,
-            easing: acanthus_anim::Easing::Linear,
+            add: vec![linear(crate::Prop::Scale).from(0.5), linear(crate::Prop::Opacity).from(0.0)],
+            remove: vec![linear(crate::Prop::Opacity).to(0.0)],
+            displaced: vec![linear(crate::Prop::Y)],
         };
         let view = s.list_view(
             root,
@@ -2501,6 +2500,44 @@ mod tests {
         s.frame();
         assert!(s.get(rows[0]).is_none());
         assert!(s.get(rows[1]).is_some());
+    }
+
+    #[test]
+    fn list_view_displaced_rows_glide_to_their_new_place() {
+        let (mut s, view, model) = transition_scene();
+        let rows = s.get(view.nodes.content).unwrap().children().to_vec();
+        let y = |s: &Scene, i: usize| s.get(rows[i]).unwrap().y.get_untracked();
+        s.get(rows[1]).unwrap().x.set(7.0);
+        model.replace(vec![9, 0, 1]);
+        s.frame();
+        assert_eq!((y(&s, 0), y(&s, 1)), (0.0, 24.0));
+        acanthus_anim::tick(0.05);
+        assert!((y(&s, 0) - 12.0).abs() < 1e-3);
+        assert!((y(&s, 1) - 36.0).abs() < 1e-3);
+        acanthus_anim::tick(0.06);
+        assert_eq!((y(&s, 0), y(&s, 1)), (24.0, 48.0));
+        assert_eq!(s.get(rows[1]).unwrap().x.get_untracked(), 7.0);
+
+        model.replace(vec![0, 1]);
+        s.frame();
+        acanthus_anim::tick(0.05);
+        assert!((y(&s, 0) - 12.0).abs() < 1e-3);
+        view.flickable.content_y.set(1.0);
+        s.frame();
+        assert!((y(&s, 0) - 12.0).abs() < 1e-3);
+        acanthus_anim::tick(0.06);
+        assert_eq!(y(&s, 0), 0.0);
+    }
+
+    #[test]
+    fn list_view_without_transitions_jumps() {
+        let (mut s, view, model) = list_scene(3, 0.0);
+        let rows = s.get(view.nodes.content).unwrap().children().to_vec();
+        model.replace(vec![9, 0, 1, 2]);
+        s.frame();
+        assert_eq!(s.get(rows[0]).unwrap().y.get_untracked(), 24.0);
+        let fresh = *s.get(view.nodes.content).unwrap().children().last().unwrap();
+        assert_eq!(s.get(fresh).unwrap().opacity.get_untracked(), 1.0);
     }
 
     #[test]

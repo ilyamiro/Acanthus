@@ -16,7 +16,7 @@ Retained scene graph: node arena, layout, text shaping, display list and input h
 | `src/text.rs` | `Fonts` (shared cosmic-text `FontSystem`), `ShapedText`, `TextParams`, `HAlign`/`VAlign`/`Elide`/`WrapMode` |
 | `src/dynamic.rs` | `Scene::repeater` (keyed delegate per `ListSignal` item, `Item {value, index}`), `Scene::loader` (active-driven child), `Host` sync run at the start of `frame()` |
 | `src/flick.rs` | `Flickable` (drag, wheel, kinetic flick with Qt constants, rubber band, `BoundsBehavior`, `FlickDirection`); `Scene::flickable` lives in `scene.rs` |
-| `src/list_view.rs` | `Scene::list_view`: virtualised ListView over a `ListSignal`, measured extents, `position_view_at_index`, optional add/remove `ListTransitions` |
+| `src/list_view.rs` | `Scene::list_view`: virtualised ListView over a `ListSignal`, measured extents, `position_view_at_index`, Qt-style add/remove/displaced `ListTransitions` of `NumberAnimation`s, highlight |
 | `src/keyboard.rs` | `Key`, `KeyEvent`, `Modifiers`, `CursorShape`, `PointerEvent`, process-local `Clipboard` |
 | `src/text_input.rs` | `TextInput` editing state, `Scene::text_input` (placeholder, selection, text, caret nodes + host), blink |
 | `src/input.rs` | `MouseArea` (hovered, pressed, on_click, on_scroll), `MouseButton`, `ScrollDelta` |

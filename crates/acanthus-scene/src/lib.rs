@@ -32,7 +32,7 @@ pub use flick::{BoundsBehavior, FlickDirection, Flickable};
 pub use input::{MouseArea, MouseButton, ScrollDelta};
 pub use keyboard::{Clipboard, ClipboardBackend, CursorShape, Key, KeyEvent, Modifiers, PointerEvent, PointerPhase};
 pub use layout::{Align, Anchors, Constraints, Edge, Layout, Margins};
-pub use list_view::{ListTransitions, ListView, ListViewConfig, ViewPosition};
+pub use list_view::{ListTransitions, ListView, ListViewConfig, NumberAnimation, ViewPosition};
 pub use node::{
     Gradient, ImageStyle, IntoSignal, Kind, LayerEffect, LayerShadow, Node, NodeId, Orientation, RectStyle,
     ShaderStyle, TextStyle, TransformOrigin,
