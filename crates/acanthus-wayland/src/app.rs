@@ -212,7 +212,7 @@ pub struct State {
     gpu: Option<Gpu>,
     fonts: Fonts,
     images: ImageStore,
-    last_tick: Option<Instant>,
+    clock: crate::clock::FrameClock,
     exit: bool,
 }
 
@@ -283,7 +283,7 @@ impl App {
             gpu: None,
             fonts: Fonts::new(),
             images,
-            last_tick: None,
+            clock: crate::clock::FrameClock::default(),
             exit: false,
             conn,
             qh,
@@ -493,13 +493,9 @@ impl State {
     }
 
     fn update(&mut self) {
-        if acanthus_anim::is_active() {
-            let now = Instant::now();
-            let dt = self.last_tick.map_or(0.0, |t| (now - t).as_secs_f32().min(0.1));
-            self.last_tick = Some(now);
+        let waiting = self.surfaces.values().any(|s| s.frame_pending);
+        if let Some(dt) = self.clock.step(acanthus_anim::is_active(), waiting, Instant::now()) {
             acanthus_anim::tick(dt);
-        } else {
-            self.last_tick = None;
         }
         let inhibits: Vec<(SurfaceId, bool)> = self.handle.idle_inhibits.borrow_mut().drain(..).collect();
         for (surface, inhibit) in inhibits {
@@ -1130,9 +1126,10 @@ impl CompositorHandler for State {
     ) {
     }
 
-    fn frame(&mut self, _: &Connection, _: &QueueHandle<Self>, wl: &wl_surface::WlSurface, _: u32) {
+    fn frame(&mut self, _: &Connection, _: &QueueHandle<Self>, wl: &wl_surface::WlSurface, time: u32) {
         if let Some(id) = self.surface_by_wl(wl) {
             self.surfaces[id].frame_pending = false;
+            self.clock.callback(time);
         }
     }
 

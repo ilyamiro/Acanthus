@@ -4,6 +4,7 @@
 mod app;
 mod capture;
 mod clipboard;
+mod clock;
 mod control;
 mod dnd;
 mod idle_inhibit;
