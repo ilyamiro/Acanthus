@@ -485,7 +485,7 @@ impl LayoutCx<'_> {
 
     fn resolve_image(&mut self, id: NodeId, style: &ImageStyle, width: Option<f32>, height: Option<f32>) -> Vec2 {
         self.store.generation().get();
-        let source = style.source.get();
+        let source = style.canvas.as_ref().map_or_else(|| style.source.get(), |canvas| canvas.source(self.scale));
         let physical = |v: f32| ((v * self.scale).ceil() as u32).max(1);
         let target = match (style.source_size.get(), width, height) {
             (Some(size), _, _) if size.x > 0.0 && size.y > 0.0 => Some((physical(size.x), physical(size.y))),
@@ -521,7 +521,7 @@ impl LayoutCx<'_> {
             entry.clock = None;
         }
         style.status.set(status);
-        entry.size
+        if style.canvas.is_some() { Vec2::ZERO } else { entry.size }
     }
 
     fn shape_text(&mut self, id: NodeId, style: &TextStyle, params: TextParams) {

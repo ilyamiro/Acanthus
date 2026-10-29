@@ -1401,6 +1401,53 @@ mod tests {
         assert_eq!(implicit.get_untracked(), Vec2::new(40.0, 20.0));
     }
 
+    #[test]
+    fn canvas_repaints_on_resize_and_signal_change_at_the_device_scale() {
+        let color = Signal::new(Color::WHITE);
+        let width = Signal::new(40.0);
+        let runs = Rc::new(Cell::new(0));
+        let node = {
+            let (color, runs) = (color.clone(), runs.clone());
+            Node::canvas(move |p| {
+                runs.set(runs.get() + 1);
+                let area = Rect::new(0.0, 0.0, p.size.x, p.size.y);
+                p.fill(&crate::Path::new().rect(area), color.get());
+            })
+            .size(&width, 20.0)
+        };
+        let implicit = node.implicit_size();
+        let mut s = Scene::new(Fonts::new());
+        s.set_viewport(Vec2::new(100.0, 100.0), 2.0);
+        let root = s.root();
+        s.add(root, node);
+        let drawn = |s: &mut Scene| {
+            while s.needs_frame() {
+                s.frame();
+            }
+            let f = s.frame();
+            let draw = f.primitives.iter().find_map(|p| if let Primitive::Image(d) = p { Some(*d) } else { None });
+            let draw = draw.unwrap();
+            let image = s.images().get(draw.id).unwrap();
+            (draw, image.width, image.height, image.rgba[..4].to_vec())
+        };
+        let (first, w, h, px) = drawn(&mut s);
+        assert_eq!((w, h, px), (80, 40, vec![255; 4]));
+        assert_eq!(first.rect, Rect::new(0.0, 0.0, 80.0, 40.0));
+        assert_eq!(implicit.get_untracked(), Vec2::ZERO);
+        let painted = runs.get();
+
+        s.frame();
+        assert_eq!(runs.get(), painted);
+        color.set(Color::BLACK);
+        let (second, _, _, px) = drawn(&mut s);
+        assert_ne!(second.id, first.id);
+        assert_eq!(px, vec![0, 0, 0, 255]);
+
+        width.set(10.0);
+        let (_, w, _, _) = drawn(&mut s);
+        assert_eq!(w, 20);
+    }
+
     fn gif_source() -> (tempfile::TempDir, String) {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("blink.gif");

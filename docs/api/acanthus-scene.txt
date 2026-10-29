@@ -410,6 +410,7 @@ acanthus_scene::Node::animated: fn animated (mut self , v : impl IntoSignal < bo
 acanthus_scene::Node::bind: fn bind (self , effect : Effect) -> Self
 acanthus_scene::Node::border: fn border (mut self , width : impl IntoSignal < f32 > , color : impl IntoSignal < Color >) -> Self
 acanthus_scene::Node::bounds: fn bounds (& self) -> Signal < Rect >
+acanthus_scene::Node::canvas: fn canvas (mut paint : impl FnMut (& mut Painting) + 'static) -> Self
 acanthus_scene::Node::capitalization: fn capitalization (mut self , v : impl IntoSignal < Capitalization >) -> Self
 acanthus_scene::Node::children: fn children (& self) -> & [NodeId]
 acanthus_scene::Node::clip: fn clip (mut self , v : impl IntoSignal < bool >) -> Self

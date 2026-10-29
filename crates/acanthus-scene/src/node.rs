@@ -3,8 +3,9 @@ use std::borrow::Cow;
 
 use acanthus_anim::{Animatable, Animated};
 use acanthus_core::{Affine2, Color, Effect, Rect, Signal, Vec2};
-use acanthus_image::{FillMode, ImageStatus};
+use acanthus_image::{FillMode, ImageStatus, MemorySlot, Painting};
 use slotmap::{SlotMap, new_key_type};
+use std::cell::RefCell;
 
 use crate::flick::Flickable;
 use crate::input::MouseArea;
@@ -337,6 +338,33 @@ pub struct ImageStyle {
     pub status: Signal<ImageStatus>,
     /// True to play animated images.
     pub animated: Signal<bool>,
+    pub(crate) canvas: Option<Canvas>,
+}
+
+pub(crate) struct Canvas {
+    painting: Signal<Painting>,
+    slot: MemorySlot,
+    painted: RefCell<Option<(Painting, f32, String)>>,
+}
+
+impl Canvas {
+    pub(crate) fn source(&self, scale: f32) -> String {
+        self.painting.with(|painting| {
+            let mut painted = self.painted.borrow_mut();
+            if let Some((last, last_scale, source)) = &*painted
+                && last == painting
+                && *last_scale == scale
+            {
+                return source.clone();
+            }
+            let source = painting
+                .rasterize(scale)
+                .map(|image| self.slot.set(image.width, image.height, image.rgba))
+                .unwrap_or_default();
+            *painted = Some((painting.clone(), scale, source.clone()));
+            source
+        })
+    }
 }
 
 /// Properties of a shader node.
@@ -526,7 +554,25 @@ impl Node {
             source_size: Signal::new(None),
             status: Signal::new(ImageStatus::Null),
             animated: Signal::new(false),
+            canvas: None,
         }))
+    }
+
+    /// A node showing what `paint` records, like Qt's `Canvas` with its default image target: `paint` runs again when the node is resized or a signal it reads changes, and the painting is rasterised at the device scale. Its implicit size is zero.
+    pub fn canvas(mut paint: impl FnMut(&mut Painting) + 'static) -> Self {
+        let mut node = Node::image(String::new());
+        let bounds = node.bounds.clone();
+        let painting = Signal::new(Painting::default());
+        let effect = painting.bind(move || {
+            let rect = bounds.get();
+            let mut painting = Painting::new(Vec2::new(rect.w, rect.h));
+            paint(&mut painting);
+            painting
+        });
+        if let Kind::Image(style) = &mut node.kind {
+            style.canvas = Some(Canvas { painting, slot: MemorySlot::new(), painted: RefCell::new(None) });
+        }
+        node.own(effect)
     }
 
     /// A node drawing `effect` with `params`.

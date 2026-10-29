@@ -182,7 +182,7 @@ impl ImageStore {
         self.inner.generation.clone()
     }
 
-    /// Requests an image, optionally rasterised at `target`. Returns `None` for an empty source.
+    /// Requests an image, optionally rasterised at `target`. Returns `None` for an empty source. In-memory sources are ready at once.
     pub fn request(&self, source: &str, target: Option<(u32, u32)>) -> Option<ImageHandle> {
         let source = ImageSource::parse(source);
         if source == ImageSource::None {
@@ -205,10 +205,16 @@ impl ImageStore {
             }
             return Some(ImageHandle { id, store: Rc::downgrade(inner) });
         }
-        self.start_workers();
         let id = ImageId(inner.next.get());
         inner.next.set(id.0 + 1);
         inner.keys.borrow_mut().insert(key.clone(), id);
+        if let ImageSource::Memory(memory) = key.source {
+            let decoded = crate::memory::lookup(memory);
+            let status = if decoded.is_some() { ImageStatus::Ready } else { ImageStatus::Error };
+            inner.slots.borrow_mut().insert(id, Slot { key, status, decoded, refs: 1 });
+            return Some(ImageHandle { id, store: Rc::downgrade(inner) });
+        }
+        self.start_workers();
         inner
             .slots
             .borrow_mut()
@@ -275,9 +281,7 @@ impl Default for ImageStore {
 fn run(icons: &IconLookup, key: &Key) -> Result<Decoded, String> {
     let path: PathBuf = match &key.source {
         ImageSource::None => return Err("empty source".to_owned()),
-        ImageSource::Memory(id) => {
-            return crate::memory::lookup(*id).map(|image| (*image).clone()).ok_or_else(|| "image expired".to_owned());
-        }
+        ImageSource::Memory(_) => return Err("memory images resolve on request".to_owned()),
         ImageSource::File(path) => path.clone(),
         ImageSource::Icon(name) => {
             let size = key.target.map_or(DEFAULT_ICON_SIZE, |(w, h)| w.max(h));
@@ -326,6 +330,19 @@ mod tests {
         let decoded = store.get(handle.id()).unwrap();
         assert_eq!((decoded.width, decoded.height), (6, 3));
         assert!(generation.get_untracked() >= 1);
+    }
+
+    #[test]
+    fn memory_images_are_ready_on_request_without_a_copy() {
+        let slot = crate::MemorySlot::new();
+        let image = Arc::new(Decoded { width: 1, height: 1, rgba: vec![1, 2, 3, 4], animation: None });
+        let store = store();
+        let handle = store.request(&slot.set_shared(image.clone()), None).unwrap();
+        assert_eq!(store.status(handle.id()), ImageStatus::Ready);
+        assert!(Arc::ptr_eq(&store.get(handle.id()).unwrap(), &image));
+        drop(slot);
+        let gone = store.request(&format!("image://mem/{:016x}", u64::MAX), None).unwrap();
+        assert_eq!(store.status(gone.id()), ImageStatus::Error);
     }
 
     #[test]

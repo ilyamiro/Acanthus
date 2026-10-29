@@ -56,6 +56,21 @@ acanthus_image::MemorySlot: struct [Debug]
 acanthus_image::MemorySlot::new: fn new () -> MemorySlot
 acanthus_image::MemorySlot::set: fn set (& self , width : u32 , height : u32 , rgba : Vec < u8 >) -> String
 acanthus_image::MemorySlot::set_shared: fn set_shared (& self , image : Arc < Decoded >) -> String
+acanthus_image::Painting.size: Vec2
+acanthus_image::Painting: struct [Clone, Debug, Default, PartialEq]
+acanthus_image::Painting::fill: fn fill (& mut self , path : & Path , color : Color)
+acanthus_image::Painting::new: fn new (size : Vec2) -> Self
+acanthus_image::Painting::rasterize: fn rasterize (& self , scale : f32) -> Option < Decoded >
+acanthus_image::Painting::stroke: fn stroke (& mut self , path : & Path , color : Color , width : f32)
+acanthus_image::Path: struct [Clone, Debug, Default, PartialEq]
+acanthus_image::Path::arc: fn arc (mut self , center : Vec2 , radius : f32 , start : f32 , end : f32 , anticlockwise : bool) -> Self
+acanthus_image::Path::close: fn close (mut self) -> Self
+acanthus_image::Path::cubic_to: fn cubic_to (mut self , c1 : Vec2 , c2 : Vec2 , p : Vec2) -> Self
+acanthus_image::Path::line_to: fn line_to (mut self , p : Vec2) -> Self
+acanthus_image::Path::move_to: fn move_to (mut self , p : Vec2) -> Self
+acanthus_image::Path::new: fn new () -> Self
+acanthus_image::Path::quad_to: fn quad_to (mut self , c : Vec2 , p : Vec2) -> Self
+acanthus_image::Path::rect: fn rect (self , r : Rect) -> Self
 acanthus_image::Placement.rect: Rect
 acanthus_image::Placement.repeat: bool
 acanthus_image::Placement.uv: [f32 ; 4]
