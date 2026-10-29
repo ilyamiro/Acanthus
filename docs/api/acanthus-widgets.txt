@@ -243,6 +243,7 @@ acanthus_widgets::profiler::overlay: fn overlay (scene : & mut Scene , parent : 
 acanthus_widgets::screencopy::screencopy_view: fn screencopy_view (frame : Signal < Option < Arc < Decoded > > > , fill : FillMode) -> Node
 acanthus_widgets::scrollbar::ScrollBar.color: C
 acanthus_widgets::scrollbar::ScrollBar.flickable: Flickable
+acanthus_widgets::scrollbar::ScrollBar.orientation: Orientation
 acanthus_widgets::scrollbar::ScrollBar.radius: f32
 acanthus_widgets::scrollbar::ScrollBar.top: f32
 acanthus_widgets::scrollbar::ScrollBar.view: Signal < Vec2 >
@@ -250,8 +251,15 @@ acanthus_widgets::scrollbar::ScrollBar.width: f32
 acanthus_widgets::scrollbar::ScrollBar.x: X
 acanthus_widgets::scrollbar::ScrollBar: struct< X , C >
 acanthus_widgets::scrollbar::ScrollBarComponent: struct
+acanthus_widgets::scrollbar::ScrollView.bar_margin: f32
+acanthus_widgets::scrollbar::ScrollView.bar_width: f32
+acanthus_widgets::scrollbar::ScrollView.color: C
+acanthus_widgets::scrollbar::ScrollView.frame: Node
+acanthus_widgets::scrollbar::ScrollView.radius: f32
+acanthus_widgets::scrollbar::ScrollView: struct< C >
 acanthus_widgets::scrollbar::scroll_bar: fn scroll_bar < X : IntoSignal < f32 > , C : IntoSignal < Color > > (scene : & mut Scene , parent : NodeId , bar : ScrollBar < X , C > ,) -> NodeId
 acanthus_widgets::scrollbar::scroll_handle: fn scroll_handle (content : f32 , view : f32 , position : f32) -> Option < (f32 , f32) >
+acanthus_widgets::scrollbar::scroll_view: fn scroll_view < C : IntoSignal < Color > + Clone > (scene : & mut Scene , parent : NodeId , spec : ScrollView < C > ,) -> (FlickableNodes , Flickable)
 acanthus_widgets::search_field::SearchField.focus: Signal < bool >
 acanthus_widgets::search_field::SearchField.font_size: f32
 acanthus_widgets::search_field::SearchField.gap: f32

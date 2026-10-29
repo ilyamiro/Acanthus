@@ -9,8 +9,8 @@ use std::time::{Duration, Instant};
 use acanthus_anim::{AnimHandle, Easing, Keep, Tween, start};
 use acanthus_core::{Color, Effect, ListSignal, Signal, untrack};
 use acanthus_scene::{
-    Anchors, CursorShape, Elide, Item, Key, ListViewConfig, MouseArea, MouseButton, Node, NodeId, Scene, TextInput,
-    TextInputStyle, TransformOrigin,
+    Anchors, CursorShape, Elide, Item, Key, ListViewConfig, MouseArea, MouseButton, Node, NodeId, Orientation, Scene,
+    TextInput, TextInputStyle, TransformOrigin,
 };
 
 use crate::button::{Feel, Press, Sound, activate, dress, focusable};
@@ -588,6 +588,7 @@ fn menu(
         ScrollBar {
             flickable: view.flickable.clone(),
             view: view.view_size.clone(),
+            orientation: Orientation::Vertical,
             x: inner_w - (6.0 * s).round(),
             top: pad,
             width: (4.0 * s).round(),

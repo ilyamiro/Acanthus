@@ -849,6 +849,58 @@ impl Scene {
         let content = self.add(viewport, content.bind(bind_x).bind(bind_y));
         FlickableNodes { viewport, content }
     }
+
+    /// Like [`Scene::flickable`], but the content size follows what is placed under `content`: the flickable's content width and height become the right and bottom edges of the laid-out children, as a QML `ScrollView` takes its content size from its content. Also returns the laid-out size of the viewport.
+    pub fn scroll_view(
+        &mut self,
+        parent: NodeId,
+        viewport: Node,
+        flickable: &Flickable,
+    ) -> (FlickableNodes, Signal<Vec2>) {
+        let nodes = self.flickable(parent, viewport, flickable);
+        let view = Signal::new(Vec2::ZERO);
+        self.push_host(Box::new(ContentSize { nodes, flickable: flickable.clone(), view: view.clone() }));
+        (nodes, view)
+    }
+}
+
+struct ContentSize {
+    nodes: FlickableNodes,
+    flickable: Flickable,
+    view: Signal<Vec2>,
+}
+
+impl Host for ContentSize {
+    fn sync(&mut self, scene: &mut Scene) -> bool {
+        scene.contains(self.nodes.content)
+    }
+
+    fn wants_measure(&self) -> bool {
+        true
+    }
+
+    fn measure(&self, scene: &Scene) -> bool {
+        let (Some(content), Some(node)) = (scene.geometry(self.nodes.content), scene.get(self.nodes.content)) else {
+            return false;
+        };
+        let size = node.children().iter().filter_map(|c| scene.geometry(*c)).fold(Vec2::ZERO, |size, r| {
+            Vec2::new(size.x.max(r.x + r.w - content.x), size.y.max(r.y + r.h - content.y))
+        });
+        let mut changed = false;
+        for (signal, value) in [(&self.flickable.content_width, size.x), (&self.flickable.content_height, size.y)] {
+            if signal.get_untracked() != value {
+                signal.set(value);
+                changed = true;
+            }
+        }
+        if let Some(rect) = scene.geometry(self.nodes.viewport)
+            && self.view.get_untracked() != Vec2::new(rect.w, rect.h)
+        {
+            self.view.set(Vec2::new(rect.w, rect.h));
+            changed = true;
+        }
+        changed
+    }
 }
 
 /// The nodes created by [`Scene::flickable`].
@@ -2307,6 +2359,27 @@ mod tests {
         assert_eq!(flick.content_y.get_untracked(), 0.0);
         s.pointer_button_at(MouseButton::Left, false, 2.0);
         assert_eq!(flick.content_y.get_untracked(), 0.0);
+    }
+
+    #[test]
+    fn scroll_view_takes_its_content_size_from_the_children() {
+        let mut s = scene(100.0, 100.0);
+        let root = s.root();
+        let flick = Flickable::new();
+        let (nodes, view) = s.scroll_view(root, Node::item().size(100.0, 100.0), &flick);
+        let height = Signal::new(300.0);
+        s.add(nodes.content, Node::rect().size(80.0, &height));
+        s.add(nodes.content, Node::rect().x(50.0).y(20.0).size(150.0, 10.0));
+        s.frame();
+        assert_eq!((flick.content_width.get_untracked(), flick.content_height.get_untracked()), (200.0, 300.0));
+        assert_eq!(view.get_untracked(), Vec2::new(100.0, 100.0));
+        flick.content_y.set(100.0);
+        height.set(120.0);
+        s.frame();
+        assert_eq!(flick.content_height.get_untracked(), 120.0);
+        s.pointer_motion_at(Vec2::new(50.0, 50.0), 0.0);
+        s.scroll(ScrollDelta { x: 0.0, y: 500.0 });
+        assert_eq!(flick.content_y.get_untracked(), 20.0);
     }
 
     #[test]
