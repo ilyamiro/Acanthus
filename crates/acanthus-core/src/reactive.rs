@@ -1,5 +1,6 @@
 use std::cell::{Cell, RefCell};
-use std::collections::VecDeque;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::fmt;
 use std::rc::Rc;
 
@@ -14,13 +15,22 @@ const MAX_FLUSH_RUNS: usize = 100_000;
 struct EffectSlot {
     run: Option<Box<dyn FnMut()>>,
     queued: bool,
+    height: u32,
+}
+
+impl EffectSlot {
+    fn new(run: Box<dyn FnMut()>) -> Self {
+        EffectSlot { run: Some(run), queued: false, height: 0 }
+    }
 }
 
 #[derive(Default)]
 struct Runtime {
     effects: RefCell<SlotMap<EffectId, EffectSlot>>,
     observer: Cell<Option<EffectId>>,
-    queue: RefCell<VecDeque<EffectId>>,
+    running: Cell<Option<EffectId>>,
+    queue: RefCell<BinaryHeap<Reverse<(u32, u64, EffectId)>>>,
+    seq: Cell<u64>,
     batch_depth: Cell<u32>,
     flushing: Cell<bool>,
     epoch: Cell<u64>,
@@ -58,15 +68,22 @@ pub fn batch<R>(f: impl FnOnce() -> R) -> R {
     out
 }
 
-fn enqueue(id: EffectId) {
+fn enqueue(id: EffectId, min_height: u32) {
     RT.with(|rt| {
         if let Some(slot) = rt.effects.borrow_mut().get_mut(id)
             && !slot.queued
         {
             slot.queued = true;
-            rt.queue.borrow_mut().push_back(id);
+            slot.height = slot.height.max(min_height);
+            let seq = rt.seq.get();
+            rt.seq.set(seq + 1);
+            rt.queue.borrow_mut().push(Reverse((slot.height, seq, id)));
         }
     });
+}
+
+fn height_of(id: Option<EffectId>) -> u32 {
+    id.map_or(0, |id| RT.with(|rt| rt.effects.borrow().get(id).map_or(0, |slot| slot.height)))
 }
 
 fn flush() {
@@ -91,13 +108,13 @@ fn flush() {
     let _reset = Reset;
 
     let mut runs = 0usize;
-    while let Some(id) = RT.with(|rt| rt.queue.borrow_mut().pop_front()) {
+    while let Some(Reverse((_, _, id))) = RT.with(|rt| rt.queue.borrow_mut().pop()) {
         runs += 1;
         if runs > MAX_FLUSH_RUNS {
             tracing::error!("binding loop detected; dropping pending updates");
             RT.with(|rt| {
                 let mut effects = rt.effects.borrow_mut();
-                for id in rt.queue.borrow_mut().drain(..) {
+                for Reverse((_, _, id)) in rt.queue.borrow_mut().drain() {
                     if let Some(slot) = effects.get_mut(id) {
                         slot.queued = false;
                     }
@@ -118,9 +135,12 @@ fn run_effect(id: EffectId) {
     });
     let Some(mut f) = taken else { return };
 
-    let prev = RT.with(|rt| rt.observer.replace(Some(id)));
+    let (prev, prev_running) = RT.with(|rt| (rt.observer.replace(Some(id)), rt.running.replace(Some(id))));
     f();
-    RT.with(|rt| rt.observer.set(prev));
+    RT.with(|rt| {
+        rt.observer.set(prev);
+        rt.running.set(prev_running);
+    });
 
     let orphan = RT.with(|rt| match rt.effects.borrow_mut().get_mut(id) {
         Some(slot) => {
@@ -139,7 +159,7 @@ pub struct Effect(EffectId);
 impl Effect {
     /// Creates the effect and runs `f` immediately, recording the signals it reads.
     pub fn new(f: impl FnMut() + 'static) -> Self {
-        let id = RT.with(|rt| rt.effects.borrow_mut().insert(EffectSlot { run: Some(Box::new(f)), queued: false }));
+        let id = RT.with(|rt| rt.effects.borrow_mut().insert(EffectSlot::new(Box::new(f))));
         run_effect(id);
         Effect(id)
     }
@@ -174,9 +194,7 @@ impl Tracker {
     pub fn new() -> Self {
         let dirty = Rc::new(Cell::new(true));
         let flag = dirty.clone();
-        let id = RT.with(|rt| {
-            rt.effects.borrow_mut().insert(EffectSlot { run: Some(Box::new(move || flag.set(true))), queued: false })
-        });
+        let id = RT.with(|rt| rt.effects.borrow_mut().insert(EffectSlot::new(Box::new(move || flag.set(true)))));
         Tracker { id, dirty }
     }
 
@@ -216,6 +234,7 @@ impl Drop for Tracker {
 struct SignalInner<T> {
     value: RefCell<T>,
     subscribers: RefCell<Vec<EffectId>>,
+    height: Cell<u32>,
 }
 
 /// Observable shared value. Clones share the same value; reading inside an [`Effect`] subscribes it.
@@ -242,7 +261,11 @@ impl<T: fmt::Debug> fmt::Debug for Signal<T> {
 impl<T: 'static> Signal<T> {
     /// Creates a signal holding `value`.
     pub fn new(value: T) -> Self {
-        Signal(Rc::new(SignalInner { value: RefCell::new(value), subscribers: RefCell::new(Vec::new()) }))
+        Signal(Rc::new(SignalInner {
+            value: RefCell::new(value),
+            subscribers: RefCell::new(Vec::new()),
+            height: Cell::new(0),
+        }))
     }
 
     fn track(&self) {
@@ -251,14 +274,27 @@ impl<T: 'static> Signal<T> {
             if !subs.contains(&id) {
                 subs.push(id);
             }
+            let height = self.0.height.get() + 1;
+            RT.with(|rt| {
+                if let Some(slot) = rt.effects.borrow_mut().get_mut(id) {
+                    slot.height = slot.height.max(height);
+                }
+            });
         }
+    }
+
+    fn raise_height(&self) {
+        let height = height_of(RT.with(|rt| rt.running.get()));
+        self.0.height.set(self.0.height.get().max(height));
     }
 
     fn notify(&self) {
         RT.with(|rt| rt.epoch.set(rt.epoch.get() + 1));
+        self.raise_height();
         let subs = std::mem::take(&mut *self.0.subscribers.borrow_mut());
+        let height = self.0.height.get() + 1;
         for id in subs {
-            enqueue(id);
+            enqueue(id, height);
         }
         flush();
     }
@@ -340,12 +376,16 @@ impl<T: PartialEq + 'static> Signal<T> {
         let target = self.clone();
         Effect::new(move || {
             let value = f();
+            target.raise_height();
             untrack(|| target.set(value));
         })
     }
 }
 
 /// A signal derived from other signals; recomputed when its inputs change and notifying only when the result differs.
+///
+/// Updates are glitch-free: a write runs dependents in order of their depth in the dependency graph, so an effect that
+/// reads several memos derived from the same source runs once per write and never sees some of them stale.
 pub struct Memo<T> {
     /// The derived value.
     pub signal: Signal<T>,
@@ -435,6 +475,53 @@ mod tests {
         assert_eq!(seen.get(), 5);
         a.set(6);
         assert_eq!(seen.get(), 6);
+    }
+
+    #[test]
+    fn diamond_dependencies_run_the_effect_once_with_consistent_inputs() {
+        let a = Signal::new(1);
+        let mut scope = Scope::default();
+        let b = {
+            let a = a.clone();
+            scope.derive(move || a.get() * 2)
+        };
+        let c = {
+            let a = a.clone();
+            scope.derive(move || a.get() * 3)
+        };
+        let d = {
+            let c = c.clone();
+            scope.derive(move || c.get() + 1)
+        };
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let _e = {
+            let (b, d, seen) = (b.clone(), d.clone(), seen.clone());
+            Effect::new(move || seen.borrow_mut().push((b.get(), d.get())))
+        };
+        a.set(2);
+        a.set(5);
+        assert_eq!(*seen.borrow(), vec![(2, 4), (4, 7), (10, 16)]);
+    }
+
+    #[test]
+    fn effect_created_before_its_memo_is_reordered_on_the_next_write() {
+        let a = Signal::new(1);
+        let b = Signal::new(0);
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let _e = {
+            let (a, b, seen) = (a.clone(), b.clone(), seen.clone());
+            Effect::new(move || seen.borrow_mut().push((a.get(), b.get())))
+        };
+        let _bind = {
+            let a = a.clone();
+            b.bind(move || a.get() * 10)
+        };
+        seen.borrow_mut().clear();
+        a.set(2);
+        assert_eq!(seen.borrow().last(), Some(&(2, 20)));
+        seen.borrow_mut().clear();
+        a.set(3);
+        assert_eq!(*seen.borrow(), vec![(3, 30)]);
     }
 
     #[test]
