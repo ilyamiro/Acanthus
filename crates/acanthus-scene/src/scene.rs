@@ -1766,6 +1766,28 @@ mod tests {
     }
 
     #[test]
+    fn a_shaped_clip_inside_another_renders_its_children_in_a_clipped_layer() {
+        let mut s = scene(100.0, 100.0);
+        let root = s.root();
+        let outer = s.add(root, Node::rect().size(60.0, 60.0).radius(30.0).clip(true));
+        let inner = s.add(outer, Node::rect().x(10.0).y(10.0).size(40.0, 40.0).radius(6.0).clip(true));
+        s.add(inner, Node::rect().size(80.0, 80.0).color(Color::WHITE));
+        let plain = s.add(outer, Node::item().size(20.0, 20.0).clip(true));
+        s.add(plain, Node::rect().size(80.0, 80.0).color(Color::WHITE));
+        let primitives = s.frame().primitives.to_vec();
+        let Primitive::LayerBegin(begin) = primitives[2] else { panic!("{:?}", primitives[2]) };
+        assert_eq!(begin.clip.shape.unwrap().radius, 30.0);
+        assert_eq!(begin.bounds, Rect::new(10.0, 10.0, 40.0, 40.0));
+        assert!(begin.fx.is_none());
+        let Primitive::Quad(leaf) = primitives[3] else { panic!() };
+        assert_eq!(leaf.clip.shape.unwrap().radius, 6.0);
+        assert_eq!(primitives[4], Primitive::LayerEnd);
+        let Primitive::Quad(unshaped) = primitives[5] else { panic!("{:?}", primitives[5]) };
+        assert_eq!(unshaped.clip.shape.unwrap().radius, 30.0);
+        assert_eq!(primitives.len(), 6);
+    }
+
+    #[test]
     fn layers_wrap_their_subtree_and_ignore_inner_opacity() {
         let mut s = Scene::new(Fonts::new());
         let root = s.root();

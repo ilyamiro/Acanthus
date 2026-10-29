@@ -146,6 +146,21 @@ fn clip_and_gradient() {
 }
 
 #[test]
+fn nested_rounded_clips_are_both_exact() {
+    let Some(gpu) = gpu() else { return };
+    let fonts = Fonts::new();
+    let mut scene = Scene::new(fonts.clone());
+    let root = scene.root();
+    let outer = scene.add(root, Node::rect().size(60.0, 60.0).radius(30.0).clip(true));
+    let inner = scene.add(outer, Node::item().size(60.0, 60.0).rotation(0.001).clip(true));
+    scene.add(inner, Node::rect().size(60.0, 60.0).color(Color::hex(0xff0000)));
+    let img = render(&gpu, &mut scene, fonts);
+    assert_eq!(pixel(&img, 30, 30), [255, 0, 0, 255], "inside both");
+    assert_eq!(pixel(&img, 5, 5)[3], 0, "outside the outer circle");
+    assert_eq!(pixel(&img, 54, 54)[3], 0, "outside the outer circle");
+}
+
+#[test]
 fn draws_decoded_images() {
     let Some(gpu) = gpu() else { return };
     let dir = tempfile::tempdir().unwrap();

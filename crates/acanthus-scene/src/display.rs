@@ -278,13 +278,20 @@ impl DisplayCx<'_> {
             .filter(|b| !b.is_empty());
         match bounds {
             Some(bounds) => {
-                self.out[begin] =
-                    Primitive::LayerBegin(LayerBegin { bounds, opacity, clip, fx, is_mask: false, source: None });
+                let composite = if fx.is_none() { Clip::rect(bounds) } else { clip };
+                self.out[begin] = Primitive::LayerBegin(LayerBegin {
+                    bounds,
+                    opacity,
+                    clip: composite,
+                    fx,
+                    is_mask: false,
+                    source: None,
+                });
                 if let Some(mask) = mask {
                     self.out.push(Primitive::LayerBegin(LayerBegin {
                         bounds,
                         opacity: 1.0,
-                        clip,
+                        clip: Clip::rect(bounds),
                         fx: LayerFx::default(),
                         is_mask: true,
                         source: None,
@@ -502,11 +509,41 @@ impl DisplayCx<'_> {
         self.smooth |= node.smooth;
         let child_clip = if node.clip.get() { self.clip_children(node, rect, phys, transform, clip) } else { clip };
         if !child_clip.is_empty() {
+            let begin = self.out.len();
+            let nested = clip.shape.is_some() && child_clip.shape != clip.shape;
+            let outer = nested.then(|| {
+                self.out.push(Primitive::LayerEnd);
+                self.extent.take()
+            });
             for &child in paint_order(self.nodes, &node.children, true).iter() {
                 self.walk(child, opacity, child_clip, world);
             }
+            if let Some(outer) = outer {
+                self.close_clip_layer(begin, outer, clip, child_clip.rect);
+            }
         }
         self.smooth = was_smooth;
+    }
+
+    fn close_clip_layer(&mut self, begin: usize, outer: Option<Rect>, clip: Clip, area: Rect) {
+        match self.extent.take().map(|c| pixel_aligned(c.intersect(&area))).filter(|b| !b.is_empty()) {
+            Some(bounds) => {
+                self.out[begin] = Primitive::LayerBegin(LayerBegin {
+                    bounds,
+                    opacity: 1.0,
+                    clip,
+                    fx: LayerFx::default(),
+                    is_mask: false,
+                    source: None,
+                });
+                self.out.push(Primitive::LayerEnd);
+                self.extent = Some(union(outer, bounds));
+            }
+            None => {
+                self.out.truncate(begin);
+                self.extent = outer;
+            }
+        }
     }
 
     fn clip_children(&self, node: &Node, rect: Rect, phys: Rect, transform: Affine2, clip: Clip) -> Clip {

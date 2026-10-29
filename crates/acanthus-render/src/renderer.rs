@@ -1025,8 +1025,7 @@ impl Renderer {
                         self.image_instances.push(instance);
                         self.image_instances.len() as u32 - 1
                     });
-                    let content_clip = if begin.fx.is_none() { Clip::rect(begin.bounds) } else { begin.clip };
-                    self.image_instances.push(layer_instance(begin, content_clip));
+                    self.image_instances.push(layer_instance(begin, begin.clip));
                     self.pending.push((self.image_instances.len() as u32 - 1, shadow));
                     open.push(index);
                     continue;
