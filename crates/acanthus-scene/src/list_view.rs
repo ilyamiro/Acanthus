@@ -102,6 +102,8 @@ pub struct ListViewConfig {
     pub highlight_resize_velocity: f32,
     /// Longest highlight resize in milliseconds, QML `highlightResizeDuration` (`None`).
     pub highlight_resize_ms: Option<u32>,
+    /// Cell size that turns the list into a QML `GridView`, or `None` for a list.
+    pub cell: Option<Vec2>,
 }
 
 impl Default for ListViewConfig {
@@ -115,6 +117,7 @@ impl Default for ListViewConfig {
             highlight_move_ms: None,
             highlight_resize_velocity: 400.0,
             highlight_resize_ms: None,
+            cell: None,
         }
     }
 }
@@ -123,6 +126,17 @@ impl ListViewConfig {
     /// A default configuration laid out horizontally.
     pub fn horizontal() -> Self {
         ListViewConfig { orientation: Orientation::Horizontal, ..Default::default() }
+    }
+
+    /// A QML `GridView` of `cell_width` x `cell_height` cells: items fill a row left to right and the view scrolls vertically (`GridView.FlowLeftToRight`); with [`Orientation::Horizontal`] they fill a column top to bottom and the view scrolls horizontally (`FlowTopToBottom`). A line holds as many whole cells as fit the viewport, at least one; spacing is ignored, as Qt's grid has none. The highlight takes the current item's size at once and moves over 150 ms, as GridView's does.
+    pub fn grid(orientation: Orientation, cell_width: f32, cell_height: f32) -> Self {
+        ListViewConfig {
+            orientation,
+            cell: Some(Vec2::new(cell_width, cell_height)),
+            highlight_move_velocity: -1.0,
+            highlight_move_ms: Some(150),
+            ..Default::default()
+        }
     }
 
     /// Sets the gap between items.
@@ -277,34 +291,38 @@ fn track(flickable: &Flickable, view: Vec2, vertical: bool, tracked: (f32, f32),
 
 struct Highlight {
     node: NodeId,
-    target: Option<[f32; 3]>,
-    runs: [Option<AnimHandle>; 3],
-    velocities: [Rc<Cell<f32>>; 3],
+    target: Option<[f32; 4]>,
+    runs: [Option<AnimHandle>; 4],
+    velocities: [Rc<Cell<f32>>; 4],
 }
 
 impl Highlight {
     fn new(node: NodeId) -> Self {
-        Highlight { node, target: None, runs: [None; 3], velocities: Default::default() }
+        Highlight { node, target: None, runs: [None; 4], velocities: Default::default() }
     }
 
-    fn update(&mut self, scene: &Scene, target: [f32; 3], vertical: bool, config: &ListViewConfig) {
+    fn update(&mut self, scene: &Scene, target: [f32; 4], vertical: bool, config: &ListViewConfig) {
         let Some(node) = scene.get(self.node) else { return };
         let (width, height) = (node.width.clone(), node.height.clone());
         let (Some(width), Some(height)) = (width, height) else { return };
-        let signals = if vertical { [node.y.clone(), height, width] } else { [node.x.clone(), width, height] };
+        let signals = if vertical {
+            [node.y.clone(), height, width, node.x.clone()]
+        } else {
+            [node.x.clone(), width, height, node.y.clone()]
+        };
         let previous = self.target.replace(target);
-        for i in 0..3 {
-            if previous.is_some_and(|p| p[i] == target[i]) {
+        for i in 0..signals.len() {
+            if (i == 3 && config.cell.is_none()) || previous.is_some_and(|p| p[i] == target[i]) {
                 continue;
             }
             if let Some(run) = self.runs[i].take() {
                 run.stop();
             }
-            if previous.is_none() {
+            if previous.is_none() || (config.cell.is_some() && (i == 1 || i == 2)) {
                 signals[i].set(target[i]);
                 continue;
             }
-            let (velocity, ms) = if i == 0 {
+            let (velocity, ms) = if i == 0 || i == 3 {
                 (config.highlight_move_velocity, config.highlight_move_ms)
             } else {
                 (config.highlight_resize_velocity, config.highlight_resize_ms)
@@ -326,7 +344,7 @@ impl Drop for Highlight {
 struct Entry<T> {
     node: NodeId,
     item: Item<T>,
-    start: f32,
+    at: (f32, Option<f32>),
     run: Option<AnimHandle>,
 }
 
@@ -334,12 +352,15 @@ fn run_transition(
     scene: &Scene,
     node: NodeId,
     anims: &[NumberAnimation],
-    start: f32,
+    (along, cross): (f32, Option<f32>),
     vertical: bool,
 ) -> Option<Parallel> {
     let target = scene.get(node)?;
-    let dest =
-        if vertical { Vec2::new(target.x.get_untracked(), start) } else { Vec2::new(start, target.y.get_untracked()) };
+    let dest = if vertical {
+        Vec2::new(cross.unwrap_or_else(|| target.x.get_untracked()), along)
+    } else {
+        Vec2::new(along, cross.unwrap_or_else(|| target.y.get_untracked()))
+    };
     let mut group = None::<Parallel>;
     let mut moved = [false; 2];
     for anim in anims {
@@ -434,9 +455,9 @@ impl<T, K> ListHost<T, K> {
         }
         let node = entry.node;
         let vertical = self.vertical();
-        let at =
-            scene.get(node).map_or(entry.start, |n| if vertical { n.y.get_untracked() } else { n.x.get_untracked() });
-        let Some(group) = run_transition(scene, node, &self.config.transitions.remove, at, vertical) else {
+        let along =
+            scene.get(node).map_or(entry.at.0, |n| if vertical { n.y.get_untracked() } else { n.x.get_untracked() });
+        let Some(group) = run_transition(scene, node, &self.config.transitions.remove, (along, None), vertical) else {
             scene.remove(node);
             return;
         };
@@ -515,17 +536,29 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
         self.order = order;
         self.primed = true;
 
+        let vertical = self.vertical();
+        let view = self.view_size.get();
+        let grid = self.config.cell.map(|cell| {
+            let (along, cross, room) = if vertical { (cell.y, cell.x, view.x) } else { (cell.x, cell.y, view.y) };
+            (along, cross, ((room / cross.max(UNMEASURED_EXTENT)).floor() as usize).max(1))
+        });
         let measured: Vec<f32> = {
             let extents = self.extents.borrow();
             keyed.iter().filter_map(|(k, _)| extents.get(k).copied()).collect()
         };
-        let estimate = (!measured.is_empty())
-            .then(|| (measured.iter().sum::<f32>() / measured.len() as f32).max(UNMEASURED_EXTENT));
+        let estimate = grid.map(|(along, _, _)| along).or_else(|| {
+            (!measured.is_empty())
+                .then(|| (measured.iter().sum::<f32>() / measured.len() as f32).max(UNMEASURED_EXTENT))
+        });
         let spacing = self.config.spacing;
         let mut starts = Vec::with_capacity(keyed.len());
         let mut extents = Vec::with_capacity(keyed.len());
         let mut cursor = 0.0;
-        {
+        if let Some((along, _, per)) = grid {
+            starts.extend((0..keyed.len()).map(|i| (i / per) as f32 * along));
+            extents.resize(keyed.len(), along);
+            cursor = keyed.len().div_ceil(per) as f32 * along + spacing;
+        } else {
             let known = self.extents.borrow();
             for (key, _) in &keyed {
                 let extent = known.get(key).copied().or(estimate).unwrap_or(UNMEASURED_EXTENT);
@@ -536,8 +569,6 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
         }
         let total = if keyed.is_empty() { 0.0 } else { cursor - spacing };
 
-        let vertical = self.vertical();
-        let view = self.view_size.get();
         let scroll = if vertical { self.flickable.content_y.get() } else { self.flickable.content_x.get() };
         let viewport_extent = if vertical { view.y } else { view.x };
         let (first, last) = if keyed.is_empty() {
@@ -570,28 +601,28 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
                 if index < first || index >= last {
                     continue;
                 }
-                let start = starts[index];
+                let at = (starts[index], grid.map(|(_, cross, per)| (index % per) as f32 * cross));
                 let transitions = &self.config.transitions;
                 match self.entries.get_mut(&key) {
                     Some(entry) => {
                         entry.item.value.set(value);
                         entry.item.index.set(index);
-                        if entry.start == start {
+                        if entry.at == at {
                             continue;
                         }
-                        entry.start = start;
+                        entry.at = at;
                         if let Some(run) = entry.run.take() {
                             run.stop();
                         }
                         let anims: &[NumberAnimation] = if displacing { &transitions.displaced } else { &[] };
-                        entry.run = run_transition(scene, entry.node, anims, start, vertical).map(acanthus_anim::start);
+                        entry.run = run_transition(scene, entry.node, anims, at, vertical).map(acanthus_anim::start);
                     }
                     None => {
                         let item = Item { value: Signal::new(value), index: Signal::new(index) };
                         let node = untrack(|| (self.delegate)(scene, self.content, item.clone()));
                         let anims: &[NumberAnimation] = if added.contains(&key) { &transitions.add } else { &[] };
-                        let run = run_transition(scene, node, anims, start, vertical).map(acanthus_anim::start);
-                        self.entries.insert(key, Entry { node, item, start, run });
+                        let run = run_transition(scene, node, anims, at, vertical).map(acanthus_anim::start);
+                        self.entries.insert(key, Entry { node, item, at, run });
                     }
                 }
             }
@@ -619,11 +650,16 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
                 node.visible.set(item.is_some());
             }
             if let Some((start, extent)) = item {
-                let cross = current_key
-                    .and_then(|k| self.entries.get(&k))
-                    .and_then(|e| scene.geometry(e.node))
-                    .map_or(if vertical { view.x } else { view.y }, |r| if vertical { r.w } else { r.h });
-                highlight.update(scene, [start, extent, cross], vertical, &self.config);
+                let size = current_key.and_then(|k| self.entries.get(&k)).and_then(|e| scene.geometry(e.node));
+                let size = size.map(|r| if vertical { (r.h, r.w) } else { (r.w, r.h) });
+                let target = match grid {
+                    Some((along, cross, per)) => {
+                        let (a, c) = size.unwrap_or((along, cross));
+                        [start, a, c, (current % per) as f32 * cross]
+                    }
+                    None => [start, extent, size.map_or(if vertical { view.x } else { view.y }, |s| s.1), 0.0],
+                };
+                highlight.update(scene, target, vertical, &self.config);
             }
         } else if changed
             && self.follow.get()
@@ -641,7 +677,7 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
 }
 
 impl Scene {
-    /// Creates a virtualised list under `parent` inside `viewport`, instantiating `delegate` only for items near the visible range of `model`.
+    /// Creates a virtualised list under `parent` inside `viewport`, instantiating `delegate` only for items near the visible range of `model`; with [`ListViewConfig::grid`] it lays the items out as a QML `GridView`.
     pub fn list_view<T, K>(
         &mut self,
         parent: NodeId,

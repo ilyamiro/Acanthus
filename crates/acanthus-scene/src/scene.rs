@@ -2540,6 +2540,72 @@ mod tests {
         assert_eq!(s.get(fresh).unwrap().opacity.get_untracked(), 1.0);
     }
 
+    fn grid_scene(config: crate::ListViewConfig, count: u32) -> (Scene, crate::ListView) {
+        let mut s = scene(100.0, 100.0);
+        let root = s.root();
+        let model = ListSignal::new((0..count).collect::<Vec<_>>());
+        let view = s.list_view(
+            root,
+            Node::item().size(100.0, 100.0),
+            config.cache_buffer(0.0),
+            &model,
+            |v| *v,
+            |scene, parent, _item| scene.add(parent, Node::rect().size(28.0, 18.0)),
+        );
+        s.frame();
+        (s, view)
+    }
+
+    fn cell_of(s: &Scene, view: &crate::ListView, child: usize) -> (f32, f32) {
+        let node = s.get(s.get(view.nodes.content).unwrap().children()[child]).unwrap();
+        (node.x.get_untracked(), node.y.get_untracked())
+    }
+
+    #[test]
+    fn grid_view_fills_rows_and_virtualises_whole_rows() {
+        let (mut s, view) = grid_scene(crate::ListViewConfig::grid(crate::Orientation::Vertical, 30.0, 20.0), 1000);
+        assert_eq!(view.flickable.content_height.get_untracked(), 334.0 * 20.0);
+        assert_eq!(view.instantiated.get_untracked(), 15);
+        assert_eq!(cell_of(&s, &view, 4), (30.0, 20.0));
+        assert_eq!(cell_of(&s, &view, 14), (60.0, 80.0));
+        assert_eq!(view.item_range(7), Some((40.0, 20.0)));
+        view.flickable.content_y.set(2000.0);
+        s.frame();
+        assert_eq!(view.instantiated.get_untracked(), 15);
+        let first =
+            (0..15).map(|i| cell_of(&s, &view, i)).fold((f32::MAX, f32::MAX), |a, c| (a.0.min(c.0), a.1.min(c.1)));
+        assert_eq!(first, (0.0, 2000.0));
+    }
+
+    #[test]
+    fn grid_view_flows_top_to_bottom_when_horizontal() {
+        let (s, view) = grid_scene(crate::ListViewConfig::grid(crate::Orientation::Horizontal, 30.0, 20.0), 12);
+        assert_eq!(view.flickable.content_width.get_untracked(), 90.0);
+        assert_eq!(cell_of(&s, &view, 7), (30.0, 40.0));
+        assert_eq!(cell_of(&s, &view, 11), (60.0, 20.0));
+    }
+
+    #[test]
+    fn grid_view_highlight_takes_the_item_size_and_moves_in_150_ms() {
+        let (mut s, view) = grid_scene(crate::ListViewConfig::grid(crate::Orientation::Vertical, 30.0, 20.0), 12);
+        let highlight = view.set_highlight(&mut s, Node::rect());
+        s.frame();
+        let at = |s: &Scene| {
+            let n = s.get(highlight).unwrap();
+            let size = (n.width.as_ref().unwrap().get_untracked(), n.height.as_ref().unwrap().get_untracked());
+            (n.x.get_untracked(), n.y.get_untracked(), size)
+        };
+        assert_eq!(at(&s), (0.0, 0.0, (28.0, 18.0)));
+        view.current_index.set(4);
+        s.frame();
+        acanthus_anim::tick(0.075);
+        let (x, y, size) = at(&s);
+        assert!(x > 0.0 && x < 30.0 && y > 0.0 && y < 20.0, "{x} {y}");
+        assert_eq!(size, (28.0, 18.0));
+        acanthus_anim::tick(0.08);
+        assert_eq!(at(&s), (30.0, 20.0, (28.0, 18.0)));
+    }
+
     #[test]
     fn list_view_positions_the_view_at_an_index() {
         let (mut s, view, _model) = list_scene(100, 0.0);

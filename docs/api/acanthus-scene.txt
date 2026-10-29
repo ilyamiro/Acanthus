@@ -345,6 +345,7 @@ acanthus_scene::ListView::item_range: fn item_range (& self , index : usize) -> 
 acanthus_scene::ListView::position_view_at_index: fn position_view_at_index (& self , index : usize , mode : ViewPosition)
 acanthus_scene::ListView::set_highlight: fn set_highlight (& self , scene : & mut Scene , mut node : Node) -> NodeId
 acanthus_scene::ListViewConfig.cache_buffer: f32
+acanthus_scene::ListViewConfig.cell: Option < Vec2 >
 acanthus_scene::ListViewConfig.highlight_move_ms: Option < u32 >
 acanthus_scene::ListViewConfig.highlight_move_velocity: f32
 acanthus_scene::ListViewConfig.highlight_resize_ms: Option < u32 >
@@ -354,6 +355,7 @@ acanthus_scene::ListViewConfig.spacing: f32
 acanthus_scene::ListViewConfig.transitions: ListTransitions
 acanthus_scene::ListViewConfig: struct [Clone, Debug, PartialEq]
 acanthus_scene::ListViewConfig::cache_buffer: fn cache_buffer (mut self , cache_buffer : f32) -> Self
+acanthus_scene::ListViewConfig::grid: fn grid (orientation : Orientation , cell_width : f32 , cell_height : f32) -> Self
 acanthus_scene::ListViewConfig::horizontal: fn horizontal () -> Self
 acanthus_scene::ListViewConfig::spacing: fn spacing (mut self , spacing : f32) -> Self
 acanthus_scene::ListViewConfig::transitions: fn transitions (mut self , transitions : ListTransitions) -> Self
