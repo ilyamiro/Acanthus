@@ -45,6 +45,7 @@ acanthus_scene::Capitalization::AllLowercase: variant
 acanthus_scene::Capitalization::AllUppercase: variant 
 acanthus_scene::Capitalization::Capitalize: variant 
 acanthus_scene::Capitalization::MixedCase: variant 
+acanthus_scene::Capitalization::SmallCaps: variant 
 acanthus_scene::Capitalization::apply: fn apply (self , text : & str) -> String
 acanthus_scene::Clip.rect: Rect
 acanthus_scene::Clip.shape: Option < ShapeClip >

@@ -1363,6 +1363,22 @@ mod tests {
     }
 
     #[test]
+    fn small_caps_draw_lower_case_as_smaller_capitals() {
+        let size = |case| {
+            let mut s = scene(600.0, 200.0);
+            let root = s.root();
+            let t = s.add(root, Node::text("illimitable").font_size(16.0).capitalization(case));
+            s.frame();
+            let r = s.geometry(t).unwrap();
+            (r.w, r.h)
+        };
+        let (upper, line) = size(crate::Capitalization::AllUppercase);
+        let (small, small_line) = size(crate::Capitalization::SmallCaps);
+        assert!(small > upper * 0.6 && small < upper * 0.8, "{small} vs {upper}");
+        assert_eq!(small_line, line);
+    }
+
+    #[test]
     fn text_letter_spacing_and_line_height_change_metrics() {
         let mut base = scene(600.0, 200.0);
         let root = base.root();

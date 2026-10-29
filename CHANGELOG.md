@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `Capitalization::SmallCaps`: QML `Font.SmallCaps`; lower-case letters are drawn as capitals at 70 % of the font size, as Qt does.
 - `Gpu::is_lost`: device loss is reported instead of panicking; `acanthus-wayland` reopens the device and rebuilds every surface, and recreates a single lost surface, without restarting the application.
 - `HAlign::Justify`: QML `Text.AlignJustify` for wrapped text; every line but the last of a paragraph reaches both edges.
 - `acanthus_scene::FrameStats` and `Scene::stats`: layout and display-list time, primitive count and frame rate of the rebuilt frames, published at most twice a second; `acanthus_widgets::profiler::overlay` shows them.

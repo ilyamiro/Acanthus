@@ -127,7 +127,7 @@ pub enum Elide {
     Right,
 }
 
-/// Letter case applied to displayed text, QML `font.capitalization` without `SmallCaps`.
+/// Letter case applied to displayed text, QML `font.capitalization`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Capitalization {
     /// The text as written.
@@ -139,6 +139,8 @@ pub enum Capitalization {
     AllLowercase,
     /// The first letter of every word in upper case, the rest as written.
     Capitalize,
+    /// Lower-case letters shown as capitals at 70 % of the font size, as Qt draws them.
+    SmallCaps,
 }
 
 impl Capitalization {
@@ -146,7 +148,7 @@ impl Capitalization {
     pub fn apply(self, text: &str) -> String {
         match self {
             Capitalization::MixedCase => text.to_owned(),
-            Capitalization::AllUppercase => text.to_uppercase(),
+            Capitalization::AllUppercase | Capitalization::SmallCaps => text.to_uppercase(),
             Capitalization::AllLowercase => text.to_lowercase(),
             Capitalization::Capitalize => {
                 let mut out = String::with_capacity(text.len());
@@ -163,6 +165,23 @@ impl Capitalization {
             }
         }
     }
+}
+
+fn small_caps(text: &str) -> Vec<(String, bool)> {
+    let mut runs: Vec<(String, bool)> = Vec::new();
+    for c in text.chars() {
+        let lower = c.is_lowercase();
+        if runs.last().is_none_or(|(_, l)| *l != lower) {
+            runs.push((String::new(), lower));
+        }
+        let run = &mut runs.last_mut().expect("pushed above").0;
+        if lower { run.extend(c.to_uppercase()) } else { run.push(c) }
+    }
+    runs
+}
+
+fn small_caps_size(size: f32) -> f32 {
+    if size.fract() == 0.0 { ((size * 7.0 + 5.0) / 10.0).floor() } else { size * 0.7 }
 }
 
 /// How lines break when text exceeds its width.
@@ -285,12 +304,16 @@ impl ShapedText {
         });
         self.buffer.set_metrics_and_size(metrics(p.size, p.line_height), p.max_width, None);
         let align = p.justify.then_some(Align::Justified);
-        if p.styled {
-            let segments: Vec<Segment> = parse_styled(&self.text)
-                .into_iter()
-                .map(|seg| Segment { text: p.capitalization.apply(&seg.text), ..seg })
-                .collect();
-            let spans = segments.iter().map(|seg| {
+        let small = p.capitalization == Capitalization::SmallCaps;
+        if p.styled || small {
+            let segments = if p.styled {
+                parse_styled(&self.text)
+            } else {
+                vec![Segment { text: self.text.clone(), bold: false, italic: false }]
+            };
+            let reduced = Metrics::new(small_caps_size(p.size.max(1.0)), metrics(p.size, p.line_height).line_height);
+            let mut spans = Vec::new();
+            for seg in segments {
                 let mut a = attrs.clone();
                 if seg.bold {
                     a = a.weight(Weight::BOLD);
@@ -298,9 +321,20 @@ impl ShapedText {
                 if seg.italic {
                     a = a.style(Style::Italic);
                 }
-                (seg.text.as_str(), a)
-            });
-            self.buffer.set_rich_text(spans, &attrs, Shaping::Advanced, align);
+                if small {
+                    for (text, lower) in small_caps(&seg.text) {
+                        spans.push((text, if lower { a.clone().metrics(reduced) } else { a.clone() }));
+                    }
+                } else {
+                    spans.push((p.capitalization.apply(&seg.text), a));
+                }
+            }
+            self.buffer.set_rich_text(
+                spans.iter().map(|(text, a)| (text.as_str(), a.clone())),
+                &attrs,
+                Shaping::Advanced,
+                align,
+            );
         } else {
             let shown = p.capitalization.apply(&self.text);
             self.buffer.set_text(&shown, &attrs, Shaping::Advanced, align);
@@ -444,5 +478,21 @@ mod capitalization_tests {
         assert_eq!(AllUppercase.apply("straße"), "STRASSE");
         assert_eq!(AllLowercase.apply("Hello WORLD"), "hello world");
         assert_eq!(Capitalize.apply("hello  wORLD, ünder 3d"), "Hello  WORLD, Ünder 3d");
+    }
+
+    #[test]
+    fn small_caps_split_lower_case_runs_like_qt() {
+        assert_eq!(
+            super::small_caps("Hello, wORLD"),
+            vec![
+                ("H".to_owned(), false),
+                ("ELLO".to_owned(), true),
+                (", ".to_owned(), false),
+                ("W".to_owned(), true),
+                ("ORLD".to_owned(), false)
+            ]
+        );
+        assert_eq!(super::small_caps_size(16.0), 11.0);
+        assert!((super::small_caps_size(10.5) - 7.35).abs() < 1e-5);
     }
 }
