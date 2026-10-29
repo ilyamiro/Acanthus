@@ -529,10 +529,41 @@ impl State {
         self.apply_keyboard_modes();
         self.apply_layer_levels();
         self.apply_layer_geometry();
+        if self.gpu.as_ref().is_none_or(Gpu::is_lost) && !self.surfaces.is_empty() {
+            tracing::info!("reopening the GPU device and rebuilding every surface");
+            self.gpu = None;
+            let all: Vec<SurfaceId> = self.surfaces.keys().collect();
+            self.rebuild_surfaces(all);
+        }
         let Some(gpu) = self.gpu.as_ref() else { return };
         for surface in self.surfaces.values_mut() {
             if surface.wants_frame() {
                 surface.draw(gpu, &self.qh);
+            }
+        }
+        let lost: Vec<SurfaceId> = self.surfaces.iter().filter(|(_, s)| s.lost).map(|(id, _)| id).collect();
+        if !lost.is_empty() {
+            self.rebuild_surfaces(lost);
+        }
+    }
+
+    fn rebuild_surfaces(&mut self, ids: Vec<SurfaceId>) {
+        for id in ids {
+            let Some(wl) = self.surfaces.get(id).map(|s| s.wl_surface().clone()) else { continue };
+            let fresh = match self.create_wgpu_surface(&wl) {
+                Ok(fresh) => fresh,
+                Err(e) => {
+                    tracing::warn!("cannot recreate the GPU surface: {e}");
+                    return;
+                }
+            };
+            let (Some(surface), Some(gpu)) = (self.surfaces.get_mut(id), self.gpu.as_ref()) else { continue };
+            surface.wgpu_surface = fresh;
+            surface.renderer = None;
+            surface.lost = false;
+            surface.frame_pending = false;
+            if surface.configured {
+                surface.reconfigure(gpu);
             }
         }
     }
@@ -664,6 +695,7 @@ impl State {
             configured: false,
             frame_pending: false,
             dirty: true,
+            lost: false,
             applied_region: None,
             applied_keyboard: None,
             applied_raised: None,

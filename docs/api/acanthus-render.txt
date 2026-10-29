@@ -5,6 +5,7 @@ acanthus_render::Gpu.queue: wgpu :: Queue
 acanthus_render::Gpu: struct
 acanthus_render::Gpu::context: fn context (& self , format : wgpu :: TextureFormat , images : & ImageStore) -> GpuContext
 acanthus_render::Gpu::instance: fn instance () -> wgpu :: Instance
+acanthus_render::Gpu::is_lost: fn is_lost (& self) -> bool
 acanthus_render::Gpu::new: async fn new (instance : wgpu :: Instance , surface : Option < & wgpu :: Surface < '_ > >) -> Result < Self , GpuError >
 acanthus_render::Gpu::surface_config: fn surface_config (& self , surface : & wgpu :: Surface < '_ > , width : u32 , height : u32) -> wgpu :: SurfaceConfiguration
 acanthus_render::GpuContext: struct [Clone]

@@ -139,6 +139,7 @@ pub(crate) struct SurfaceWindow {
     pub configured: bool,
     pub frame_pending: bool,
     pub dirty: bool,
+    pub lost: bool,
     pub applied_region: Option<Vec<Rect>>,
     pub applied_keyboard: Option<bool>,
     pub applied_raised: Option<bool>,
@@ -199,10 +200,15 @@ impl SurfaceWindow {
         let (Some(renderer), Some(config)) = (self.renderer.as_mut(), self.config.as_ref()) else { return };
         let texture = match self.wgpu_surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(t) | wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
+            wgpu::CurrentSurfaceTexture::Outdated => {
                 tracing::debug!("surface outdated; reconfiguring");
                 self.wgpu_surface.configure(&gpu.device, config);
                 self.dirty = true;
+                return;
+            }
+            wgpu::CurrentSurfaceTexture::Lost => {
+                tracing::debug!("surface lost; recreating");
+                self.lost = true;
                 return;
             }
             other => {

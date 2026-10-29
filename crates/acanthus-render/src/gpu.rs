@@ -1,4 +1,6 @@
 use std::cell::RefCell;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use acanthus_scene::ImageStore;
 
@@ -29,6 +31,7 @@ pub struct Gpu {
     /// The command queue.
     pub queue: wgpu::Queue,
     contexts: RefCell<Vec<GpuContext>>,
+    lost: Arc<AtomicBool>,
 }
 
 impl Gpu {
@@ -42,6 +45,8 @@ impl Gpu {
     }
 
     /// Picks a low-power adapter compatible with `surface` when one is given and opens a device on it.
+    ///
+    /// Once the device is lost, [`Gpu::is_lost`] turns true and GPU errors are logged instead of panicking.
     pub async fn new(instance: wgpu::Instance, surface: Option<&wgpu::Surface<'_>>) -> Result<Self, GpuError> {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -59,7 +64,28 @@ impl Gpu {
                 ..Default::default()
             })
             .await?;
-        Ok(Gpu { instance, adapter, device, queue, contexts: RefCell::new(Vec::new()) })
+        let lost = Arc::new(AtomicBool::new(false));
+        let flag = lost.clone();
+        device.set_device_lost_callback(move |reason, message| {
+            flag.store(true, Ordering::Release);
+            if reason == wgpu::DeviceLostReason::Unknown {
+                tracing::warn!(%message, "GPU device lost");
+            }
+        });
+        let flag = lost.clone();
+        device.on_uncaptured_error(Arc::new(move |error| {
+            if flag.load(Ordering::Acquire) {
+                tracing::debug!(%error, "GPU error after device loss");
+            } else {
+                panic!("wgpu error: {error}");
+            }
+        }));
+        Ok(Gpu { instance, adapter, device, queue, contexts: RefCell::new(Vec::new()), lost })
+    }
+
+    /// True once the device is lost (driver reset, GPU removed, [`wgpu::Device::destroy`]); the owner then opens a new [`Gpu`] and rebuilds its renderers and surfaces.
+    pub fn is_lost(&self) -> bool {
+        self.lost.load(Ordering::Acquire)
     }
 
     /// The shared render context for `format` and `images`, created on first use and reused by later renderers.

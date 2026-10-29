@@ -745,3 +745,41 @@ fn visualizer_ring_wave_draws_outside_the_ring() {
     assert_eq!(pixel(&img, 32, 32)[3], 0, "hollow centre");
     assert_eq!(pixel(&img, 1, 1)[3], 0, "corner is empty");
 }
+
+#[test]
+fn a_lost_device_is_reported_and_a_new_one_draws_again() {
+    let Some(gpu) = gpu() else { return };
+    let fonts = Fonts::new();
+    let mut scene = Scene::new(fonts.clone());
+    let root = scene.root();
+    scene.add(root, Node::rect().size(20.0, 20.0).color(Color::hex(0x00ff00)));
+    let before = render(&gpu, &mut scene, fonts.clone());
+    assert!(!gpu.is_lost());
+
+    gpu.device.destroy();
+    let _ = gpu.device.poll(wgpu::PollType::Poll);
+    assert!(gpu.is_lost());
+    let format = wgpu::TextureFormat::Rgba8Unorm;
+    let texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
+        label: None,
+        size: wgpu::Extent3d { width: W, height: H, depth_or_array_layers: 1 },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        view_formats: &[],
+    });
+    let view = texture.create_view(&Default::default());
+    let mut renderer = Renderer::with_context(&gpu.device, gpu.context(format, scene.images()), fonts.clone());
+    scene.add(root, Node::rect().size(10.0, 10.0).x(30.0).color(Color::WHITE));
+    renderer.render(&gpu.device, &gpu.queue, &view, (W, H), scene.frame().primitives, Color::TRANSPARENT);
+    drop(renderer);
+    drop(gpu);
+
+    let Some(fresh) = self::gpu() else { return };
+    assert!(!fresh.is_lost());
+    let after = render(&fresh, &mut scene, fonts);
+    assert_eq!(pixel(&after, 5, 5), pixel(&before, 5, 5));
+    assert_eq!(pixel(&after, 35, 5), [255, 255, 255, 255]);
+}
