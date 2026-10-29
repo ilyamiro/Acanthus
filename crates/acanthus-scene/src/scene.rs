@@ -2026,6 +2026,45 @@ mod tests {
         assert!((settled - expected).abs() < 1.0, "{settled} vs {expected}");
     }
 
+    fn quick_drag(s: &mut Scene, start: f32) {
+        s.pointer_motion_at(Vec2::new(50.0, 90.0), start);
+        s.pointer_button_at(MouseButton::Left, true, start);
+        for step in 1..=4 {
+            let y = if step == 1 { 70.0 } else { 70.0 - 15.0 * (step - 1) as f32 };
+            s.pointer_motion_at(Vec2::new(50.0, y), start + 0.01 * step as f32);
+        }
+        s.pointer_button_at(MouseButton::Left, false, start + 0.04);
+    }
+
+    fn settle() {
+        for _ in 0..400 {
+            acanthus_anim::tick(0.05);
+        }
+    }
+
+    #[test]
+    fn repeated_quick_flicks_on_long_content_are_boosted() {
+        let mut s = scene(100.0, 100.0);
+        let root = s.root();
+        let flick = crate::Flickable::new().content_size(100.0, 10_000.0);
+        s.flickable(root, Node::item().size(100.0, 100.0), &flick);
+        s.frame();
+        let travel = |v: f32| v * v / (2.0 * crate::flick::FLICK_DECELERATION);
+        quick_drag(&mut s, 0.0);
+        let first = flick.content_y.get_untracked();
+        acanthus_anim::tick(0.1);
+        quick_drag(&mut s, 1.0);
+        let second = flick.content_y.get_untracked();
+        settle();
+        let boosted = flick.content_y.get_untracked() - second;
+        assert!((boosted - travel(1500.0 * 1.25)).abs() < 1.0, "{boosted}");
+        quick_drag(&mut s, 2.0);
+        let third = flick.content_y.get_untracked();
+        settle();
+        let plain = flick.content_y.get_untracked() - third;
+        assert!((plain - travel(1500.0)).abs() < 1.0, "{plain} after {first}");
+    }
+
     #[test]
     fn dragging_past_the_end_rubber_bands_and_returns() {
         let (mut s, flick, _nodes) = flick_scene();

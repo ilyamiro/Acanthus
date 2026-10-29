@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use acanthus_anim::{AnimHandle, Animation, Easing, start};
@@ -13,6 +13,10 @@ pub const MINIMUM_FLICK_VELOCITY: f32 = 75.0;
 pub const FIXUP_DURATION: f32 = 0.4;
 pub const OVERSHOOT_DISTANCE: f32 = 200.0;
 pub const VELOCITY_WINDOW: f32 = 0.1;
+pub const MULTIFLICK_THRESHOLD: f32 = 1250.0;
+pub const MULTIFLICK_RATIO: f32 = 10.0;
+pub const MULTIFLICK_MAX_BOOST: f32 = 3.0;
+const RETAIN_GRAB_VELOCITY: f32 = 100.0;
 const SETTLED_VELOCITY: f32 = 1e-3;
 
 /// Which axes a flickable lets the user drag along.
@@ -106,7 +110,14 @@ enum Phase {
     Fixup { from: f32, to: f32, elapsed: f32 },
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+struct Track {
+    elapsed: f32,
+    velocity: f32,
+}
+
 struct FlickMotion {
+    track: Rc<Cell<Track>>,
     position: Signal<f32>,
     flicking: Signal<bool>,
     moving: Signal<bool>,
@@ -118,6 +129,7 @@ struct FlickMotion {
 
 impl FlickMotion {
     fn finish(&self) {
+        self.track.set(Track::default());
         batch(|| {
             self.flicking.set(false);
             self.moving.set(false);
@@ -125,6 +137,7 @@ impl FlickMotion {
     }
 
     fn begin_fixup(&mut self, to: f32) {
+        self.track.set(Track { elapsed: self.track.get().elapsed, velocity: 0.0 });
         self.phase = Phase::Fixup { from: self.current, to, elapsed: 0.0 };
     }
 }
@@ -153,6 +166,9 @@ impl Animation for FlickMotion {
                 }
             } else {
                 self.position.set(self.current);
+                let overshooting = self.plan.fixup_to.is_some_and(|edge| (self.current - edge) * sign > 0.0);
+                let velocity = if overshooting { 0.0 } else { sign * self.speed };
+                self.track.set(Track { elapsed: self.track.get().elapsed + step, velocity });
                 return None;
             }
         }
@@ -211,6 +227,9 @@ struct Drag {
 #[derive(Default)]
 struct State {
     motion: [Option<AnimHandle>; 2],
+    tracks: [Rc<Cell<Track>>; 2],
+    continuous: Vec2,
+    boost: f32,
     drag: Option<Drag>,
 }
 
@@ -260,7 +279,7 @@ impl Flickable {
             moving: Signal::new(false),
             dragging: Signal::new(false),
             flicking: Signal::new(false),
-            state: Rc::new(RefCell::new(State::default())),
+            state: Rc::new(RefCell::new(State { boost: 1.0, ..State::default() })),
         }
     }
 
@@ -319,6 +338,7 @@ impl Flickable {
     pub fn stop(&self) {
         let handles = {
             let mut state = self.state.borrow_mut();
+            state.tracks.iter().for_each(|track| track.set(Track::default()));
             [state.motion[0].take(), state.motion[1].take()]
         };
         for handle in handles.into_iter().flatten() {
@@ -348,6 +368,21 @@ impl Flickable {
     }
 
     pub(crate) fn press(&self, pointer: Vec2, time: f32) {
+        {
+            let mut state = self.state.borrow_mut();
+            let tracks = [state.tracks[0].get(), state.tracks[1].get()];
+            let retained = tracks.iter().any(|track| track.velocity.abs() > RETAIN_GRAB_VELOCITY);
+            let elapsed = tracks[0].elapsed.max(tracks[1].elapsed);
+            if retained && elapsed <= 0.6 {
+                state.continuous = Vec2::new(tracks[0].velocity, tracks[1].velocity);
+                if elapsed > 0.3 {
+                    state.boost = (state.boost - 0.5).max(1.0);
+                }
+            } else {
+                state.continuous = Vec2::ZERO;
+                state.boost = 1.0;
+            }
+        }
         self.stop();
         self.state.borrow_mut().drag = Some(Drag {
             origin_pointer: pointer,
@@ -421,9 +456,32 @@ impl Flickable {
             return;
         }
         self.dragging.set(false);
-        let velocity = velocity_from(&drag.samples, time);
+        let mut velocity = velocity_from(&drag.samples, time);
         let max = self.max_position(viewport);
         let bounds = self.bounds.get_untracked();
+        let content = Vec2::new(self.content_width.get_untracked(), self.content_height.get_untracked());
+        let mut can_boost = false;
+        let tracks = {
+            let mut state = self.state.borrow_mut();
+            for axis in 0..2 {
+                let position = self.position()[axis];
+                let v = velocity[axis];
+                let continuous = state.continuous[axis];
+                if (position <= 0.0 && v < 0.0) || (position >= max[axis] && v > 0.0) {
+                    velocity[axis] /= 2.0;
+                } else if continuous != 0.0
+                    && viewport[axis] > 0.0
+                    && content[axis] / viewport[axis] > MULTIFLICK_RATIO
+                    && (v > 0.0) == (continuous > 0.0)
+                    && v.abs() > MULTIFLICK_THRESHOLD
+                {
+                    can_boost = true;
+                }
+            }
+            state.boost = if can_boost { (state.boost + 0.25).clamp(1.0, MULTIFLICK_MAX_BOOST) } else { 1.0 };
+            velocity *= state.boost;
+            state.tracks.clone()
+        };
         let mut any = false;
         for axis in 0..2 {
             if !self.axis_allowed(axis, viewport) {
@@ -446,7 +504,9 @@ impl Flickable {
                 }))
             } else if velocity[axis].abs() >= MINIMUM_FLICK_VELOCITY {
                 plan_flick(position, velocity[axis], 0.0, limit, bounds.overshoot(), overshoot_limit).map(|plan| {
+                    tracks[axis].set(Track { elapsed: 0.0, velocity: plan.velocity });
                     start(FlickMotion {
+                        track: tracks[axis].clone(),
                         position: signal,
                         flicking: self.flicking.clone(),
                         moving: self.moving.clone(),
@@ -546,6 +606,33 @@ mod tests {
     #[test]
     fn at_the_edge_without_overshoot_there_is_nothing_to_do() {
         assert!(plan_flick(100.0, 1000.0, 0.0, 100.0, false, 0.0).is_none());
+    }
+
+    fn quick_flick(flick: &Flickable, start: f32) -> f32 {
+        let viewport = Vec2::new(100.0, 100.0);
+        flick.press(Vec2::new(50.0, 90.0), start);
+        for step in 1..=4 {
+            let y = if step == 1 { 70.0 } else { 70.0 - 15.0 * (step - 1) as f32 };
+            flick.drag_to(Vec2::new(50.0, y), start + 0.01 * step as f32, viewport);
+        }
+        flick.release(start + 0.04, viewport);
+        acanthus_anim::tick(0.1);
+        flick.state.borrow().boost
+    }
+
+    #[test]
+    fn boost_needs_content_ten_times_the_viewport() {
+        let short = Flickable::new().content_size(100.0, 950.0);
+        assert_eq!(quick_flick(&short, 0.0), 1.0);
+        assert_eq!(quick_flick(&short, 1.0), 1.0);
+        short.stop();
+        let long = Flickable::new().content_size(100.0, 10_000.0);
+        assert_eq!(quick_flick(&long, 0.0), 1.0);
+        assert_eq!(quick_flick(&long, 1.0), 1.25);
+        assert_eq!(quick_flick(&long, 2.0), 1.5);
+        long.stop();
+        assert_eq!(quick_flick(&long, 3.0), 1.0);
+        long.stop();
     }
 
     #[test]
