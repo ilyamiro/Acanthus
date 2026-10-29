@@ -90,7 +90,9 @@ pub struct Scene {
     pub(crate) units: f32,
     pub(crate) tracker: Rc<Tracker>,
     layout_tracker: Rc<Tracker>,
+    boundaries: SecondaryMap<NodeId, Rc<Tracker>>,
     layout_runs: u64,
+    boundary_runs: u64,
     primitives: Vec<Primitive>,
     pub(crate) pointer: Option<Vec2>,
     hovered: Vec<NodeId>,
@@ -141,7 +143,9 @@ impl Scene {
             units: 1.0,
             tracker: Rc::new(Tracker::new()),
             layout_tracker: Rc::new(Tracker::new()),
+            boundaries: SecondaryMap::new(),
             layout_runs: 0,
+            boundary_runs: 0,
             primitives: Vec::new(),
             pointer: None,
             hovered: Vec::new(),
@@ -326,7 +330,7 @@ impl Scene {
 
     /// True when something changed since the last [`Scene::frame`].
     pub fn needs_frame(&self) -> bool {
-        self.tracker.is_dirty() || self.layout_tracker.is_dirty()
+        self.tracker.is_dirty() || self.layout_tracker.is_dirty() || self.boundaries.values().any(|t| t.is_dirty())
     }
 
     /// Statistics of the rebuilt frames, published at most twice a second from [`Scene::frame`]; reading it in the scene costs one extra frame per update.
@@ -334,7 +338,7 @@ impl Scene {
         self.stats.clone()
     }
 
-    /// Updates layout when one of its inputs changed and returns the display list; a paint-only change (colour, opacity, transform) rebuilds the display list without relayout. Cheap and unchanged when nothing is dirty.
+    /// Updates layout when one of its inputs changed and returns the display list; a paint-only change (colour, opacity, transform) rebuilds the display list without relayout, and a change inside a node with an explicit width and height lays out only that node's subtree. Cheap and unchanged when nothing is dirty.
     pub fn frame(&mut self) -> Frame<'_> {
         if !self.needs_frame() {
             return Frame { changed: false, primitives: &self.primitives };
@@ -350,6 +354,13 @@ impl Scene {
                 self.ui_scale.get();
                 self.run_layout(viewport);
             });
+        } else {
+            let dirty: Vec<NodeId> = self.boundaries.iter().filter(|(_, t)| t.is_dirty()).map(|(id, _)| id).collect();
+            for id in dirty {
+                if self.boundaries.get(id).is_some_and(|t| t.is_dirty()) {
+                    self.relayout(id);
+                }
+            }
         }
         let laid_out = Instant::now();
         let tracker = self.tracker.clone();
@@ -393,8 +404,17 @@ impl Scene {
 
     fn run_layout(&mut self, viewport: Rect) {
         self.layout_runs += 1;
+        self.layout_cx(|cx, root| cx.run(root, viewport));
+    }
+
+    fn relayout(&mut self, id: NodeId) {
+        self.boundary_runs += 1;
+        self.layout_cx(|cx, _| cx.relayout(id));
+    }
+
+    fn layout_cx(&mut self, f: impl FnOnce(&mut LayoutCx<'_>, NodeId)) {
         let mut fonts = self.fonts.system();
-        LayoutCx {
+        let mut cx = LayoutCx {
             images: &mut self.image_entries,
             store: &self.images,
             scale: self.scale,
@@ -403,9 +423,10 @@ impl Scene {
             fonts: &mut fonts,
             geometry: &mut self.geometry,
             implicit: SecondaryMap::new(),
+            boundaries: &mut self.boundaries,
             font_generation: self.fonts.generation().get(),
-        }
-        .run(self.root, viewport);
+        };
+        f(&mut cx, self.root);
     }
 
     fn settle_hosts(&mut self) {
@@ -1264,6 +1285,47 @@ mod tests {
         label.set("abc".to_owned());
         assert_eq!(glyph_xs(&mut s).len(), glyphs + 2);
         assert_eq!(s.layout_runs, runs + 2);
+    }
+
+    #[test]
+    fn changes_inside_a_fixed_size_node_lay_out_only_its_subtree() {
+        let mut s = scene(300.0, 100.0);
+        let root = s.root();
+        let label = Signal::new("a".to_owned());
+        let shown = Signal::new(true);
+        let row_layout = Signal::new(Layout::row(0.0));
+        let row = s.add(root, Node::item().layout(row_layout.clone()));
+        let boxed = s.add(row, Node::item().size(100.0, 40.0).layout(Layout::column(0.0)));
+        let text = s.add(boxed, Node::text(label.clone()));
+        let extra = s.add(boxed, Node::rect().size(10.0, 10.0).visible(shown.clone()));
+        let after = s.add(row, Node::rect().size(20.0, 20.0));
+        s.frame();
+        let (runs, boundary_runs) = (s.layout_runs, s.boundary_runs);
+        let narrow = s.geometry(text).unwrap();
+
+        label.set("abcdef".to_owned());
+        assert!(s.needs_frame());
+        assert!(s.frame().changed);
+        assert_eq!((s.layout_runs, s.boundary_runs), (runs, boundary_runs + 1));
+        let wide = s.geometry(text).unwrap();
+        assert!(wide.w > narrow.w);
+        assert_eq!(s.geometry(boxed), Some(Rect::new(0.0, 0.0, 100.0, 40.0)));
+        assert_eq!(s.geometry(after).unwrap().x, 100.0);
+
+        shown.set(false);
+        s.frame();
+        assert_eq!((s.layout_runs, s.boundary_runs), (runs, boundary_runs + 2));
+        assert_eq!(s.geometry(extra), None);
+        assert!(!s.needs_frame());
+
+        row_layout.set(Layout::row(5.0));
+        s.frame();
+        assert_eq!(s.layout_runs, runs + 1);
+        assert_eq!(s.geometry(after).unwrap().x, 105.0);
+        assert_eq!(s.geometry(text), Some(wide));
+        label.set("ab".to_owned());
+        s.frame();
+        assert_eq!((s.layout_runs, s.boundary_runs), (runs + 1, boundary_runs + 3));
     }
 
     #[test]

@@ -1,7 +1,8 @@
 use cosmic_text::FontSystem;
+use std::rc::Rc;
 use std::sync::Arc;
 
-use acanthus_core::{Rect, Signal, Vec2};
+use acanthus_core::{Rect, Signal, Tracker, Vec2};
 use acanthus_image::{Decoded, ImageHandle, ImageSource, ImageStatus, ImageStore};
 use slotmap::{SecondaryMap, SlotMap};
 
@@ -428,6 +429,7 @@ pub(crate) struct LayoutCx<'a> {
     pub fonts: &'a mut FontSystem,
     pub geometry: &'a mut SecondaryMap<NodeId, Rect>,
     pub implicit: SecondaryMap<NodeId, Vec2>,
+    pub boundaries: &'a mut SecondaryMap<NodeId, Rc<Tracker>>,
     pub font_generation: u64,
 }
 
@@ -448,8 +450,30 @@ struct GridMetrics {
 impl LayoutCx<'_> {
     pub fn run(&mut self, root: NodeId, viewport: Rect) {
         self.geometry.clear();
+        self.boundaries.clear();
         self.measure(root);
-        self.arrange(root, viewport);
+        self.place(root, viewport);
+    }
+
+    pub fn relayout(&mut self, id: NodeId) {
+        let (Some(rect), Some(tracker)) = (self.geometry.get(id).copied(), self.boundaries.get(id).cloned()) else {
+            return;
+        };
+        let mut stack = self.nodes[id].children.clone();
+        while let Some(child) = stack.pop() {
+            self.geometry.remove(child);
+            self.boundaries.remove(child);
+            stack.extend_from_slice(&self.nodes[child].children);
+        }
+        tracker.track(|| {
+            self.measure(id);
+            self.place(id, rect);
+        });
+    }
+
+    fn is_boundary(&self, id: NodeId) -> bool {
+        let node = &self.nodes[id];
+        node.width.is_some() && node.height.is_some()
     }
 
     fn visible_children(&self, id: NodeId) -> impl Iterator<Item = NodeId> + '_ {
@@ -462,8 +486,11 @@ impl LayoutCx<'_> {
 
     fn measure(&mut self, id: NodeId) -> Vec2 {
         let children: Vec<NodeId> = self.nodes[id].children.clone();
-        for child in &children {
-            self.measure(*child);
+        for &child in &children {
+            let node = &self.nodes[child];
+            if !(self.is_boundary(child) && (node.visible.get() || node.laid_out_hidden)) {
+                self.measure(child);
+            }
         }
         let node = &self.nodes[id];
         let implicit = match &node.kind {
@@ -710,6 +737,19 @@ impl LayoutCx<'_> {
     }
 
     fn arrange(&mut self, id: NodeId, rect: Rect) {
+        if !self.is_boundary(id) {
+            self.place(id, rect);
+            return;
+        }
+        let tracker = Rc::new(Tracker::new());
+        self.boundaries.insert(id, tracker.clone());
+        tracker.track(|| {
+            self.measure(id);
+            self.place(id, rect);
+        });
+    }
+
+    fn place(&mut self, id: NodeId, rect: Rect) {
         self.geometry.insert(id, rect);
         self.nodes[id].bounds.set(rect);
         if let Kind::Text(style) = &self.nodes[id].kind
