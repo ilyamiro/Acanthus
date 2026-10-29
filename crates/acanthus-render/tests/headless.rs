@@ -161,6 +161,23 @@ fn nested_rounded_clips_are_both_exact() {
 }
 
 #[test]
+fn scaled_text_is_as_crisp_as_text_of_the_scaled_size() {
+    let Some(gpu) = gpu() else { return };
+    let solid = |node: Node| {
+        let fonts = Fonts::new();
+        let mut scene = Scene::new(fonts.clone());
+        let root = scene.root();
+        scene.add(root, node.color(Color::WHITE));
+        let img = render(&gpu, &mut scene, fonts);
+        img.chunks(4).filter(|p| p[3] > 250).count()
+    };
+    let native = solid(Node::text("Hi").font_size(32.0));
+    let scaled = solid(Node::text("Hi").font_size(16.0).scale(2.0).transform_origin(TransformOrigin::TopLeft));
+    assert!(native > 50, "native {native}");
+    assert!(scaled * 10 >= native * 9, "scaled {scaled} native {native}");
+}
+
+#[test]
 fn draws_decoded_images() {
     let Some(gpu) = gpu() else { return };
     let dir = tempfile::tempdir().unwrap();

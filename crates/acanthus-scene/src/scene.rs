@@ -1182,6 +1182,26 @@ mod tests {
     }
 
     #[test]
+    fn scaled_text_is_rasterised_at_its_quantised_scale() {
+        let glyph = |scale: f32| {
+            let mut s = scene(200.0, 100.0);
+            let root = s.root();
+            s.add(root, Node::text("Hi").font_size(16.0).x(70.0).y(40.0).size(60.0, 20.0).scale(scale));
+            s.frame().primitives.iter().find_map(|p| if let Primitive::Glyph(g) = p { Some(*g) } else { None }).unwrap()
+        };
+        let size = |g: &crate::Glyph| f32::from_bits(g.key.font_size_bits);
+        assert_eq!(size(&glyph(1.0)), 16.0);
+        assert_eq!(size(&glyph(1.05)), 16.0);
+        let big = glyph(2.0);
+        assert_eq!(size(&big), 32.0);
+        assert!((big.transform.matrix2.determinant() - 1.0).abs() < 1e-5);
+        let origin = big.transform.transform_point2(Vec2::new(big.x as f32, big.y as f32));
+        assert!((origin.x - 40.0).abs() < 1.0, "{origin}");
+        assert_eq!(size(&glyph(0.5)), 8.0);
+        assert_eq!(size(&glyph(10.0)), 64.0);
+    }
+
+    #[test]
     fn text_horizontal_alignment_moves_glyphs() {
         let mut xs = Vec::new();
         for align in [HAlign::Left, HAlign::Center, HAlign::Right] {

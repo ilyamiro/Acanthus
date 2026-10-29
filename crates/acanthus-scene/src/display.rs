@@ -486,11 +486,15 @@ impl DisplayCx<'_> {
                         let whole = phys.y.floor();
                         (whole, transform * Affine2::from_translation(Vec2::new(0.0, phys.y - whole)))
                     };
+                    let k = raster_scale(transform);
+                    let raster = self.scale * k;
+                    let transform =
+                        if k == 1.0 { transform } else { transform * Affine2::from_scale(Vec2::splat(1.0 / k)) };
                     for run in shaped.buffer.layout_runs().take(shaped.lines) {
-                        let line_y = (run.line_y * self.scale).round() as i32;
+                        let line_y = (run.line_y * raster).round() as i32;
                         let dx = (h_align.offset(rect.w - run.line_w) * self.scale).round();
                         for g in run.glyphs {
-                            let p = g.physical((phys.x + dx, origin_y + dy), self.scale);
+                            let p = g.physical(((phys.x + dx) * k, (origin_y + dy) * k), raster);
                             self.out.push(Primitive::Glyph(Glyph {
                                 key: p.cache_key,
                                 x: p.x,
@@ -576,6 +580,14 @@ pub(crate) fn transformed_bounds(transform: Affine2, rect: Rect) -> Rect {
     let min = corners.iter().fold(Vec2::splat(f32::INFINITY), |a, p| a.min(*p));
     let max = corners.iter().fold(Vec2::splat(f32::NEG_INFINITY), |a, p| a.max(*p));
     Rect::new(min.x, min.y, max.x - min.x, max.y - min.y)
+}
+
+fn raster_scale(transform: Affine2) -> f32 {
+    let k = transform.matrix2.determinant().abs().sqrt();
+    if !k.is_normal() {
+        return 1.0;
+    }
+    2f32.powf((k.log2() * 4.0).round().clamp(-8.0, 8.0) / 4.0)
 }
 
 fn union(a: Option<Rect>, b: Rect) -> Rect {
