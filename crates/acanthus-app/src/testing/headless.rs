@@ -272,6 +272,26 @@ mod tests {
     }
 
     #[test]
+    fn canvases_paint_and_mipmapped_images_average_strong_downscales() {
+        let Some(headless) = harness() else { return };
+        let mut scene = Scene::new(Fonts::new());
+        let root = scene.root();
+        let rgba: Vec<u8> =
+            (0..64 * 64).flat_map(|i| if i % 4 == 0 { [255, 0, 0, 255] } else { [0, 0, 0, 255] }).collect();
+        let source = acanthus_scene::register_memory_image(64, 64, &rgba);
+        scene.add(root, Node::image(source.as_str()).size(16.0, 16.0).mipmap(true));
+        let plain = acanthus_scene::register_memory_image(64, 64, &[&rgba[..rgba.len() - 4], &[0, 0, 0, 254]].concat());
+        scene.add(root, Node::image(plain.as_str()).x(32.0).size(16.0, 16.0));
+        let area = acanthus_core::Rect::new(0.0, 0.0, 16.0, 16.0);
+        let canvas = Node::canvas(move |p| p.fill(&acanthus_scene::Path::new().rect(area), Color::hex(0x0000ff)));
+        scene.add(root, canvas.y(16.0).size(16.0, 16.0));
+        let image = headless.run(&mut scene, &Script::new(), 50).image;
+        assert!(image.pixel(8, 8)[0] > 30, "mipmapped {:?}", image.pixel(8, 8));
+        assert!(image.pixel(40, 8)[0] < 10, "plain {:?}", image.pixel(40, 8));
+        assert_eq!(image.pixel(8, 24), [0, 0, 255, 255]);
+    }
+
+    #[test]
     fn png_files_round_trip() {
         let Some(headless) = harness() else { return };
         let mut scene = Scene::new(Fonts::new());

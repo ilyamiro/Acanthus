@@ -38,6 +38,15 @@ impl ImageSource {
             ImageSource::Icon(path.to_owned())
         }
     }
+
+    /// Whether the image can be rendered sharply at any size: SVG files and themed icons.
+    pub fn is_scalable(&self) -> bool {
+        match self {
+            ImageSource::File(path) => crate::decode::is_svg(path),
+            ImageSource::Icon(_) => true,
+            _ => false,
+        }
+    }
 }
 
 fn percent_decode(input: &str) -> String {

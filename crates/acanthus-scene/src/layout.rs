@@ -2,7 +2,7 @@ use cosmic_text::FontSystem;
 use std::sync::Arc;
 
 use acanthus_core::{Rect, Signal, Vec2};
-use acanthus_image::{Decoded, ImageHandle, ImageStatus, ImageStore};
+use acanthus_image::{Decoded, ImageHandle, ImageSource, ImageStatus, ImageStore};
 use slotmap::{SecondaryMap, SlotMap};
 
 use crate::node::{ImageStyle, TextStyle};
@@ -365,6 +365,7 @@ pub(crate) struct ImageEntry {
     pub ready: Option<acanthus_image::ImageId>,
     pub size: Vec2,
     pub clock: Option<FrameClock>,
+    pub fallback: Option<(ImageHandle, Vec2)>,
 }
 
 pub(crate) struct FrameClock {
@@ -475,6 +476,7 @@ impl LayoutCx<'_> {
                 style,
                 node.width.as_ref().map(|w| w.get()),
                 node.height.as_ref().map(|h| h.get()),
+                &node.bounds,
             ),
             _ => self.container_size(id),
         };
@@ -483,7 +485,14 @@ impl LayoutCx<'_> {
         implicit
     }
 
-    fn resolve_image(&mut self, id: NodeId, style: &ImageStyle, width: Option<f32>, height: Option<f32>) -> Vec2 {
+    fn resolve_image(
+        &mut self,
+        id: NodeId,
+        style: &ImageStyle,
+        width: Option<f32>,
+        height: Option<f32>,
+        bounds: &Signal<Rect>,
+    ) -> Vec2 {
         self.store.generation().get();
         let source = style.canvas.as_ref().map_or_else(|| style.source.get(), |canvas| canvas.source(self.scale));
         let physical = |v: f32| ((v * self.scale).ceil() as u32).max(1);
@@ -492,12 +501,21 @@ impl LayoutCx<'_> {
             (_, Some(w), Some(h)) => Some((physical(w), physical(h))),
             (_, Some(w), None) => Some((physical(w), UNBOUNDED)),
             (_, None, Some(h)) => Some((UNBOUNDED, physical(h))),
+            _ if ImageSource::parse(&source).is_scalable() => {
+                let laid_out = bounds.get();
+                (laid_out.w > 0.0 && laid_out.h > 0.0).then(|| (physical(laid_out.w), physical(laid_out.h)))
+            }
             _ => None,
         };
         let stale = self.images.get(id).is_none_or(|e| e.source != source || e.target != target);
         if stale {
+            let previous = self.images.remove(id).filter(|e| e.source == source && e.ready.is_some());
+            let fallback = previous.and_then(|e| Some((e.handle?, e.size)));
             let handle = self.store.request(&source, target);
-            self.images.insert(id, ImageEntry { source, target, handle, ready: None, size: Vec2::ZERO, clock: None });
+            self.images.insert(
+                id,
+                ImageEntry { source, target, handle, ready: None, size: Vec2::ZERO, clock: None, fallback },
+            );
         }
         let entry = &mut self.images[id];
         let status = entry.handle.as_ref().map_or(ImageStatus::Null, |h| self.store.status(h.id()));
@@ -517,8 +535,15 @@ impl LayoutCx<'_> {
             } else {
                 entry.clock = None;
             }
+            entry.fallback = None;
         } else {
             entry.clock = None;
+            if status == ImageStatus::Loading
+                && let Some((handle, size)) = &entry.fallback
+            {
+                entry.ready = Some(handle.id());
+                entry.size = *size;
+            }
         }
         style.status.set(status);
         if style.canvas.is_some() { Vec2::ZERO } else { entry.size }

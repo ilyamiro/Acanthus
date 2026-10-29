@@ -15,6 +15,7 @@ acanthus_image::Decoded::delay_ms: fn delay_ms (& self , frame : usize) -> u32
 acanthus_image::Decoded::frame_count: fn frame_count (& self) -> usize
 acanthus_image::Decoded::frame_rgba: fn frame_rgba (& self , frame : usize) -> & [u8]
 acanthus_image::FillMode: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_image::FillMode::Pad: variant 
 acanthus_image::FillMode::PreserveAspectCrop: variant 
 acanthus_image::FillMode::PreserveAspectFit: variant 
 acanthus_image::FillMode::Stretch: variant 
@@ -33,6 +34,7 @@ acanthus_image::ImageSource::File: variant (PathBuf)
 acanthus_image::ImageSource::Icon: variant (String)
 acanthus_image::ImageSource::Memory: variant (u64)
 acanthus_image::ImageSource::None: variant 
+acanthus_image::ImageSource::is_scalable: fn is_scalable (& self) -> bool
 acanthus_image::ImageSource::parse: fn parse (source : & str) -> ImageSource
 acanthus_image::ImageStatus: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
 acanthus_image::ImageStatus::Error: variant 

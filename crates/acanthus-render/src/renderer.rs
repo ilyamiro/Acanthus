@@ -988,13 +988,14 @@ impl Renderer {
                     Pass::Effect(d.effect, sources)
                 }
                 Primitive::Image(d) => {
-                    if shared.images.bind_group(device, queue, d.id, d.frame).is_none() {
+                    if shared.images.bind_group(device, queue, d.id, d.frame, d.mipmap).is_none() {
                         continue;
                     }
                     let instance = image_instance(d);
                     self.segments[current].feed(1, bytemuck::bytes_of(&instance));
                     d.id.hash(&mut self.segments[current].hasher);
                     d.frame.hash(&mut self.segments[current].hasher);
+                    d.mipmap.hash(&mut self.segments[current].hasher);
                     self.image_instances.push(instance);
                     Pass::Image(d.id, d.frame)
                 }

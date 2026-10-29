@@ -95,6 +95,8 @@ pub struct ImageDraw {
     pub uv: [f32; 4],
     /// True when the texture tiles over the rectangle.
     pub repeat: bool,
+    /// True when the texture is sampled from a mipmap chain.
+    pub mipmap: bool,
     /// Opacity from 0 to 1.
     pub opacity: f32,
     /// Clip to apply.
@@ -430,6 +432,7 @@ impl DisplayCx<'_> {
                         rect: placement.rect.scale(self.scale),
                         uv: placement.uv,
                         repeat: placement.repeat,
+                        mipmap: style.mipmap.get(),
                         opacity,
                         clip,
                         transform,

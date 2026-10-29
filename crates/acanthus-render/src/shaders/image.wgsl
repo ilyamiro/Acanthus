@@ -42,15 +42,17 @@ fn vs_main(in: ImageIn) -> ImageOut {
 
 @fragment
 fn fs_main(in: ImageOut) -> @location(0) vec4<f32> {
+    let du = dpdx(in.uv);
+    let dv = dpdy(in.uv);
     let clip = clip_coverage(in.pos.xy, in.clip, in.shape_rect, in.shape_m, in.shape_t);
     if clip <= 0.0 {
         discard;
     }
     var texel: vec4<f32>;
     if in.params.y > 0.5 {
-        texel = textureSampleLevel(image, repeated, in.uv, 0.0);
+        texel = textureSampleGrad(image, repeated, in.uv, du, dv);
     } else {
-        texel = textureSampleLevel(image, clamped, in.uv, 0.0);
+        texel = textureSampleGrad(image, clamped, in.uv, du, dv);
     }
     return texel * in.params.x * clip;
 }

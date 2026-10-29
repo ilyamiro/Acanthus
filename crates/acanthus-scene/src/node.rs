@@ -338,6 +338,8 @@ pub struct ImageStyle {
     pub status: Signal<ImageStatus>,
     /// True to play animated images.
     pub animated: Signal<bool>,
+    /// True to sample from a mipmap chain, which keeps strong downscales smooth (Qt's `Image.mipmap`).
+    pub mipmap: Signal<bool>,
     pub(crate) canvas: Option<Canvas>,
 }
 
@@ -554,6 +556,7 @@ impl Node {
             source_size: Signal::new(None),
             status: Signal::new(ImageStatus::Null),
             animated: Signal::new(false),
+            mipmap: Signal::new(false),
             canvas: None,
         }))
     }
@@ -1081,6 +1084,15 @@ impl Node {
         match &mut self.kind {
             Kind::Image(s) => s.animated = v.into_signal(),
             _ => tracing::warn!("animated() only applies to Image"),
+        }
+        self
+    }
+
+    /// Sets whether an image node is drawn from a mipmap chain, off by default as in Qt.
+    pub fn mipmap(mut self, v: impl IntoSignal<bool>) -> Self {
+        match &mut self.kind {
+            Kind::Image(s) => s.mipmap = v.into_signal(),
+            _ => tracing::warn!("mipmap() only applies to Image"),
         }
         self
     }

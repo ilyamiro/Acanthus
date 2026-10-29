@@ -1367,6 +1367,42 @@ mod tests {
     }
 
     #[test]
+    fn svg_renders_at_its_laid_out_size_and_keeps_the_old_raster_while_reloading() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("box.svg");
+        std::fs::write(
+            &path,
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="#00f"/></svg>"##,
+        )
+        .unwrap();
+        let mut s = Scene::new(Fonts::new());
+        s.set_viewport(Vec2::new(200.0, 200.0), 2.0);
+        let root = s.root();
+        let width = Signal::new(100.0);
+        let frame = s.add(root, Node::item().size(&width, 50.0));
+        s.add(frame, Node::image(path.to_str().unwrap()).anchors(Anchors::fill(0.0)));
+        let drawn = |s: &mut Scene| {
+            for _ in 0..4 {
+                s.frame();
+                wait_for_images(s);
+            }
+            let f = s.frame();
+            f.primitives.iter().find_map(|p| if let Primitive::Image(d) = p { Some(d.id) } else { None })
+        };
+        let first = drawn(&mut s).unwrap();
+        let image = s.images().get(first).unwrap();
+        assert_eq!((image.width, image.height), (200, 100));
+
+        width.set(60.0);
+        let f = s.frame();
+        let shown = f.primitives.iter().find_map(|p| if let Primitive::Image(d) = p { Some(d.id) } else { None });
+        assert_eq!(shown, Some(first));
+        let second = drawn(&mut s).unwrap();
+        let image = s.images().get(second).unwrap();
+        assert_eq!((image.width, image.height), (120, 60));
+    }
+
+    #[test]
     fn image_loads_asynchronously_and_draws_with_fill_mode() {
         let (_dir, source) = png_source();
         let mut s = scene(200.0, 200.0);
