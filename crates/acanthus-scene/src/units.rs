@@ -7,7 +7,7 @@ impl Scene {
     /// Sets the UI scale: views, layout, bounds, pointer positions and scroll steps are in logical units, and one unit covers `scale` compositor pixels. A bound signal (for example a per-screen setting) re-lays out the scene when it changes; non-positive or non-finite values count as 1. The default is 1.
     pub fn set_ui_scale(&mut self, scale: impl IntoSignal<f32>) {
         self.ui_scale = scale.into_signal();
-        self.tracker.mark_dirty();
+        self.invalidate();
         self.apply_units();
     }
 
@@ -51,7 +51,7 @@ impl Scene {
             self.viewport = viewport;
             self.viewport_signal.set(viewport);
         }
-        self.tracker.mark_dirty();
+        self.invalidate();
     }
 }
 

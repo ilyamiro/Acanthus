@@ -89,6 +89,8 @@ pub struct Scene {
     pub(crate) ui_scale: Signal<f32>,
     pub(crate) units: f32,
     pub(crate) tracker: Rc<Tracker>,
+    layout_tracker: Rc<Tracker>,
+    layout_runs: u64,
     primitives: Vec<Primitive>,
     pub(crate) pointer: Option<Vec2>,
     hovered: Vec<NodeId>,
@@ -138,6 +140,8 @@ impl Scene {
             ui_scale: Signal::new(1.0),
             units: 1.0,
             tracker: Rc::new(Tracker::new()),
+            layout_tracker: Rc::new(Tracker::new()),
+            layout_runs: 0,
             primitives: Vec::new(),
             pointer: None,
             hovered: Vec::new(),
@@ -177,7 +181,7 @@ impl Scene {
         node.parent = Some(parent);
         let id = self.nodes.insert(node);
         self.nodes[parent].children.push(id);
-        self.tracker.mark_dirty();
+        self.invalidate();
         id
     }
 
@@ -210,8 +214,13 @@ impl Scene {
         if self.focus.is_some_and(|f| !self.nodes.contains_key(f)) {
             self.focus = None;
         }
-        self.tracker.mark_dirty();
+        self.invalidate();
         drop(removed);
+    }
+
+    pub(crate) fn invalidate(&self) {
+        self.tracker.mark_dirty();
+        self.layout_tracker.mark_dirty();
     }
 
     pub(crate) fn contains(&self, id: NodeId) -> bool {
@@ -220,7 +229,7 @@ impl Scene {
 
     pub(crate) fn push_host(&mut self, host: Box<dyn Host>) {
         self.hosts.push(host);
-        self.tracker.mark_dirty();
+        self.invalidate();
     }
 
     pub(crate) fn place_after(&mut self, parent: NodeId, anchor: NodeId, ids: &[NodeId]) {
@@ -229,7 +238,7 @@ impl Scene {
         children.retain(|c| !moving.contains(c));
         let at = children.iter().position(|c| *c == anchor).map_or(children.len(), |p| p + 1);
         children.splice(at..at, ids.iter().copied());
-        self.tracker.mark_dirty();
+        self.invalidate();
     }
 
     fn sync_hosts(&mut self) {
@@ -252,7 +261,7 @@ impl Scene {
 
     /// Mutable access to the node with this id.
     pub fn get_mut(&mut self, id: NodeId) -> Option<&mut Node> {
-        self.tracker.mark_dirty();
+        self.invalidate();
         self.nodes.get_mut(id)
     }
 
@@ -317,7 +326,7 @@ impl Scene {
 
     /// True when something changed since the last [`Scene::frame`].
     pub fn needs_frame(&self) -> bool {
-        self.tracker.is_dirty()
+        self.tracker.is_dirty() || self.layout_tracker.is_dirty()
     }
 
     /// Statistics of the rebuilt frames, published at most twice a second from [`Scene::frame`]; reading it in the scene costs one extra frame per update.
@@ -325,22 +334,26 @@ impl Scene {
         self.stats.clone()
     }
 
-    /// Updates layout and returns the display list; cheap and unchanged when nothing is dirty.
+    /// Updates layout when one of its inputs changed and returns the display list; a paint-only change (colour, opacity, transform) rebuilds the display list without relayout. Cheap and unchanged when nothing is dirty.
     pub fn frame(&mut self) -> Frame<'_> {
         if !self.needs_frame() {
             return Frame { changed: false, primitives: &self.primitives };
         }
         let started = Instant::now();
-        let mut laid_out = started;
         self.apply_units();
         self.sync_hosts();
         self.settle_hosts();
         let viewport = Rect::new(0.0, 0.0, self.viewport.x, self.viewport.y);
+        if self.layout_tracker.is_dirty() {
+            let tracker = self.layout_tracker.clone();
+            tracker.track(|| {
+                self.ui_scale.get();
+                self.run_layout(viewport);
+            });
+        }
+        let laid_out = Instant::now();
         let tracker = self.tracker.clone();
         let next = tracker.track(|| {
-            self.ui_scale.get();
-            self.run_layout(viewport);
-            laid_out = Instant::now();
             let mut next = Vec::with_capacity(self.primitives.len());
             DisplayCx {
                 nodes: &self.nodes,
@@ -379,6 +392,7 @@ impl Scene {
     }
 
     fn run_layout(&mut self, viewport: Rect) {
+        self.layout_runs += 1;
         let mut fonts = self.fonts.system();
         LayoutCx {
             images: &mut self.image_entries,
@@ -399,9 +413,13 @@ impl Scene {
             return;
         }
         let tracker = self.tracker.clone();
+        let layout_tracker = self.layout_tracker.clone();
         let viewport = Rect::new(0.0, 0.0, self.viewport.x, self.viewport.y);
         for _ in 0..SETTLE_PASSES {
-            tracker.track(|| self.run_layout(viewport));
+            layout_tracker.track(|| {
+                self.ui_scale.get();
+                self.run_layout(viewport);
+            });
             let hosts = std::mem::take(&mut self.hosts);
             let mut changed = false;
             for host in &hosts {
@@ -1212,6 +1230,40 @@ mod tests {
         }
         assert!(xs[0] < xs[1] && xs[1] < xs[2], "{xs:?}");
         assert!(xs[0] <= 1);
+    }
+
+    #[test]
+    fn paint_changes_rebuild_the_display_list_without_relayout() {
+        let mut s = scene(200.0, 100.0);
+        let root = s.root();
+        let color = Signal::new(Color::hex(0xff0000));
+        let opacity = Signal::new(1.0);
+        let width = Signal::new(40.0);
+        let label = Signal::new("a".to_owned());
+        let rect =
+            s.add(root, Node::rect().width(width.clone()).height(20.0).color(color.clone()).opacity(opacity.clone()));
+        s.add(root, Node::text(label.clone()).y(50.0));
+        s.frame();
+        let runs = s.layout_runs;
+
+        color.set(Color::hex(0x00ff00));
+        opacity.set(0.5);
+        assert!(s.needs_frame());
+        let painted = s.frame();
+        assert!(painted.changed);
+        assert!(painted.primitives.iter().any(|p| matches!(p, Primitive::Quad(q) if q.start.g > 0.0)));
+        assert_eq!(s.layout_runs, runs);
+        assert!(!s.needs_frame());
+
+        width.set(60.0);
+        s.frame();
+        assert_eq!(s.layout_runs, runs + 1);
+        assert_eq!(s.geometry(rect).unwrap().w, 60.0);
+
+        let glyphs = glyph_xs(&mut s).len();
+        label.set("abc".to_owned());
+        assert_eq!(glyph_xs(&mut s).len(), glyphs + 2);
+        assert_eq!(s.layout_runs, runs + 2);
     }
 
     #[test]
