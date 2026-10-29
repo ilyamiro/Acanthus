@@ -11,6 +11,7 @@ acanthus-anim.workspace = true
 acanthus-image.workspace = true
 slotmap.workspace = true
 cosmic-text.workspace = true
+unicode-bidi.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]

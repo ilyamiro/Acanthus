@@ -222,6 +222,7 @@ pub(crate) struct ShapedText {
     pub buffer: Buffer,
     pub size: Vec2,
     pub lines: usize,
+    pub rtl: bool,
 }
 
 impl ShapedText {
@@ -233,6 +234,7 @@ impl ShapedText {
             buffer: Buffer::new_empty(metrics(params.size, params.line_height)),
             size: Vec2::ZERO,
             lines: 0,
+            rtl: false,
         };
         shaped.text = text.get();
         shaped.family = family.get();
@@ -303,7 +305,7 @@ impl ShapedText {
             Elide::Right => Ellipsize::End(limit),
         });
         self.buffer.set_metrics_and_size(metrics(p.size, p.line_height), p.max_width, None);
-        let align = p.justify.then_some(Align::Justified);
+        let align = Some(if p.justify { Align::Justified } else { Align::Left });
         let small = p.capitalization == Capitalization::SmallCaps;
         if p.styled || small {
             let segments = if p.styled {
@@ -329,6 +331,7 @@ impl ShapedText {
                     spans.push((p.capitalization.apply(&seg.text), a));
                 }
             }
+            self.rtl = right_to_left(&spans.iter().map(|(text, _)| text.as_str()).collect::<String>());
             self.buffer.set_rich_text(
                 spans.iter().map(|(text, a)| (text.as_str(), a.clone())),
                 &attrs,
@@ -337,6 +340,7 @@ impl ShapedText {
             );
         } else {
             let shown = p.capitalization.apply(&self.text);
+            self.rtl = right_to_left(&shown);
             self.buffer.set_text(&shown, &attrs, Shaping::Advanced, align);
         }
         self.buffer.shape_until_scroll(fonts, false);
@@ -354,6 +358,10 @@ impl ShapedText {
         self.size = Vec2::new(w.ceil(), h.ceil());
         self.lines = lines;
     }
+}
+
+fn right_to_left(text: &str) -> bool {
+    unicode_bidi::get_base_direction_full(text) == unicode_bidi::Direction::Rtl
 }
 
 fn metrics(size: f32, line_height: Option<f32>) -> Metrics {
@@ -465,6 +473,66 @@ mod styled_tests {
     #[test]
     fn entities_decode_and_stray_brackets_stay() {
         assert_eq!(parse_styled("1 &lt; 2 &amp; 3 > 2 <3 x"), vec![seg("1 < 2 & 3 > 2 <3 x", false, false)]);
+    }
+}
+
+#[cfg(test)]
+mod bidi_tests {
+    use super::*;
+
+    fn shaped(text: &str) -> ShapedText {
+        let params = TextParams {
+            size: 16.0,
+            weight: 400,
+            axes: 0,
+            styled: false,
+            max_width: None,
+            wrap: WrapMode::NoWrap,
+            elide: Elide::None,
+            max_lines: 0,
+            line_height: None,
+            letter_spacing: 0.0,
+            capitalization: Capitalization::MixedCase,
+            justify: false,
+            generation: 0,
+        };
+        let fonts = Fonts::new();
+        let mut system = fonts.system();
+        ShapedText::new(&mut system, &Signal::new(text.to_owned()), &Signal::new(String::new()), params)
+    }
+
+    fn visual_starts(shaped: &ShapedText) -> Vec<usize> {
+        let run = shaped.buffer.layout_runs().next().unwrap();
+        let mut glyphs: Vec<_> = run.glyphs.iter().map(|g| (g.x, g.start)).collect();
+        glyphs.sort_by(|a, b| a.0.total_cmp(&b.0));
+        glyphs.into_iter().map(|(_, start)| start).collect()
+    }
+
+    #[test]
+    fn base_direction_comes_from_the_first_strong_character() {
+        assert!(!shaped("abc שלום").rtl);
+        assert!(shaped("שלום abc").rtl);
+        assert!(shaped("12, שלום").rtl);
+        assert!(shaped("\u{2067}abc\u{2069}\nمرحبا").rtl);
+        assert!(!shaped("12 34").rtl);
+    }
+
+    #[test]
+    fn mixed_runs_are_reordered_visually() {
+        let ltr = shaped("ab אבג cd");
+        let starts = visual_starts(&ltr);
+        let hebrew: Vec<usize> = starts.iter().copied().filter(|s| (3..9).contains(s)).collect();
+        assert_eq!(hebrew, vec![7, 5, 3]);
+        assert_eq!(starts.first(), Some(&0));
+        assert_eq!(starts.last(), Some(&(ltr.text.len() - 1)));
+
+        let rtl = shaped("אבג ab");
+        let starts = visual_starts(&rtl);
+        assert_eq!(&starts[..2], &[7, 8]);
+        assert_eq!(starts.last(), Some(&0));
+        assert!(
+            rtl.buffer.layout_runs().all(|run| run.glyphs.iter().all(|g| g.x >= -0.5 && g.x + g.w <= run.line_w + 0.5))
+        );
     }
 }
 

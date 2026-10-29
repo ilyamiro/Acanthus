@@ -5,7 +5,7 @@ use slotmap::{SecondaryMap, SlotMap};
 use crate::layout::ImageEntry;
 use crate::node::{Kind, LayerEffect, Node, NodeId, Orientation, paint_order};
 use crate::shader::{ShaderData, ShaderEffect, ShaderParams};
-use crate::text::ShapedText;
+use crate::text::{HAlign, ShapedText};
 use acanthus_image::{ImageId, place};
 
 /// A rounded-rectangle clip applied on top of a rectangular one.
@@ -471,7 +471,10 @@ impl DisplayCx<'_> {
             Kind::Text(style) => {
                 if let Some(shaped) = self.texts.get(id) {
                     let color = style.color.get().fade(opacity);
-                    let h_align = style.h_align.get();
+                    let h_align = match style.h_align.get() {
+                        _ if !style.h_align_explicit && shaped.rtl => HAlign::Right,
+                        align => align,
+                    };
                     let reach = Rect::new(
                         phys.x,
                         phys.y,

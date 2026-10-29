@@ -122,6 +122,7 @@ dependencies = [
  "slotmap",
  "tempfile",
  "tracing",
+ "unicode-bidi",
 ]
 
 [[package]]

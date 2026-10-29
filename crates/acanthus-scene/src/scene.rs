@@ -1328,6 +1328,63 @@ mod tests {
         assert_eq!((s.layout_runs, s.boundary_runs), (runs + 1, boundary_runs + 3));
     }
 
+    fn glyph_rows(s: &mut Scene) -> Vec<Vec<i32>> {
+        let mut rows: Vec<(i32, Vec<i32>)> = Vec::new();
+        for p in s.frame().primitives.iter() {
+            if let Primitive::Glyph(g) = p {
+                match rows.iter_mut().find(|(y, _)| *y == g.y) {
+                    Some((_, xs)) => xs.push(g.x),
+                    None => rows.push((g.y, vec![g.x])),
+                }
+            }
+        }
+        rows.into_iter().map(|(_, xs)| xs).collect()
+    }
+
+    #[test]
+    fn right_to_left_text_aligns_right_unless_the_alignment_is_set() {
+        let min_x = |text: &str, align: Option<HAlign>| {
+            let mut s = scene(400.0, 100.0);
+            let root = s.root();
+            let node = Node::text(text).font_size(16.0).size(300.0, 40.0);
+            s.add(root, if let Some(a) = align { node.h_align(a) } else { node });
+            *glyph_xs(&mut s).iter().min().unwrap()
+        };
+        for text in ["שלום עולם", "مرحبا بالعالم", "123 שלום", "\nשלום"] {
+            assert!(min_x(text, None) > 150, "{text}");
+            assert!(min_x(text, Some(HAlign::Left)) <= 1, "{text}");
+            assert!(min_x(text, Some(HAlign::Center)) < min_x(text, None), "{text}");
+        }
+        assert!(min_x("abc שלום", None) <= 1);
+    }
+
+    #[test]
+    fn wrapped_right_to_left_lines_follow_the_alignment() {
+        let rows = |align: Option<HAlign>| {
+            let mut s = scene(400.0, 300.0);
+            let root = s.root();
+            let node = Node::text("אבג דהו זחט יכל מנס עפצ קרש תאב גדה וזח אב")
+                .font_size(16.0)
+                .size(150.0, 250.0)
+                .wrap_mode(WrapMode::Word);
+            s.add(root, if let Some(a) = align { node.h_align(a) } else { node });
+            glyph_rows(&mut s)
+        };
+        let left = rows(Some(HAlign::Left));
+        let implicit = rows(None);
+        let justified = rows(Some(HAlign::Justify));
+        assert!(left.len() > 1, "{left:?}");
+        assert!(left.iter().all(|xs| *xs.iter().min().unwrap() <= 1), "{left:?}");
+        let ragged = |rows: &[Vec<i32>]| rows.iter().map(|xs| *xs.iter().min().unwrap()).collect::<Vec<_>>();
+        let starts = ragged(&implicit);
+        assert!(*starts.last().unwrap() > 30, "{starts:?}");
+        assert!(implicit.iter().all(|xs| *xs.iter().max().unwrap() > 120), "{implicit:?}");
+        let justified_starts = ragged(&justified);
+        let (last, full) = justified_starts.split_last().unwrap();
+        assert!(full.iter().all(|x| *x <= 1), "{justified_starts:?}");
+        assert!((*last - *starts.last().unwrap()).abs() <= 1, "{justified_starts:?} {starts:?}");
+    }
+
     #[test]
     fn justified_text_spreads_every_line_but_the_last() {
         let lines = |align: HAlign| {

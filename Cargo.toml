@@ -46,6 +46,7 @@ wayland-protocols = { version = "0.32.13", features = ["client", "staging", "uns
 wayland-protocols-wlr = { version = "0.3.12", features = ["client"] }
 calloop-wayland-source = "0.4.1"
 cosmic-text = "0.19.0"
+unicode-bidi = "0.3.18"
 swash = "0.2.10"
 slotmap = "1.1.1"
 raw-window-handle = "0.6.2"

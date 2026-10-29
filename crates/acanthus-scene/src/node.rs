@@ -310,6 +310,8 @@ pub struct TextStyle {
     pub family: Signal<String>,
     /// Horizontal alignment.
     pub h_align: Signal<HAlign>,
+    /// False until [`Node::h_align`] is called; while false, right-to-left text aligns right as in QML.
+    pub h_align_explicit: bool,
     /// Vertical alignment.
     pub v_align: Signal<VAlign>,
     /// Eliding of truncated text.
@@ -527,7 +529,7 @@ impl Node {
         }))
     }
 
-    /// A text node showing `text`; 14 px, weight 400, black and left aligned by default.
+    /// A text node showing `text`; 14 px, weight 400, black and left aligned (right for right-to-left text) by default.
     pub fn text(text: impl IntoSignal<String>) -> Self {
         Node::with_kind(Kind::Text(TextStyle {
             text: text.into_signal(),
@@ -538,6 +540,7 @@ impl Node {
             styled: false,
             family: Signal::new(String::new()),
             h_align: Signal::new(HAlign::Left),
+            h_align_explicit: false,
             v_align: Signal::new(VAlign::Top),
             elide: Signal::new(Elide::None),
             wrap: Signal::new(WrapMode::NoWrap),
@@ -989,10 +992,13 @@ impl Node {
         self
     }
 
-    /// Sets the horizontal alignment of a text node.
+    /// Sets the horizontal alignment of a text node; without it, text whose first strong character is right-to-left aligns right.
     pub fn h_align(mut self, v: impl IntoSignal<HAlign>) -> Self {
         match &mut self.kind {
-            Kind::Text(s) => s.h_align = v.into_signal(),
+            Kind::Text(s) => {
+                s.h_align = v.into_signal();
+                s.h_align_explicit = true;
+            }
             _ => tracing::warn!("h_align() only applies to Text"),
         }
         self

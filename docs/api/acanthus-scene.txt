@@ -721,6 +721,7 @@ acanthus_scene::TextStyle.color: Signal < Color >
 acanthus_scene::TextStyle.elide: Signal < Elide >
 acanthus_scene::TextStyle.family: Signal < String >
 acanthus_scene::TextStyle.h_align: Signal < HAlign >
+acanthus_scene::TextStyle.h_align_explicit: bool
 acanthus_scene::TextStyle.letter_spacing: Signal < f32 >
 acanthus_scene::TextStyle.line_height: Signal < Option < f32 > >
 acanthus_scene::TextStyle.max_lines: Signal < usize >
