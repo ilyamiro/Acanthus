@@ -1215,6 +1215,42 @@ mod tests {
     }
 
     #[test]
+    fn justified_text_spreads_every_line_but_the_last() {
+        let lines = |align: HAlign| {
+            let mut s = scene(400.0, 200.0);
+            let root = s.root();
+            s.add(
+                root,
+                Node::text("a b c d e f g hhhhhhhhhhhhhh ii")
+                    .font_size(16.0)
+                    .size(150.0, 150.0)
+                    .wrap_mode(WrapMode::Word)
+                    .h_align(align),
+            );
+            let mut rows: Vec<(i32, Vec<i32>)> = Vec::new();
+            for p in s.frame().primitives.iter() {
+                if let Primitive::Glyph(g) = p {
+                    match rows.last_mut() {
+                        Some((y, xs)) if *y == g.y => xs.push(g.x),
+                        _ => rows.push((g.y, vec![g.x])),
+                    }
+                }
+            }
+            rows.into_iter().map(|(_, xs)| xs).collect::<Vec<_>>()
+        };
+        let left = lines(HAlign::Left);
+        let justified = lines(HAlign::Justify);
+        assert!(left.len() > 1, "{left:?} {justified:?}");
+        assert_eq!(left.len(), justified.len());
+        let first_left = left[0].iter().max().unwrap();
+        let first_justified = justified[0].iter().max().unwrap();
+        assert!(first_justified - first_left > 40, "{first_left} {first_justified}");
+        assert!(*first_justified > 130 && *first_justified < 150, "{first_justified}");
+        assert_eq!(left[0][0], justified[0][0]);
+        assert_eq!(left.last(), justified.last());
+    }
+
+    #[test]
     fn text_vertical_alignment_moves_glyphs() {
         let mut ys = Vec::new();
         for align in [VAlign::Top, VAlign::Center, VAlign::Bottom] {

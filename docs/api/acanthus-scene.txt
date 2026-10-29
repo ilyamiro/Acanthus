@@ -202,6 +202,7 @@ acanthus_scene::Gradient::horizontal: fn horizontal (start : Color , end : Color
 acanthus_scene::Gradient::vertical: fn vertical (start : Color , end : Color) -> Self
 acanthus_scene::HAlign: enum [Clone, Copy, Debug, Default, Eq, PartialEq]
 acanthus_scene::HAlign::Center: variant 
+acanthus_scene::HAlign::Justify: variant 
 acanthus_scene::HAlign::Left: variant 
 acanthus_scene::HAlign::Right: variant 
 acanthus_scene::ImageDraw.clip: Clip

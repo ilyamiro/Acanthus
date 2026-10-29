@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `HAlign::Justify`: QML `Text.AlignJustify` for wrapped text; every line but the last of a paragraph reaches both edges.
 - `acanthus_scene::FrameStats` and `Scene::stats`: layout and display-list time, primitive count and frame rate of the rebuilt frames, published at most twice a second; `acanthus_widgets::profiler::overlay` shows them.
 - `acanthus_scene::Capitalization` and `Node::capitalization`: QML `font.capitalization` (upper, lower, capitalize) for text nodes.
 - `Tokens::scale`, `PropSpec::scaled` and `Registry::with_scales`: component props (button and dropdown radius, search field padding and gap) follow the spacing and radius scales when not given.

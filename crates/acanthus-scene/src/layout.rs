@@ -7,7 +7,7 @@ use slotmap::{SecondaryMap, SlotMap};
 
 use crate::node::{ImageStyle, TextStyle};
 use crate::node::{Kind, Node, NodeId};
-use crate::text::{Elide, ShapedText, TextParams, WrapMode};
+use crate::text::{Elide, HAlign, ShapedText, TextParams, WrapMode};
 
 /// A reference edge of a node for anchoring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -354,6 +354,7 @@ fn text_params(style: &TextStyle, width: Option<f32>, generation: u64) -> TextPa
         line_height: style.line_height.get(),
         letter_spacing: style.letter_spacing.get(),
         capitalization: style.capitalization.get(),
+        justify: style.h_align.get() == HAlign::Justify,
         generation,
     }
 }

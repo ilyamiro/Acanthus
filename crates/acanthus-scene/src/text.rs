@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use acanthus_core::{Signal, Vec2};
 use cosmic_text::{
-    Attrs, Buffer, Ellipsize, EllipsizeHeightLimit, Family, FontSystem, Metrics, Shaping, Style, Weight, Wrap,
+    Align, Attrs, Buffer, Ellipsize, EllipsizeHeightLimit, Family, FontSystem, Metrics, Shaping, Style, Weight, Wrap,
 };
 
 /// Shared font database. Cloning shares it; loading a font bumps [`Fonts::generation`] so text re-shapes.
@@ -77,12 +77,14 @@ pub enum HAlign {
     Center,
     /// Flush right.
     Right,
+    /// Every wrapped line except the last of a paragraph spreads its spaces to reach both edges, QML `Text.AlignJustify`.
+    Justify,
 }
 
 impl HAlign {
     pub(crate) fn offset(self, free: f32) -> f32 {
         match self {
-            HAlign::Left => 0.0,
+            HAlign::Left | HAlign::Justify => 0.0,
             HAlign::Center => free / 2.0,
             HAlign::Right => free,
         }
@@ -190,6 +192,7 @@ pub(crate) struct TextParams {
     pub line_height: Option<f32>,
     pub letter_spacing: f32,
     pub capitalization: Capitalization,
+    pub justify: bool,
     pub generation: u64,
 }
 
@@ -281,6 +284,7 @@ impl ShapedText {
             Elide::Right => Ellipsize::End(limit),
         });
         self.buffer.set_metrics_and_size(metrics(p.size, p.line_height), p.max_width, None);
+        let align = p.justify.then_some(Align::Justified);
         if p.styled {
             let segments: Vec<Segment> = parse_styled(&self.text)
                 .into_iter()
@@ -296,10 +300,10 @@ impl ShapedText {
                 }
                 (seg.text.as_str(), a)
             });
-            self.buffer.set_rich_text(spans, &attrs, Shaping::Advanced, None);
+            self.buffer.set_rich_text(spans, &attrs, Shaping::Advanced, align);
         } else {
             let shown = p.capitalization.apply(&self.text);
-            self.buffer.set_text(&shown, &attrs, Shaping::Advanced, None);
+            self.buffer.set_text(&shown, &attrs, Shaping::Advanced, align);
         }
         self.buffer.shape_until_scroll(fonts, false);
         let mut w: f32 = 0.0;

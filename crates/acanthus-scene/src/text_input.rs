@@ -594,6 +594,7 @@ impl Host for TextInputHost {
             line_height: None,
             letter_spacing: 0.0,
             capitalization: crate::text::Capitalization::MixedCase,
+            justify: false,
             generation: self.fonts.generation().get(),
         };
         let display = self.display.get();
