@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_scene::FrameStats` and `Scene::stats`: layout and display-list time, primitive count and frame rate of the rebuilt frames, published at most twice a second; `acanthus_widgets::profiler::overlay` shows them.
 - `acanthus_scene::Capitalization` and `Node::capitalization`: QML `font.capitalization` (upper, lower, capitalize) for text nodes.
 - `Tokens::scale`, `PropSpec::scaled` and `Registry::with_scales`: component props (button and dropdown radius, search field padding and gap) follow the spacing and radius scales when not given.
 - `acanthus_app::Keybindings`: key chords mapped onto `Actions` (verb, target, argument); registered with the compositor or the portal, and reachable over IPC through `serve`.

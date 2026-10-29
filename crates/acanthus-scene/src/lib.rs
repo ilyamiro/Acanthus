@@ -37,7 +37,7 @@ pub use node::{
     Gradient, ImageStyle, IntoSignal, Kind, LayerEffect, LayerShadow, Node, NodeId, Orientation, RectStyle,
     ShaderStyle, TextStyle, TransformOrigin,
 };
-pub use scene::{FlickableNodes, Frame, LayerGeometry, Scene, SurfaceOutput};
+pub use scene::{FlickableNodes, Frame, FrameStats, LayerGeometry, Scene, SurfaceOutput};
 pub use shader::{AppEffect, ShaderData, ShaderEffect, ShaderParams, app_effects, register_app_effects};
 pub use text::{Capitalization, Elide, Fonts, HAlign, VAlign, WrapMode};
 pub use text_input::{TextInput, TextInputNodes, TextInputStyle};

@@ -1,7 +1,7 @@
 use acanthus_core::{Affine2, Rect, Signal, Tracker, Vec2};
 use slotmap::{SecondaryMap, SlotMap};
 use std::rc::Rc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 mod drag;
 
@@ -16,6 +16,20 @@ use crate::text::{Fonts, ShapedText};
 use acanthus_image::ImageStore;
 
 const SETTLE_PASSES: usize = 4;
+const STATS_WINDOW: Duration = Duration::from_millis(500);
+
+/// Frame statistics a scene publishes through [`Scene::stats`] for a profiling overlay.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct FrameStats {
+    /// Time the last rebuilt frame spent in layout.
+    pub layout: Duration,
+    /// Time the last rebuilt frame spent building the display list.
+    pub display: Duration,
+    /// Number of primitives in the display list.
+    pub primitives: usize,
+    /// Changed frames per second over the last sampling window; zero for the first frame.
+    pub fps: f32,
+}
 
 /// The result of [`Scene::frame`].
 pub struct Frame<'a> {
@@ -89,6 +103,8 @@ pub struct Scene {
     clipboard: Clipboard,
     epoch: Instant,
     hosts: Vec<Box<dyn Host>>,
+    stats: Signal<FrameStats>,
+    stats_window: Option<(Instant, u32)>,
 }
 
 impl Scene {
@@ -136,6 +152,8 @@ impl Scene {
             clipboard: Clipboard::new(),
             epoch: Instant::now(),
             hosts: Vec::new(),
+            stats: Signal::new(FrameStats::default()),
+            stats_window: None,
         }
     }
 
@@ -302,11 +320,18 @@ impl Scene {
         self.tracker.is_dirty()
     }
 
+    /// Statistics of the rebuilt frames, published at most twice a second from [`Scene::frame`]; reading it in the scene costs one extra frame per update.
+    pub fn stats(&self) -> Signal<FrameStats> {
+        self.stats.clone()
+    }
+
     /// Updates layout and returns the display list; cheap and unchanged when nothing is dirty.
     pub fn frame(&mut self) -> Frame<'_> {
         if !self.needs_frame() {
             return Frame { changed: false, primitives: &self.primitives };
         }
+        let started = Instant::now();
+        let mut laid_out = started;
         self.apply_units();
         self.sync_hosts();
         self.settle_hosts();
@@ -315,6 +340,7 @@ impl Scene {
         let next = tracker.track(|| {
             self.ui_scale.get();
             self.run_layout(viewport);
+            laid_out = Instant::now();
             let mut next = Vec::with_capacity(self.primitives.len());
             DisplayCx {
                 nodes: &self.nodes,
@@ -331,9 +357,25 @@ impl Scene {
             .build(self.root, viewport);
             next
         });
+        let built = Instant::now();
         let changed = next != self.primitives;
         self.primitives = next;
+        self.record_stats(changed, laid_out - started, built - laid_out);
         Frame { changed, primitives: &self.primitives }
+    }
+
+    fn record_stats(&mut self, changed: bool, layout: Duration, display: Duration) {
+        let now = Instant::now();
+        let first = self.stats_window.is_none();
+        let (start, frames) = self.stats_window.get_or_insert((now, 0));
+        *frames += u32::from(changed);
+        let elapsed = now - *start;
+        if !first && elapsed < STATS_WINDOW {
+            return;
+        }
+        let fps = if first { 0.0 } else { *frames as f32 / elapsed.as_secs_f32() };
+        self.stats_window = Some((now, 0));
+        self.stats.set(FrameStats { layout, display, primitives: self.primitives.len(), fps });
     }
 
     fn run_layout(&mut self, viewport: Rect) {
@@ -1019,6 +1061,26 @@ mod tests {
         color.set(Color::BLACK);
         assert!(s.needs_frame());
         assert!(s.frame().changed);
+    }
+
+    #[test]
+    fn stats_publish_the_first_frame_then_once_per_window() {
+        let mut s = scene(100.0, 100.0);
+        let root = s.root();
+        let color = Signal::new(Color::WHITE);
+        s.add(root, Node::rect().size(10.0, 10.0).color(&color));
+        s.frame();
+        let first = s.stats().get_untracked();
+        assert_eq!(first.primitives, 1);
+        assert_eq!(first.fps, 0.0);
+        color.set(Color::BLACK);
+        s.frame();
+        assert_eq!(s.stats().get_untracked(), first);
+        std::thread::sleep(STATS_WINDOW);
+        color.set(Color::WHITE);
+        s.frame();
+        let next = s.stats().get_untracked();
+        assert!(next.fps > 0.0 && next.fps <= 2.0 / STATS_WINDOW.as_secs_f32(), "{next:?}");
     }
 
     #[test]

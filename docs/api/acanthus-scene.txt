@@ -182,6 +182,11 @@ acanthus_scene::Fonts::system: fn system (& self) -> RefMut < '_ , FontSystem >
 acanthus_scene::Frame.changed: bool
 acanthus_scene::Frame.primitives: & 'a [Primitive]
 acanthus_scene::Frame: struct< 'a >
+acanthus_scene::FrameStats.display: Duration
+acanthus_scene::FrameStats.fps: f32
+acanthus_scene::FrameStats.layout: Duration
+acanthus_scene::FrameStats.primitives: usize
+acanthus_scene::FrameStats: struct [Clone, Copy, Debug, Default, PartialEq]
 acanthus_scene::Glyph.clip: Clip
 acanthus_scene::Glyph.color: Color
 acanthus_scene::Glyph.key: CacheKey
@@ -581,6 +586,7 @@ acanthus_scene::Scene::set_focus: fn set_focus (& mut self , id : Option < NodeI
 acanthus_scene::Scene::set_ui_scale: fn set_ui_scale (& mut self , scale : impl IntoSignal < f32 >)
 acanthus_scene::Scene::set_viewport: fn set_viewport (& mut self , size : Vec2 , scale : f32)
 acanthus_scene::Scene::set_window_focus: fn set_window_focus (& mut self , focused : bool)
+acanthus_scene::Scene::stats: fn stats (& self) -> Signal < FrameStats >
 acanthus_scene::Scene::surface_input_region: fn surface_input_region (& self) -> Option < Vec < Rect > >
 acanthus_scene::Scene::surface_layer_geometry: fn surface_layer_geometry (& self) -> Option < LayerGeometry >
 acanthus_scene::Scene::surface_output: fn surface_output (& self) -> Signal < Option < SurfaceOutput > >
