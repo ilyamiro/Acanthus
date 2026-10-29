@@ -2363,6 +2363,62 @@ mod tests {
     }
 
     #[test]
+    fn list_view_highlight_moves_to_the_current_item_smoothly_and_the_view_follows() {
+        let (mut s, view, _model) = list_scene(1000, 0.0);
+        let highlight = view.set_highlight(&mut s, Node::rect());
+        s.frame();
+        let node = |s: &Scene| {
+            let n = s.get(highlight).unwrap();
+            (n.y.get_untracked(), n.width.as_ref().unwrap().get_untracked(), n.height.as_ref().unwrap().get_untracked())
+        };
+        assert_eq!(node(&s), (0.0, 100.0, 20.0));
+        assert_eq!(s.get(highlight).unwrap().z.get_untracked(), -1.0);
+
+        view.current_index.set(2);
+        s.frame();
+        assert_eq!(node(&s).0, 0.0);
+        acanthus_anim::tick(0.06);
+        assert!((node(&s).0 - 24.0).abs() < 1e-3, "{:?}", node(&s));
+        acanthus_anim::tick(0.1);
+        assert_eq!(node(&s).0, 48.0);
+        assert_eq!(view.flickable.content_y.get_untracked(), 0.0);
+
+        view.current_index.set(20);
+        s.frame();
+        acanthus_anim::tick(0.5);
+        let partway = view.flickable.content_y.get_untracked();
+        assert!(partway > 0.0 && partway < 400.0, "{partway}");
+        assert!(node(&s).0 + 20.0 <= partway + 100.0 + 1e-3);
+        for _ in 0..100 {
+            acanthus_anim::tick(0.016);
+        }
+        assert_eq!(node(&s).0, 480.0);
+        assert_eq!(view.flickable.content_y.get_untracked(), 400.0);
+
+        view.current_index.set(19);
+        s.frame();
+        for _ in 0..100 {
+            acanthus_anim::tick(0.016);
+        }
+        assert_eq!(view.flickable.content_y.get_untracked(), 400.0);
+    }
+
+    #[test]
+    fn list_view_without_highlight_jumps_to_the_current_item() {
+        let (mut s, view, model) = list_scene(1000, 0.0);
+        view.current_index.set(20);
+        s.frame();
+        assert_eq!(view.flickable.content_y.get_untracked(), 400.0);
+        view.current_index.set(1);
+        s.frame();
+        assert_eq!(view.flickable.content_y.get_untracked(), 24.0);
+        view.flickable.content_y.set(300.0);
+        model.push(1000);
+        s.frame();
+        assert_eq!(view.flickable.content_y.get_untracked(), 300.0);
+    }
+
+    #[test]
     fn list_view_cache_buffer_keeps_extra_items_alive() {
         let (_s, view, _model) = list_scene(1000, 48.0);
         assert!(view.instantiated.get_untracked() > 5);

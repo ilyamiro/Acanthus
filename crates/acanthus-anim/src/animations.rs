@@ -66,6 +66,100 @@ impl<T: Animatable> Animation for Tween<T> {
     }
 }
 
+/// Moves a signal to a target at a velocity with quadratic ease in and out, like QML `SmoothedAnimation` (reversing mode `Eased`, no maximum easing time); a retargeted run that shares the velocity cell splices onto the current motion.
+pub struct Smoothed {
+    target: Signal<f32>,
+    to: f32,
+    velocity: f32,
+    duration: Option<f32>,
+    track: Rc<Cell<f32>>,
+    plan: Option<SmoothPlan>,
+    elapsed: f32,
+}
+
+#[derive(Clone, Copy)]
+struct SmoothPlan {
+    from: f32,
+    sign: f32,
+    vi: f32,
+    a: f32,
+    vp: f32,
+    tp: f32,
+    sp: f32,
+    tf: f32,
+}
+
+impl Smoothed {
+    /// Moves `target` to `to` at `velocity` units per second, or within `duration_ms` when that is shorter.
+    pub fn new(target: &Signal<f32>, to: f32, velocity: f32, duration_ms: Option<u32>) -> Self {
+        Smoothed {
+            target: target.clone(),
+            to,
+            velocity,
+            duration: duration_ms.map(|ms| ms as f32 / 1000.0),
+            track: Rc::new(Cell::new(0.0)),
+            plan: None,
+            elapsed: 0.0,
+        }
+    }
+
+    /// Shares the signed velocity cell so a retargeted run keeps its momentum.
+    pub fn with_velocity(mut self, velocity: Rc<Cell<f32>>) -> Self {
+        self.track = velocity;
+        self
+    }
+
+    fn plan(&self, from: f32) -> Option<SmoothPlan> {
+        let sign = if self.to < from { -1.0 } else { 1.0 };
+        let s = (self.to - from) * sign;
+        let vi = self.track.get() * sign;
+        let tf = match (self.duration, self.velocity > 0.0) {
+            (Some(d), true) => (s / self.velocity).min(d),
+            (Some(d), false) => d,
+            (None, true) => s / self.velocity,
+            (None, false) => return None,
+        };
+        let c1 = 0.25 * tf * tf;
+        let c2 = 0.5 * vi * tf - s;
+        let c3 = -0.25 * vi * vi;
+        let a = (-c2 + (c2 * c2 - 4.0 * c1 * c3).sqrt()) / (2.0 * c1);
+        let tp = 0.5 * tf - 0.5 * vi / a;
+        let vp = a * tp + vi;
+        let sp = 0.5 * a * tp * tp + vi * tp;
+        Some(SmoothPlan { from, sign, vi, a, vp, tp, sp, tf })
+    }
+}
+
+impl Animation for Smoothed {
+    fn start(&mut self) {
+        self.elapsed = 0.0;
+        let from = self.target.get_untracked();
+        self.plan = if self.velocity == 0.0 || from == self.to { None } else { self.plan(from) };
+        if self.plan.is_none() && self.velocity != 0.0 {
+            self.target.set(self.to);
+        }
+    }
+
+    fn advance(&mut self, dt: f32) -> Option<f32> {
+        let Some(p) = self.plan else { return Some(dt) };
+        self.elapsed += dt;
+        let t = self.elapsed;
+        let (value, velocity) = if t < p.tp {
+            (0.5 * p.a * t * t + p.vi * t, p.vi + t * p.a)
+        } else if t < p.tf {
+            let t = t - p.tp;
+            (p.sp - 0.5 * p.a * t * t + p.vp * t, p.vp - t * p.a)
+        } else {
+            self.track.set(0.0);
+            self.target.set(self.to);
+            return Some(t - p.tf);
+        };
+        self.track.set(velocity * p.sign);
+        self.target.set(p.from + value * p.sign);
+        None
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Constants of a spring, with the same meaning as QML `SpringAnimation`.
 pub struct SpringParams {
@@ -350,6 +444,47 @@ mod tests {
             }
         }
         max_steps
+    }
+
+    #[test]
+    fn smoothed_eases_in_and_out_at_the_velocity() {
+        let s = Signal::new(0.0f32);
+        let velocity = Rc::new(Cell::new(0.0));
+        let mut m = Smoothed::new(&s, 400.0, 400.0, None).with_velocity(velocity.clone());
+        m.start();
+        assert!(m.advance(0.5).is_none());
+        assert!((s.get_untracked() - 200.0).abs() < 1e-3);
+        assert!((velocity.get() - 800.0).abs() < 1e-3);
+        assert!(m.advance(0.25).is_none());
+        assert!((s.get_untracked() - 350.0).abs() < 1e-3);
+        assert!((m.advance(0.3).unwrap() - 0.05).abs() < 1e-4);
+        assert_eq!((s.get_untracked(), velocity.get()), (400.0, 0.0));
+
+        let mut short = Smoothed::new(&s, 0.0, 400.0, Some(500));
+        assert_eq!(run(&mut short, 0.1, 100), 5);
+        assert_eq!(s.get_untracked(), 0.0);
+    }
+
+    #[test]
+    fn smoothed_retarget_keeps_the_current_velocity() {
+        let s = Signal::new(0.0f32);
+        let velocity = Rc::new(Cell::new(0.0));
+        let mut m = Smoothed::new(&s, 400.0, 400.0, None).with_velocity(velocity.clone());
+        m.start();
+        m.advance(0.5);
+        let mut further = Smoothed::new(&s, 800.0, 400.0, None).with_velocity(velocity.clone());
+        further.start();
+        further.advance(0.001);
+        assert!((s.get_untracked() - 200.8).abs() < 0.01, "{}", s.get_untracked());
+
+        s.set(200.0);
+        velocity.set(800.0);
+        let mut back = Smoothed::new(&s, 0.0, 400.0, None).with_velocity(velocity.clone());
+        back.start();
+        back.advance(0.01);
+        assert!(s.get_untracked() > 200.0, "{}", s.get_untracked());
+        while back.advance(0.016).is_none() {}
+        assert_eq!((s.get_untracked(), velocity.get()), (0.0, 0.0));
     }
 
     #[test]

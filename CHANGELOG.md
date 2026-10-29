@@ -6,6 +6,8 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_anim::Smoothed`: QML `SmoothedAnimation` (velocity or duration, quadratic ease in and out, retargets splice onto the current velocity).
+- `ListView::current_index` and `ListView::set_highlight`: QML `currentIndex` and `highlight` with `highlightFollowsCurrentItem`; the highlight moves and resizes with `Smoothed` (`ListViewConfig::highlight_move_velocity`, `highlight_move_ms`, `highlight_resize_velocity`, `highlight_resize_ms`, Qt defaults 400 px/s), and the view scrolls to keep it in sight until the user drags or flicks.
 - Styled text as QML `Text.StyledText`: `<a href>` links (underlined, `Node::link_color`, `Node::on_link` for QML `linkActivated`, `Scene::link_at`), `<h1>` to `<h6>` headings, `<ul>`/`<ol>`/`<li>` lists with Qt's markers and indent, `<p>` and `<u>`, and whitespace collapsed as Qt does; `<em>` is no longer italic (Qt does not know it).
 - Right-to-left text: a text node whose first strong character is right-to-left aligns right unless `Node::h_align` was called (QML implicit alignment, `TextStyle::h_align_explicit`); an explicit `HAlign::Left` now keeps wrapped right-to-left lines on the left, as in Qt.
 - `Capitalization::SmallCaps`: QML `Font.SmallCaps`; lower-case letters are drawn as capitals at 70 % of the font size, as Qt does.

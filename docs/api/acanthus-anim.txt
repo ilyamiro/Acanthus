@@ -69,6 +69,9 @@ acanthus_anim::SLOW: const SLOW: u32
 acanthus_anim::Sequential: struct [Default]
 acanthus_anim::Sequential::new: fn new () -> Self
 acanthus_anim::Sequential::then: fn then (mut self , anim : impl Animation) -> Self
+acanthus_anim::Smoothed: struct
+acanthus_anim::Smoothed::new: fn new (target : & Signal < f32 > , to : f32 , velocity : f32 , duration_ms : Option < u32 >) -> Self
+acanthus_anim::Smoothed::with_velocity: fn with_velocity (mut self , velocity : Rc < Cell < f32 > >) -> Self
 acanthus_anim::Spring: struct< T : Animatable >
 acanthus_anim::Spring::new: fn new (target : & Signal < T > , to : T , params : SpringParams) -> Self
 acanthus_anim::Spring::with_velocity: fn with_velocity (mut self , velocity : Rc < Cell < [f32 ; 4] > >) -> Self
@@ -95,6 +98,7 @@ impl Animation for acanthus_anim::Loop
 impl Animation for acanthus_anim::Parallel
 impl Animation for acanthus_anim::Pause
 impl Animation for acanthus_anim::Sequential
+impl Animation for acanthus_anim::Smoothed
 impl Animation for acanthus_anim::Spring
 impl Animation for acanthus_anim::Tween
 impl Default for acanthus_anim::SpringParams

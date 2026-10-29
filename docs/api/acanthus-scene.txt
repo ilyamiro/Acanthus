@@ -337,6 +337,7 @@ acanthus_scene::ListTransitions.easing: Easing
 acanthus_scene::ListTransitions.remove_opacity_ms: u32
 acanthus_scene::ListTransitions: struct [Clone, Copy, Debug, PartialEq]
 acanthus_scene::ListView.count: Signal < usize >
+acanthus_scene::ListView.current_index: Signal < usize >
 acanthus_scene::ListView.flickable: Flickable
 acanthus_scene::ListView.instantiated: Signal < usize >
 acanthus_scene::ListView.nodes: FlickableNodes
@@ -344,7 +345,12 @@ acanthus_scene::ListView.view_size: Signal < Vec2 >
 acanthus_scene::ListView: struct [Clone]
 acanthus_scene::ListView::item_range: fn item_range (& self , index : usize) -> Option < (f32 , f32) >
 acanthus_scene::ListView::position_view_at_index: fn position_view_at_index (& self , index : usize , mode : ViewPosition)
+acanthus_scene::ListView::set_highlight: fn set_highlight (& self , scene : & mut Scene , mut node : Node) -> NodeId
 acanthus_scene::ListViewConfig.cache_buffer: f32
+acanthus_scene::ListViewConfig.highlight_move_ms: Option < u32 >
+acanthus_scene::ListViewConfig.highlight_move_velocity: f32
+acanthus_scene::ListViewConfig.highlight_resize_ms: Option < u32 >
+acanthus_scene::ListViewConfig.highlight_resize_velocity: f32
 acanthus_scene::ListViewConfig.orientation: Orientation
 acanthus_scene::ListViewConfig.spacing: f32
 acanthus_scene::ListViewConfig.transitions: Option < ListTransitions >

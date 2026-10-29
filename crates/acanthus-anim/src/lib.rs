@@ -12,7 +12,7 @@ mod keep;
 mod motion;
 
 pub use animatable::Animatable;
-pub use animations::{Action, Animation, Loop, Parallel, Pause, Sequential, Spring, SpringParams, Tween};
+pub use animations::{Action, Animation, Loop, Parallel, Pause, Sequential, Smoothed, Spring, SpringParams, Tween};
 pub use behavior::{Animated, Motion};
 pub use driver::{AnimHandle, is_active, start, tick};
 pub use easing::Easing;

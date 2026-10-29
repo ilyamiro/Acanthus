@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::rc::Rc;
 
-use acanthus_anim::{Animation, Easing, Tween};
-use acanthus_core::{ListSignal, Signal, Vec2, batch, untrack};
+use acanthus_anim::{AnimHandle, Animation, Easing, Smoothed, Tween};
+use acanthus_core::{Effect, ListSignal, Signal, Vec2, batch, untrack};
 
 use crate::dynamic::{Host, Item};
 use crate::flick::Flickable;
@@ -56,6 +56,14 @@ pub struct ListViewConfig {
     pub cache_buffer: f32,
     /// Item add and remove animation, or `None` for none.
     pub transitions: Option<ListTransitions>,
+    /// Speed of the highlight moving to a new current item in pixels per second, QML `highlightMoveVelocity` (400).
+    pub highlight_move_velocity: f32,
+    /// Longest highlight move in milliseconds, QML `highlightMoveDuration` (`None`, the velocity alone).
+    pub highlight_move_ms: Option<u32>,
+    /// Speed of the highlight resizing in pixels per second, QML `highlightResizeVelocity` (400).
+    pub highlight_resize_velocity: f32,
+    /// Longest highlight resize in milliseconds, QML `highlightResizeDuration` (`None`).
+    pub highlight_resize_ms: Option<u32>,
 }
 
 impl Default for ListViewConfig {
@@ -65,6 +73,10 @@ impl Default for ListViewConfig {
             spacing: 0.0,
             cache_buffer: DEFAULT_CACHE_BUFFER,
             transitions: None,
+            highlight_move_velocity: 400.0,
+            highlight_move_ms: None,
+            highlight_resize_velocity: 400.0,
+            highlight_resize_ms: None,
         }
     }
 }
@@ -113,8 +125,12 @@ pub struct ListView {
     pub instantiated: Signal<usize>,
     /// The size of the viewport.
     pub view_size: Signal<Vec2>,
+    /// Index of the current item, QML `currentIndex` (0 at the start); setting it scrolls the view to keep the item, or its highlight, in sight.
+    pub current_index: Signal<usize>,
     orientation: Orientation,
     metrics: Rc<RefCell<Metrics>>,
+    highlight: Signal<Option<NodeId>>,
+    follow: Rc<Cell<bool>>,
 }
 
 impl ListView {
@@ -122,6 +138,38 @@ impl ListView {
     pub fn item_range(&self, index: usize) -> Option<(f32, f32)> {
         let metrics = self.metrics.borrow();
         Some((*metrics.starts.get(index)?, *metrics.extents.get(index)?))
+    }
+
+    /// Adds `node` behind the items as the highlight of the current item, QML `highlight` with `highlightFollowsCurrentItem`: it takes the current item's size and moves and resizes to the next one with [`Smoothed`] at the configured velocities. Returns its id.
+    pub fn set_highlight(&self, scene: &mut Scene, mut node: Node) -> NodeId {
+        if let Some(old) = self.highlight.get_untracked() {
+            scene.remove(old);
+        }
+        node.width.get_or_insert_with(|| Signal::new(0.0));
+        node.height.get_or_insert_with(|| Signal::new(0.0));
+        let vertical = self.orientation == Orientation::Vertical;
+        let (pos, extent) = if vertical {
+            (node.y.clone(), node.height.clone().expect("set above"))
+        } else {
+            (node.x.clone(), node.width.clone().expect("set above"))
+        };
+        let view = self.clone();
+        let tracking = Effect::new(move || {
+            let tracked = (pos.get(), extent.get());
+            if !view.follow.get() {
+                return;
+            }
+            if view.flickable.dragging.get_untracked() || view.flickable.flicking.get_untracked() {
+                view.follow.set(false);
+                return;
+            }
+            if let Some(item) = view.item_range(view.current_index.get_untracked()) {
+                track(&view.flickable, view.view_size.get_untracked(), vertical, tracked, item);
+            }
+        });
+        let id = scene.add(self.nodes.content, node.z(-1.0).bind(tracking));
+        self.highlight.set(Some(id));
+        id
     }
 
     /// Scrolls so that the item at `index` sits as `mode` describes; does nothing for an out-of-range index.
@@ -154,6 +202,85 @@ impl ListView {
             self.flickable.scroll_to(position.x, target, view);
         } else {
             self.flickable.scroll_to(target, position.y, view);
+        }
+    }
+}
+
+fn track(flickable: &Flickable, view: Vec2, vertical: bool, tracked: (f32, f32), item: (f32, f32)) {
+    let ((tracked_pos, tracked_size), (item_pos, item_size)) = (tracked, item);
+    let (size, view_pos) = if vertical {
+        (view.y, flickable.content_y.get_untracked())
+    } else {
+        (view.x, flickable.content_x.get_untracked())
+    };
+    let (tracked_end, item_end) = (tracked_pos + tracked_size, item_pos + item_size);
+    let mut pos = view_pos;
+    if tracked_end >= view_pos + size && item_end >= view_pos + size {
+        pos = if tracked_end <= item_end {
+            if tracked_size > size { tracked_pos } else { tracked_end - size }
+        } else if item_size > size {
+            item_pos
+        } else {
+            item_end - size
+        };
+    }
+    if tracked_pos < pos && item_pos < pos {
+        pos = tracked_pos.max(item_pos);
+    }
+    if pos != view_pos {
+        let position = flickable.position();
+        if vertical {
+            flickable.scroll_to(position.x, pos, view);
+        } else {
+            flickable.scroll_to(pos, position.y, view);
+        }
+    }
+}
+
+struct Highlight {
+    node: NodeId,
+    target: Option<[f32; 3]>,
+    runs: [Option<AnimHandle>; 3],
+    velocities: [Rc<Cell<f32>>; 3],
+}
+
+impl Highlight {
+    fn new(node: NodeId) -> Self {
+        Highlight { node, target: None, runs: [None; 3], velocities: Default::default() }
+    }
+
+    fn update(&mut self, scene: &Scene, target: [f32; 3], vertical: bool, config: &ListViewConfig) {
+        let Some(node) = scene.get(self.node) else { return };
+        let (width, height) = (node.width.clone(), node.height.clone());
+        let (Some(width), Some(height)) = (width, height) else { return };
+        let signals = if vertical { [node.y.clone(), height, width] } else { [node.x.clone(), width, height] };
+        let previous = self.target.replace(target);
+        for i in 0..3 {
+            if previous.is_some_and(|p| p[i] == target[i]) {
+                continue;
+            }
+            if let Some(run) = self.runs[i].take() {
+                run.stop();
+            }
+            if previous.is_none() {
+                signals[i].set(target[i]);
+                continue;
+            }
+            let (velocity, ms) = if i == 0 {
+                (config.highlight_move_velocity, config.highlight_move_ms)
+            } else {
+                (config.highlight_resize_velocity, config.highlight_resize_ms)
+            };
+            let run = Smoothed::new(&signals[i], target[i], velocity, ms).with_velocity(self.velocities[i].clone());
+            self.runs[i] = Some(acanthus_anim::start(run));
+        }
+    }
+}
+
+impl Drop for Highlight {
+    fn drop(&mut self) {
+        for run in self.runs.iter_mut().filter_map(Option::take) {
+            run.stop();
         }
     }
 }
@@ -209,6 +336,11 @@ struct ListHost<T, K> {
     primed: bool,
     leaving: Vec<Leaving>,
     reap: Signal<u32>,
+    current_index: Signal<usize>,
+    last_current: Option<usize>,
+    follow: Rc<Cell<bool>>,
+    highlight_node: Signal<Option<NodeId>>,
+    highlight: Option<Highlight>,
 }
 
 impl<T, K> ListHost<T, K> {
@@ -343,6 +475,8 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
             (first.min(keyed.len()), last.max(first).min(keyed.len()))
         };
 
+        let current = self.current_index.get();
+        let current_key = keyed.get(current).map(|(k, _)| k.clone());
         let wanted: HashSet<K> = keyed[first..last].iter().map(|(k, _)| k.clone()).collect();
         let out_of_range: Vec<K> = self.entries.keys().filter(|k| !wanted.contains(*k)).cloned().collect();
         for key in out_of_range {
@@ -390,6 +524,32 @@ impl<T: Clone + PartialEq + 'static, K: Eq + Hash + Clone + 'static> Host for Li
             self.count.set(starts.len());
             self.instantiated.set(self.entries.len());
         });
+        let changed = self.last_current.replace(current) != Some(current);
+        if changed {
+            self.follow.set(true);
+        }
+        let highlight_node = self.highlight_node.get();
+        if self.highlight.as_ref().map(|h| h.node) != highlight_node {
+            self.highlight = highlight_node.map(Highlight::new);
+        }
+        let item = starts.get(current).map(|start| (*start, extents[current]));
+        if let Some(highlight) = &mut self.highlight {
+            if let Some(node) = scene.get(highlight.node) {
+                node.visible.set(item.is_some());
+            }
+            if let Some((start, extent)) = item {
+                let cross = current_key
+                    .and_then(|k| self.entries.get(&k))
+                    .and_then(|e| scene.geometry(e.node))
+                    .map_or(if vertical { view.x } else { view.y }, |r| if vertical { r.w } else { r.h });
+                highlight.update(scene, [start, extent, cross], vertical, &self.config);
+            }
+        } else if changed
+            && self.follow.get()
+            && let Some(item) = item
+        {
+            track(&self.flickable, view, vertical, item, item);
+        }
         {
             let mut metrics = self.metrics.borrow_mut();
             metrics.starts = starts;
@@ -420,6 +580,9 @@ impl Scene {
         let instantiated = Signal::new(0);
         let view_size = Signal::new(Vec2::ZERO);
         let metrics = Rc::new(RefCell::new(Metrics::default()));
+        let current_index = Signal::new(0);
+        let follow = Rc::new(Cell::new(false));
+        let highlight = Signal::new(None);
         let mut host = ListHost {
             viewport: nodes.viewport,
             content: nodes.content,
@@ -438,10 +601,26 @@ impl Scene {
             primed: false,
             leaving: Vec::new(),
             reap: Signal::new(0),
+            current_index: current_index.clone(),
+            last_current: None,
+            follow: follow.clone(),
+            highlight_node: highlight.clone(),
+            highlight: None,
         };
         if untrack(|| host.sync(self)) {
             self.push_host(Box::new(host));
         }
-        ListView { nodes, flickable, count, instantiated, view_size, orientation: config.orientation, metrics }
+        ListView {
+            nodes,
+            flickable,
+            count,
+            instantiated,
+            view_size,
+            current_index,
+            orientation: config.orientation,
+            metrics,
+            highlight,
+            follow,
+        }
     }
 }
