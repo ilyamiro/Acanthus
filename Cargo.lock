@@ -77,7 +77,9 @@ name = "acanthus-markup"
 version = "0.1.0"
 dependencies = [
  "acanthus-core",
+ "acanthus-scene",
  "acanthus-widgets",
+ "tracing",
 ]
 
 [[package]]

@@ -29,8 +29,8 @@ member    = "id" ":" ident
 ```
 
 - `id: name` gives the component a name that expressions can use as a path root.
-- `property name: expr` declares a property of the enclosing component that other expressions can read.
-- `on_event: expr` binds an event, named like the component's event prop (`on_click`, `on_moved`); the expression is evaluated when the event fires and is normally a call (`on_click: action("popup.toggle")`).
+- `property name: expr` declares a value that any expression in the file reads by its bare name; names are unique per file.
+- `on_event: expr` binds an event, named like the component's event prop (`on_click`, `on_moved`); the expression is evaluated when the event fires and is normally a call (`on_click: action("popup.toggle")`). A handler of an event with an argument (number, bool or index) reads it as `value`.
 - `Behavior on prop { Tween { duration: 200 } }` animates changes of `prop` (maps to `Node::animate`).
 - Any other `name: expr` sets a property of the component. The expression re-evaluates when a signal it reads changes.
 
@@ -38,7 +38,7 @@ member    = "id" ":" ident
 
 Precedence from loosest to tightest: `? :`, `||`, `&&`, `== !=`, `< <= > >=`, `+ -`, `* / %`, unary `- !`, postfix call `f(a, b)`, index `a[i]` and path `a.b.c`. `+` joins two texts and adds two numbers; every other mix of types is an error. `&&` and `||` short-circuit.
 
-Values: number, text, bool, colour, list and null. A path resolves against the ids and properties in scope, then the globals the host registers (`theme`, services). Calls resolve against the function whitelist: the built-ins `min max clamp abs round floor ceil mix len` plus the functions the host registers (`t`, `fmt_time`, `action`). Every path and function name is checked before the file runs; an unknown one is a located error with the nearest known name.
+Values: number, text, bool, colour, list and null. A path resolves against the ids (`id.prop` reads a number, text, bool, colour or index prop), the declared properties, then the globals the host registers (`theme`, services). Calls resolve against the function whitelist: the built-ins `min max clamp abs round floor ceil mix len` plus the functions the host registers (`t`, `fmt_time`, `action`). Every path and function name is checked before the file runs; an unknown one is a located error with the nearest known name.
 
 ## Diagnostics
 

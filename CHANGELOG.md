@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_markup::build`: compiles a parsed ACN `Document` through a widget `Registry` into scene nodes. Every `name: expr` becomes an `Effect`-driven binding, `property` names and ids are readable (forward references work), `on_event` handlers run with the event argument as `value`, and names, kinds and calls are all checked first so a failure returns every located error and builds nothing. `Behavior` is reported as unsupported for now.
 - `acanthus_markup::{parse, Document, Component, Member}`: the ACN parser (`acn N` version header, `id`, `property`, assignments, `on_` handlers, `Behavior on`, nested components, `;` or newline separators) with `file:line:col` errors and keyword hints, and `Document::check_names` which checks component and property names against a widget `Registry` with did-you-mean hints.
 - `acanthus_markup::{Expr, Value, Scope, Functions}`: the ACN expression language (literals, paths, lists, arithmetic, comparison, short-circuit logic, ternary, indexing, whitelisted calls with the built-ins `min max clamp abs round floor ceil mix len`); `Expr::check` resolves every name and arity with did-you-mean hints before anything runs.
 - `acanthus-markup` crate: the ACN lexer (`lex`, `Token`, `TokenKind`) and located diagnostics (`Span`, `Diagnostic` with `file:line:col`, a caret line and a did-you-mean hint); the syntax is specified in `docs/acn-spec.md`.

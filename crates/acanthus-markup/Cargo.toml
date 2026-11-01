@@ -8,3 +8,5 @@ license.workspace = true
 [dependencies]
 acanthus-core.workspace = true
 acanthus-widgets.workspace = true
+acanthus-scene.workspace = true
+tracing.workspace = true

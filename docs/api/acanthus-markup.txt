@@ -1,3 +1,6 @@
+acanthus_markup::Built.ids: HashMap < String , NodeId >
+acanthus_markup::Built.root: NodeId
+acanthus_markup::Built: struct
 acanthus_markup::Component.members: Vec < Member >
 acanthus_markup::Component.name: String
 acanthus_markup::Component.span: Span
@@ -82,6 +85,7 @@ acanthus_markup::Value::List: variant (Vec < Value >)
 acanthus_markup::Value::Null: variant 
 acanthus_markup::Value::Number: variant (f64)
 acanthus_markup::Value::Text: variant (String)
+acanthus_markup::build: fn build (doc : & Document , registry : & Registry , functions : Rc < Functions > , globals : Rc < dyn Scope > , scene : & mut Scene , parent : NodeId ,) -> Result < Built , Vec < Diagnostic > >
 acanthus_markup::lex: fn lex (src : & str) -> Result < Vec < Token > , Diagnostic >
 acanthus_markup::parse: fn parse (src : & str) -> Result < Document , Diagnostic >
 impl Default for acanthus_markup::Functions
