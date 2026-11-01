@@ -6,6 +6,44 @@ acanthus_markup::Diagnostic::new: fn new (span : Span , message : impl Into < St
 acanthus_markup::Diagnostic::position: fn position (& self , src : & str) -> (usize , usize)
 acanthus_markup::Diagnostic::render: fn render (& self , file : & str , src : & str) -> String
 acanthus_markup::Diagnostic::unknown: fn unknown < 'a > (span : Span , what : & str , word : & str , known : impl IntoIterator < Item = & 'a str >) -> Diagnostic
+acanthus_markup::Expr.kind: ExprKind
+acanthus_markup::Expr.span: Span
+acanthus_markup::Expr: struct [Clone, Debug, PartialEq]
+acanthus_markup::Expr::check: fn check (& self , scope : & dyn Scope , functions : & Functions) -> Vec < Diagnostic >
+acanthus_markup::Expr::eval: fn eval (& self , scope : & dyn Scope , functions : & Functions) -> Result < Value , Diagnostic >
+acanthus_markup::Expr::parse: fn parse (src : & str) -> Result < Expr , Diagnostic >
+acanthus_markup::ExprKind: enum [Clone, Debug, PartialEq]
+acanthus_markup::ExprKind::Binary: variant (Op , Box < Expr > , Box < Expr >)
+acanthus_markup::ExprKind::Call: variant (String , Span , Vec < Expr >)
+acanthus_markup::ExprKind::Index: variant (Box < Expr > , Box < Expr >)
+acanthus_markup::ExprKind::List: variant (Vec < Expr >)
+acanthus_markup::ExprKind::Lit: variant (Value)
+acanthus_markup::ExprKind::Path: variant (Vec < String >)
+acanthus_markup::ExprKind::Ternary: variant (Box < Expr > , Box < Expr > , Box < Expr >)
+acanthus_markup::ExprKind::Unary: variant (Op , Box < Expr >)
+acanthus_markup::Functions: struct
+acanthus_markup::Functions::new: fn new () -> Functions
+acanthus_markup::Functions::register: fn register (& mut self , name : & str , arity : RangeInclusive < usize > , f : impl Fn (& [Value]) -> Result < Value , String > + 'static ,)
+acanthus_markup::Functions::standard: fn standard () -> Functions
+acanthus_markup::Op: enum [Clone, Copy, Debug, Eq, PartialEq]
+acanthus_markup::Op::Add: variant 
+acanthus_markup::Op::And: variant 
+acanthus_markup::Op::Div: variant 
+acanthus_markup::Op::Eq: variant 
+acanthus_markup::Op::Ge: variant 
+acanthus_markup::Op::Gt: variant 
+acanthus_markup::Op::Le: variant 
+acanthus_markup::Op::Lt: variant 
+acanthus_markup::Op::Mul: variant 
+acanthus_markup::Op::Ne: variant 
+acanthus_markup::Op::Neg: variant 
+acanthus_markup::Op::Not: variant 
+acanthus_markup::Op::Or: variant 
+acanthus_markup::Op::Rem: variant 
+acanthus_markup::Op::Sub: variant 
+acanthus_markup::Scope: trait
+acanthus_markup::Scope::get: required fn get (& self , path : & [String]) -> Option < Value >
+acanthus_markup::Scope::roots: required fn roots (& self) -> Vec < String >
 acanthus_markup::Span.end: usize
 acanthus_markup::Span.start: usize
 acanthus_markup::Span: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
@@ -21,6 +59,14 @@ acanthus_markup::TokenKind::Ident: variant (String)
 acanthus_markup::TokenKind::Number: variant (f64)
 acanthus_markup::TokenKind::Punct: variant (& 'static str)
 acanthus_markup::TokenKind::Text: variant (String)
+acanthus_markup::Value: enum [Clone, Debug, PartialEq]
+acanthus_markup::Value::Bool: variant (bool)
+acanthus_markup::Value::Color: variant (Color)
+acanthus_markup::Value::List: variant (Vec < Value >)
+acanthus_markup::Value::Null: variant 
+acanthus_markup::Value::Number: variant (f64)
+acanthus_markup::Value::Text: variant (String)
 acanthus_markup::lex: fn lex (src : & str) -> Result < Vec < Token > , Diagnostic >
+impl Default for acanthus_markup::Functions
 impl std :: error :: Error for acanthus_markup::Diagnostic
 impl std :: fmt :: Display for acanthus_markup::Diagnostic

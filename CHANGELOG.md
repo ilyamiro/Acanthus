@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_markup::{Expr, Value, Scope, Functions}`: the ACN expression language (literals, paths, lists, arithmetic, comparison, short-circuit logic, ternary, indexing, whitelisted calls with the built-ins `min max clamp abs round floor ceil mix len`); `Expr::check` resolves every name and arity with did-you-mean hints before anything runs.
 - `acanthus-markup` crate: the ACN lexer (`lex`, `Token`, `TokenKind`) and located diagnostics (`Span`, `Diagnostic` with `file:line:col`, a caret line and a did-you-mean hint); the syntax is specified in `docs/acn-spec.md`.
 - `TextInput::scroll_y` and `content_height`: the vertical scroll offset and the wrapped height of a multi-line field; the `TextArea` card draws a thin scroll indicator from them when the text is taller than the area.
 - `acanthus_widgets::menu`: `MenuSpec::open` and `MenuStyle::shadow`/`shadow_blur` give a menu the popup frame's open and close morph and a drop shadow (breaking for code building the spec by hand: the two fields are new).
