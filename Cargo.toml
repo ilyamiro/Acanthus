@@ -16,6 +16,7 @@ members = [
     "examples/hello-bar",
     "examples/hello-popup",
     "examples/hello-widget",
+    "examples/notes",
     "xtask",
 ]
 

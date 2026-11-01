@@ -1,0 +1,10 @@
+{
+  "notes": {
+    "window": "Notes",
+    "new": "New note",
+    "delete": "Delete",
+    "pinned": "Pinned",
+    "untitled": "Untitled",
+    "placeholder": "Write something"
+  }
+}

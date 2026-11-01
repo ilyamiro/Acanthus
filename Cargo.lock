@@ -1295,6 +1295,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "notes"
+version = "0.1.0"
+dependencies = [
+ "acanthus-anim",
+ "acanthus-core",
+ "acanthus-runtime",
+ "acanthus-scene",
+ "acanthus-wayland",
+ "acanthus-widgets",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
