@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_widgets::tabs` with the `Tabs` component: a tab row with an underline that eases to the selected label (click, Left, Right, Space, Enter) over one panel per tab, of which only the selected one shows.
 - `acanthus_widgets::choice` with the `Checkbox` and `RadioGroup` components: labelled indicators that ease their fill, tick or dot, toggled or picked by click, Space, Enter and (radio) arrow keys, dimmed and inert when disabled.
 - `acanthus_widgets::progress` with the `ProgressBar` and `Spinner` components: a determinate bar whose fill eases to the value or an indeterminate sliding segment, and a rotating arc drawn on a canvas; both rest under reduced motion.
 - `acanthus_widgets::text_area` and the `TextArea` component: a bordered card (border follows focus) around a wrapping, scrolling `TextEdit`, with placeholder, theme colours and spacing and radii tokens, text mirrored to the `text` prop.

@@ -383,6 +383,25 @@ acanthus_widgets::switch::fitted_size: fn fitted_size (font : f32 , minimum : f3
 acanthus_widgets::switch::placements: fn placements (widths : & [f32] , total : f32 , rtl : bool) -> Vec < (f32 , f32) >
 acanthus_widgets::switch::step: fn step (current : usize , count : usize , forward : bool) -> usize
 acanthus_widgets::switch::switch: fn switch (scene : & mut Scene , parent : NodeId , spec : SwitchSpec) -> NodeId
+acanthus_widgets::tabs::Tabs.panels: Vec < NodeId >
+acanthus_widgets::tabs::Tabs.root: NodeId
+acanthus_widgets::tabs::Tabs: struct
+acanthus_widgets::tabs::TabsComponent: struct
+acanthus_widgets::tabs::TabsSpec.accent: Signal < Color >
+acanthus_widgets::tabs::TabsSpec.bar_height: f32
+acanthus_widgets::tabs::TabsSpec.current: Signal < usize >
+acanthus_widgets::tabs::TabsSpec.font_family: Signal < String >
+acanthus_widgets::tabs::TabsSpec.font_size: f32
+acanthus_widgets::tabs::TabsSpec.labels: Vec < Signal < String > >
+acanthus_widgets::tabs::TabsSpec.muted: Signal < Color >
+acanthus_widgets::tabs::TabsSpec.on_select: Rc < dyn Fn (usize) >
+acanthus_widgets::tabs::TabsSpec.pad: f32
+acanthus_widgets::tabs::TabsSpec.panel_height: Signal < f32 >
+acanthus_widgets::tabs::TabsSpec.rule: Signal < Color >
+acanthus_widgets::tabs::TabsSpec.width: Signal < f32 >
+acanthus_widgets::tabs::TabsSpec: struct
+acanthus_widgets::tabs::tab_span: fn tab_span (label_widths : & [f32] , pad : f32 , index : usize) -> (f32 , f32)
+acanthus_widgets::tabs::tabs: fn tabs (scene : & mut Scene , parent : NodeId , spec : TabsSpec) -> Tabs
 acanthus_widgets::text_area::TextArea.focus: Signal < bool >
 acanthus_widgets::text_area::TextArea.font_size: f32
 acanthus_widgets::text_area::TextArea.height: Signal < f32 >
@@ -453,6 +472,7 @@ impl Component for acanthus_widgets::scrollbar::ScrollBarComponent
 impl Component for acanthus_widgets::search_field::SearchFieldComponent
 impl Component for acanthus_widgets::slider::SliderComponent
 impl Component for acanthus_widgets::switch::SwitchComponent
+impl Component for acanthus_widgets::tabs::TabsComponent
 impl Component for acanthus_widgets::text_area::TextAreaComponent
 impl Component for acanthus_widgets::toggle::ToggleComponent
 impl Component for acanthus_widgets::wallpaper_blur::WallpaperBlurComponent

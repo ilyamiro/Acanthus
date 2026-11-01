@@ -11,6 +11,7 @@ pub mod scrollbar;
 pub mod search_field;
 pub mod slider;
 pub mod switch;
+pub mod tabs;
 pub mod text_area;
 pub mod timing;
 pub mod toggle;
@@ -27,6 +28,7 @@ pub fn standard_registry() -> component::Registry {
     registry.register(button::IconButtonComponent);
     registry.register(marquee::MarqueeComponent);
     registry.register(switch::SwitchComponent);
+    registry.register(tabs::TabsComponent);
     registry.register(dropdown::DropdownComponent);
     registry.register(progress::ProgressBarComponent);
     registry.register(progress::SpinnerComponent);
@@ -55,6 +57,7 @@ mod tests {
                 "Slider",
                 "Spinner",
                 "Switch",
+                "Tabs",
                 "TextArea",
                 "Toggle",
                 "WallpaperBlur"
