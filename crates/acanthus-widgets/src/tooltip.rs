@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 
 use acanthus_anim::{Action, AnimHandle, Easing, Keep, Pause, Sequential, start};
-use acanthus_core::{Color, Effect, Signal, untrack};
+use acanthus_core::{Color, Effect, Signal, Vec2, untrack};
 use acanthus_scene::{Anchors, Node, NodeId, Scene};
 
 use crate::component::{Component, Prop, PropSpec, Props};
@@ -21,6 +21,10 @@ pub struct TooltipSpec {
     pub target_width: Signal<f32>,
     /// Height of the target; the bubble sits `gap` below it.
     pub target_height: Signal<f32>,
+    /// Position of the target's top-left corner in the window.
+    pub origin: Signal<Vec2>,
+    /// Size of the window; the bubble is kept inside it and flips above the target when it would leave at the bottom.
+    pub window: Signal<Vec2>,
     /// Space between the target and the bubble.
     pub gap: f32,
     /// Padding between the bubble edge and its text.
@@ -63,6 +67,8 @@ pub fn tooltip(scene: &mut Scene, parent: NodeId, spec: TooltipSpec) -> NodeId {
         delay_ms,
         target_width,
         target_height,
+        origin,
+        window,
         gap,
         pad,
         radius,
@@ -112,10 +118,25 @@ pub fn tooltip(scene: &mut Scene, parent: NodeId, spec: TooltipSpec) -> NodeId {
     };
     let height = keep.derive(move || measured.get().y + pad * 2.0);
     let x = {
-        let width = width.clone();
-        keep.derive(move || (target_width.get() - width.get()) / 2.0)
+        let (width, origin, window) = (width.clone(), origin.clone(), window.clone());
+        keep.derive(move || {
+            let (origin, window, width) = (origin.get().x, window.get().x, width.get());
+            let left = (origin + (target_width.get() - width) / 2.0).min(window - width).max(0.0);
+            left - origin
+        })
     };
-    let y = keep.derive(move || target_height.get() + gap);
+    let y = {
+        let height = height.clone();
+        keep.derive(move || {
+            let below = target_height.get() + gap;
+            let (origin, window) = (origin.get().y, window.get().y);
+            if origin + below + height.get() > window && origin - gap - height.get() >= 0.0 {
+                -gap - height.get()
+            } else {
+                below
+            }
+        })
+    };
     let bubble = scene.add(
         parent,
         Node::rect()
@@ -151,6 +172,8 @@ impl Component for TooltipComponent {
             PropSpec::number("delay", || Prop::number(700.0)),
             PropSpec::number("target_width", || Prop::number(0.0)),
             PropSpec::number("target_height", || Prop::number(0.0)),
+            PropSpec::point("origin", || Prop::Point(Signal::new(Vec2::ZERO))),
+            PropSpec::point("window", || Prop::Point(Signal::new(Vec2::new(1.0e6, 1.0e6)))),
             PropSpec::scaled("gap", "spacing.sm", || Prop::number(6.0)),
             PropSpec::scaled("pad", "spacing.sm", || Prop::number(8.0)),
             PropSpec::scaled("radius", "radii.sm", || Prop::number(6.0)),
@@ -173,6 +196,8 @@ impl Component for TooltipComponent {
                 delay_ms: props.number("delay").get_untracked().max(0.0) as u32,
                 target_width: props.number("target_width"),
                 target_height: props.number("target_height"),
+                origin: props.point("origin"),
+                window: props.point("window"),
                 gap: props.number("gap").get_untracked(),
                 pad: props.number("pad").get_untracked(),
                 radius: props.number("radius").get_untracked(),
@@ -245,6 +270,8 @@ mod tests {
                 delay_ms: 500,
                 target_width: Signal::new(10.0),
                 target_height: Signal::new(10.0),
+                origin: Signal::new(Vec2::ZERO),
+                window: Signal::new(Vec2::new(100.0, 100.0)),
                 gap: 4.0,
                 pad: 4.0,
                 radius: 4.0,
@@ -262,5 +289,49 @@ mod tests {
             acanthus_anim::tick(0.016);
         }
         assert!(!scene.get(bubble).unwrap().visible.get_untracked());
+    }
+
+    #[test]
+    fn the_bubble_stays_inside_the_window_and_flips_above_at_the_bottom() {
+        let origin = Signal::new(Vec2::new(0.0, 10.0));
+        let window = Signal::new(Vec2::new(300.0, 100.0));
+        let mut scene = Scene::new(Fonts::new());
+        let root = scene.root();
+        let bubble = tooltip(
+            &mut scene,
+            root,
+            TooltipSpec {
+                text: Signal::new("A long tooltip text".to_owned()),
+                hovered: Signal::new(true),
+                delay_ms: 0,
+                target_width: Signal::new(10.0),
+                target_height: Signal::new(10.0),
+                origin: origin.clone(),
+                window: window.clone(),
+                gap: 4.0,
+                pad: 4.0,
+                radius: 4.0,
+                fill: Signal::new(Color::BLACK),
+                border: Signal::new(Color::BLACK),
+                color: Signal::new(Color::WHITE),
+                font_family: Signal::new("Adwaita Mono".to_owned()),
+                font_size: 12.0,
+            },
+        );
+        scene.set_viewport(Vec2::new(300.0, 100.0), 1.0);
+        for _ in 0..5 {
+            acanthus_anim::tick(0.016);
+            scene.frame();
+        }
+        let at = scene.geometry(bubble).unwrap();
+        assert!(at.x >= 0.0, "left edge at {}", at.x);
+        assert_eq!(at.y, 14.0);
+        origin.set(Vec2::new(280.0, 95.0));
+        acanthus_anim::tick(0.016);
+        scene.frame();
+
+        let at = scene.geometry(bubble).unwrap();
+        assert!(280.0 + at.x + at.w <= 300.0 + 0.01);
+        assert!(at.y < 0.0);
     }
 }

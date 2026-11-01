@@ -539,11 +539,13 @@ acanthus_widgets::tooltip::TooltipSpec.font_family: Signal < String >
 acanthus_widgets::tooltip::TooltipSpec.font_size: f32
 acanthus_widgets::tooltip::TooltipSpec.gap: f32
 acanthus_widgets::tooltip::TooltipSpec.hovered: Signal < bool >
+acanthus_widgets::tooltip::TooltipSpec.origin: Signal < Vec2 >
 acanthus_widgets::tooltip::TooltipSpec.pad: f32
 acanthus_widgets::tooltip::TooltipSpec.radius: f32
 acanthus_widgets::tooltip::TooltipSpec.target_height: Signal < f32 >
 acanthus_widgets::tooltip::TooltipSpec.target_width: Signal < f32 >
 acanthus_widgets::tooltip::TooltipSpec.text: Signal < String >
+acanthus_widgets::tooltip::TooltipSpec.window: Signal < Vec2 >
 acanthus_widgets::tooltip::TooltipSpec: struct
 acanthus_widgets::tooltip::tooltip: fn tooltip (scene : & mut Scene , parent : NodeId , spec : TooltipSpec) -> NodeId
 acanthus_widgets::wallpaper_blur::BLUR_MAX: const BLUR_MAX: f32
