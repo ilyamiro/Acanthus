@@ -1,6 +1,6 @@
 //! The component contract: a widget declares typed, named, defaultable props and builds itself from them.
 //!
-//! The Rust builder API and the `.serp` compiler meet here. A [`Component`] lists its [`PropSpec`]s, a
+//! The Rust builder API and the `.acn` compiler meet here. A [`Component`] lists its [`PropSpec`]s, a
 //! [`Registry`] resolves names, fills defaults and rejects unknown or mistyped props with a suggestion
 //! before `build` runs, so a typo never reaches the scene as a silent fallback.
 
