@@ -559,6 +559,32 @@ acanthus_widgets::wallpaper_blur::alpha_for: fn alpha_for (element_opacity : f32
 acanthus_widgets::wallpaper_blur::backdrop: fn backdrop (scene : & mut Scene , parent : NodeId , spec : Spec) -> NodeId
 acanthus_widgets::wallpaper_blur::image_origin: fn image_origin (bounds : Rect , pad : f32 , surface : Vec2) -> (f32 , f32)
 acanthus_widgets::wallpaper_blur::padded_size: fn padded_size (bounds : Rect , pad : f32) -> (f32 , f32)
+acanthus_widgets::wave::FluidWave.amplitude: f32
+acanthus_widgets::wave::FluidWave.color: Signal < Color >
+acanthus_widgets::wave::FluidWave.height: f32
+acanthus_widgets::wave::FluidWave.running: Signal < bool >
+acanthus_widgets::wave::FluidWave.wavelength: f32
+acanthus_widgets::wave::FluidWave.width: f32
+acanthus_widgets::wave::FluidWave: struct
+acanthus_widgets::wave::FluidWaveComponent: struct
+acanthus_widgets::wave::PHASE_MS: const PHASE_MS: u32
+acanthus_widgets::wave::WaveSeek.amplitude: f32
+acanthus_widgets::wave::WaveSeek.color: Signal < Color >
+acanthus_widgets::wave::WaveSeek.height: f32
+acanthus_widgets::wave::WaveSeek.on_seek: Rc < dyn Fn (f32) >
+acanthus_widgets::wave::WaveSeek.playing: Signal < bool >
+acanthus_widgets::wave::WaveSeek.thickness: f32
+acanthus_widgets::wave::WaveSeek.track: Signal < Color >
+acanthus_widgets::wave::WaveSeek.value: Signal < f32 >
+acanthus_widgets::wave::WaveSeek.wavelength: f32
+acanthus_widgets::wave::WaveSeek.width: f32
+acanthus_widgets::wave::WaveSeek: struct
+acanthus_widgets::wave::WaveSeekComponent: struct
+acanthus_widgets::wave::fluid_wave: fn fluid_wave (scene : & mut Scene , parent : NodeId , wave : FluidWave) -> NodeId
+acanthus_widgets::wave::seek_fraction: fn seek_fraction (x : f32 , width : f32) -> f32
+acanthus_widgets::wave::wave_path: fn wave_path (length : f32 , mid : f32 , amplitude : f32 , wavelength : f32 , phase : f32) -> Path
+acanthus_widgets::wave::wave_seek: fn wave_seek (scene : & mut Scene , parent : NodeId , bar : WaveSeek) -> NodeId
+acanthus_widgets::wave::wave_y: fn wave_y (x : f32 , amplitude : f32 , wavelength : f32 , phase : f32) -> f32
 acanthus_widgets::wheel::WHEEL_RESET_MS: const WHEEL_RESET_MS: u64
 acanthus_widgets::wheel::WHEEL_STEP: const WHEEL_STEP: f32
 acanthus_widgets::wheel::WHEEL_UNITS_PER_ABSOLUTE: const WHEEL_UNITS_PER_ABSOLUTE: f32
@@ -587,6 +613,8 @@ impl Component for acanthus_widgets::text_area::TextAreaComponent
 impl Component for acanthus_widgets::toggle::ToggleComponent
 impl Component for acanthus_widgets::tooltip::TooltipComponent
 impl Component for acanthus_widgets::wallpaper_blur::WallpaperBlurComponent
+impl Component for acanthus_widgets::wave::FluidWaveComponent
+impl Component for acanthus_widgets::wave::WaveSeekComponent
 impl Drop for acanthus_widgets::button::Press
 impl fmt :: Display for acanthus_widgets::component::BuildError
 impl std :: error :: Error for acanthus_widgets::component::BuildError

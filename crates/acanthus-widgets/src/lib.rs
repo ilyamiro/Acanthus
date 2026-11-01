@@ -21,6 +21,7 @@ pub mod timing;
 pub mod toggle;
 pub mod tooltip;
 pub mod wallpaper_blur;
+pub mod wave;
 pub mod wheel;
 
 /// A registry holding every widget that follows the component contract.
@@ -48,6 +49,8 @@ pub fn standard_registry() -> component::Registry {
     registry.register(selector::TimeSelectorComponent);
     registry.register(text_area::TextAreaComponent);
     registry.register(wallpaper_blur::WallpaperBlurComponent);
+    registry.register(wave::WaveSeekComponent);
+    registry.register(wave::FluidWaveComponent);
     registry
 }
 
@@ -62,6 +65,7 @@ mod tests {
                 "Checkbox",
                 "Dialog",
                 "Dropdown",
+                "FluidWave",
                 "IconButton",
                 "Marquee",
                 "NumberSelector",
@@ -79,7 +83,8 @@ mod tests {
                 "TimeSelector",
                 "Toggle",
                 "Tooltip",
-                "WallpaperBlur"
+                "WallpaperBlur",
+                "WaveSeek"
             ]
         );
     }
