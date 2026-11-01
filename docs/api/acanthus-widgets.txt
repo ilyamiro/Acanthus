@@ -32,6 +32,33 @@ acanthus_widgets::button::dress: fn dress (scene : & mut Scene , body : NodeId ,
 acanthus_widgets::button::flash: fn flash (scene : & mut Scene , body : NodeId , radius : & Signal < f32 > , press : & Press)
 acanthus_widgets::button::focusable: fn focusable (node : Node , activate : Rc < dyn Fn () >) -> Node
 acanthus_widgets::button::icon_button: fn icon_button (scene : & mut Scene , parent : NodeId , spec : IconSpec) -> NodeId
+acanthus_widgets::choice::Checkbox.checked: Signal < bool >
+acanthus_widgets::choice::Checkbox.enabled: Signal < bool >
+acanthus_widgets::choice::Checkbox.label: Signal < String >
+acanthus_widgets::choice::Checkbox.on_toggle: Rc < dyn Fn (bool) >
+acanthus_widgets::choice::Checkbox.style: ChoiceStyle
+acanthus_widgets::choice::Checkbox: struct
+acanthus_widgets::choice::CheckboxComponent: struct
+acanthus_widgets::choice::ChoiceStyle.accent: Signal < Color >
+acanthus_widgets::choice::ChoiceStyle.border: Signal < Color >
+acanthus_widgets::choice::ChoiceStyle.font_family: Signal < String >
+acanthus_widgets::choice::ChoiceStyle.font_size: f32
+acanthus_widgets::choice::ChoiceStyle.gap: f32
+acanthus_widgets::choice::ChoiceStyle.mark: Signal < Color >
+acanthus_widgets::choice::ChoiceStyle.size: f32
+acanthus_widgets::choice::ChoiceStyle.text: Signal < Color >
+acanthus_widgets::choice::ChoiceStyle: struct [Clone]
+acanthus_widgets::choice::RadioGroup.current: Signal < usize >
+acanthus_widgets::choice::RadioGroup.enabled: Signal < bool >
+acanthus_widgets::choice::RadioGroup.on_select: Rc < dyn Fn (usize) >
+acanthus_widgets::choice::RadioGroup.options: Vec < Signal < String > >
+acanthus_widgets::choice::RadioGroup.spacing: f32
+acanthus_widgets::choice::RadioGroup.style: ChoiceStyle
+acanthus_widgets::choice::RadioGroup: struct
+acanthus_widgets::choice::RadioGroupComponent: struct
+acanthus_widgets::choice::checkbox: fn checkbox (scene : & mut Scene , parent : NodeId , spec : Checkbox) -> NodeId
+acanthus_widgets::choice::radio_group: fn radio_group (scene : & mut Scene , parent : NodeId , spec : RadioGroup) -> NodeId
+acanthus_widgets::choice::step_selection: fn step_selection (key : Key , current : usize , count : usize) -> Option < usize >
 acanthus_widgets::component::BuildError: enum [Clone, Debug, Eq, PartialEq]
 acanthus_widgets::component::BuildError::Duplicate: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop."] name : & 'static str , }
 acanthus_widgets::component::BuildError::Missing: variant { # [doc = " The component."] component : & 'static str , # [doc = " The prop."] name : & 'static str , }
@@ -416,6 +443,8 @@ acanthus_widgets::wheel::Wheel::feed: fn feed (& mut self , delta : f32) -> i32
 acanthus_widgets::wheel::Wheel::reset: fn reset (& mut self)
 acanthus_widgets::wheel::wheel_units: fn wheel_units (delta_y : f32) -> f32
 impl Component for acanthus_widgets::button::IconButtonComponent
+impl Component for acanthus_widgets::choice::CheckboxComponent
+impl Component for acanthus_widgets::choice::RadioGroupComponent
 impl Component for acanthus_widgets::dropdown::DropdownComponent
 impl Component for acanthus_widgets::marquee::MarqueeComponent
 impl Component for acanthus_widgets::progress::ProgressBarComponent

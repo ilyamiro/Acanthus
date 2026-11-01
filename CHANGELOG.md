@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_widgets::choice` with the `Checkbox` and `RadioGroup` components: labelled indicators that ease their fill, tick or dot, toggled or picked by click, Space, Enter and (radio) arrow keys, dimmed and inert when disabled.
 - `acanthus_widgets::progress` with the `ProgressBar` and `Spinner` components: a determinate bar whose fill eases to the value or an indeterminate sliding segment, and a rotating arc drawn on a canvas; both rest under reduced motion.
 - `acanthus_widgets::text_area` and the `TextArea` component: a bordered card (border follows focus) around a wrapping, scrolling `TextEdit`, with placeholder, theme colours and spacing and radii tokens, text mirrored to the `text` prop.
 - `TextInput::multiline`, `Scene::text_edit`, `TextInput::undo` and `redo`: QML `TextEdit` semantics on the text field (Enter breaks lines, text wraps at the field width, Up, Down, Home and End move by visual line with a remembered column, selection and caret span lines, pointer placement and drag across lines) and Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y history where typed characters merge into one step.

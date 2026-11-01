@@ -1,4 +1,5 @@
 pub mod button;
+pub mod choice;
 pub mod component;
 pub mod dropdown;
 pub mod marquee;
@@ -20,6 +21,8 @@ pub mod wheel;
 pub fn standard_registry() -> component::Registry {
     let mut registry = component::Registry::new();
     registry.register(slider::SliderComponent);
+    registry.register(choice::CheckboxComponent);
+    registry.register(choice::RadioGroupComponent);
     registry.register(toggle::ToggleComponent);
     registry.register(button::IconButtonComponent);
     registry.register(marquee::MarqueeComponent);
@@ -41,10 +44,12 @@ mod tests {
         assert_eq!(
             super::standard_registry().names(),
             vec![
+                "Checkbox",
                 "Dropdown",
                 "IconButton",
                 "Marquee",
                 "ProgressBar",
+                "RadioGroup",
                 "ScrollBar",
                 "SearchField",
                 "Slider",
