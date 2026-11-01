@@ -697,6 +697,7 @@ acanthus_scene::TextInput: struct [Clone]
 acanthus_scene::TextInput::anchor: fn anchor (& self) -> Signal < usize >
 acanthus_scene::TextInput::before_key: fn before_key (self , f : impl FnMut (& KeyEvent) -> bool + 'static) -> Self
 acanthus_scene::TextInput::clear: fn clear (& self)
+acanthus_scene::TextInput::content_height: fn content_height (& self) -> Signal < f32 >
 acanthus_scene::TextInput::cursor: fn cursor (& self) -> Signal < usize >
 acanthus_scene::TextInput::delete_selection: fn delete_selection (& self) -> bool
 acanthus_scene::TextInput::handle_key: fn handle_key (& self , event : & KeyEvent , clipboard : & Clipboard) -> bool
@@ -715,6 +716,7 @@ acanthus_scene::TextInput::password_signal: fn password_signal (& self) -> Signa
 acanthus_scene::TextInput::read_only: fn read_only (self , v : bool) -> Self
 acanthus_scene::TextInput::redo: fn redo (& self) -> bool
 acanthus_scene::TextInput::scroll: fn scroll (& self) -> Signal < f32 >
+acanthus_scene::TextInput::scroll_y: fn scroll_y (& self) -> Signal < f32 >
 acanthus_scene::TextInput::select: fn select (& self , anchor : usize , cursor : usize)
 acanthus_scene::TextInput::select_all: fn select_all (& self)
 acanthus_scene::TextInput::selected_text: fn selected_text (& self) -> String

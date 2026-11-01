@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `TextInput::scroll_y` and `content_height`: the vertical scroll offset and the wrapped height of a multi-line field; the `TextArea` card draws a thin scroll indicator from them when the text is taller than the area.
 - `acanthus_widgets::menu`: `MenuSpec::open` and `MenuStyle::shadow`/`shadow_blur` give a menu the popup frame's open and close morph and a drop shadow (breaking for code building the spec by hand: the two fields are new).
 - `acanthus_widgets::wave` with the `WaveSeek` and `FluidWave` components: a seek bar whose played part is a travelling sine (flattening when paused) that seeks on press and drag, and a filled swell of two sines.
 - `acanthus_widgets::chart` with the `Chart` and `Sparkline` components: a list of numbers (new `Kind::NumberList` prop) plotted as a stroked line over an optional area fill and horizontal grid lines, on a canvas that repaints when the data changes.

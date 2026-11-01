@@ -5,7 +5,10 @@ use acanthus_core::{Color, Effect, Signal};
 use acanthus_scene::{Node, NodeId, Scene, TextInput, TextInputStyle};
 
 use crate::component::{Component, Prop, PropSpec, Props};
+use crate::scrollbar::scroll_handle;
 use crate::timing::FAST;
+
+const SCROLL_WIDTH: f32 = 3.0;
 
 /// Colours and font a text area is drawn with.
 #[derive(Clone)]
@@ -78,6 +81,31 @@ pub fn text_area(scene: &mut Scene, parent: NodeId, keep: &mut Keep, area: TextA
     };
     let nodes = scene.text_edit(card, editor, input, style);
     scene.focus_when(nodes.field, focus);
+    let handle = {
+        let (content, scroll, view) = (input.content_height(), input.scroll_y(), inner_height.clone());
+        keep.derive(move || scroll_handle(content.get(), view.get(), scroll.get()))
+    };
+    let visible = {
+        let handle = handle.clone();
+        keep.derive(move || handle.get().is_some())
+    };
+    let top = {
+        let handle = handle.clone();
+        keep.derive(move || pad + handle.get().map_or(0.0, |h| h.0))
+    };
+    let length = keep.derive(move || handle.get().map_or(0.0, |h| h.1));
+    let x = keep.derive(move || width.get() - pad * 0.5 - SCROLL_WIDTH);
+    scene.add(
+        card,
+        Node::rect()
+            .color(keep.alpha(&tokens.muted, 0.6))
+            .radius(SCROLL_WIDTH / 2.0)
+            .x(&x)
+            .y(&top)
+            .width(SCROLL_WIDTH)
+            .height(&length)
+            .visible(&visible),
+    );
     card
 }
 
@@ -195,5 +223,26 @@ mod tests {
         scene.frame();
         assert!(scene.key_event(&KeyEvent::new(Key::Char('y'))));
         assert_eq!(text.get_untracked(), "xy");
+    }
+
+    #[test]
+    fn long_text_shows_a_scroll_indicator_at_the_end() {
+        let mut registry = Registry::new();
+        registry.register(TextAreaComponent);
+        let (text, focus) = (Signal::new(String::new()), Signal::new(true));
+        let mut scene = Scene::new(acanthus_scene::Fonts::new());
+        let root = scene.root();
+        let card = registry.build("TextArea", &mut scene, root, given(&text, &focus)).unwrap();
+        scene.frame();
+        let indicator = *scene.get(card).unwrap().children().last().unwrap();
+        assert!(!scene.get(indicator).unwrap().visible.get_untracked());
+        for _ in 0..12 {
+            scene.key_event(&KeyEvent::new(Key::Enter));
+            scene.frame();
+        }
+        scene.frame();
+        assert!(scene.get(indicator).unwrap().visible.get_untracked());
+        let at = scene.geometry(indicator).unwrap();
+        assert!(at.y > 10.0 && at.y + at.h <= 60.0);
     }
 }

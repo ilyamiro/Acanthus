@@ -48,6 +48,7 @@ struct Inner {
     lines: RefCell<Vec<Line>>,
     multiline: Cell<bool>,
     scroll_y: Signal<f32>,
+    content_height: Signal<f32>,
     goal_x: Cell<Option<f32>>,
     history: RefCell<History>,
     on_accepted: TextCallback,
@@ -88,6 +89,7 @@ impl TextInput {
                 lines: RefCell::new(Vec::new()),
                 multiline: Cell::new(false),
                 scroll_y: Signal::new(0.0),
+                content_height: Signal::new(0.0),
                 goal_x: Cell::new(None),
                 history: RefCell::new(History::default()),
                 on_accepted: RefCell::new(None),
@@ -165,6 +167,16 @@ impl TextInput {
     /// The signal telling whether the text is masked.
     pub fn password_signal(&self) -> Signal<bool> {
         self.inner.password.clone()
+    }
+
+    /// The vertical scroll offset signal of a multi-line field, in logical pixels.
+    pub fn scroll_y(&self) -> Signal<f32> {
+        self.inner.scroll_y.clone()
+    }
+
+    /// The height of all wrapped lines of a multi-line field, in logical pixels.
+    pub fn content_height(&self) -> Signal<f32> {
+        self.inner.content_height.clone()
     }
 
     /// The horizontal scroll offset signal, in logical pixels.
@@ -792,6 +804,7 @@ impl Host for TextInputHost {
         }
         inner.scroll.set(scroll);
         inner.scroll_y.set(scroll_y);
+        inner.content_height.set(content_height);
         *inner.points.borrow_mut() = map.points.clone();
         *inner.lines.borrow_mut() =
             map.lines.iter().map(|l| Line { top: l.top, first: l.first, last: l.last }).collect();
