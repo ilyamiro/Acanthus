@@ -216,6 +216,19 @@ pub(crate) struct TextParams {
     pub generation: u64,
 }
 
+pub(crate) struct CaretMap {
+    pub points: Vec<Vec2>,
+    pub lines: Vec<CaretLine>,
+}
+
+pub(crate) struct CaretLine {
+    pub top: f32,
+    pub height: f32,
+    pub right: f32,
+    pub first: usize,
+    pub last: usize,
+}
+
 pub(crate) struct ShapedText {
     text: String,
     family: String,
@@ -279,20 +292,61 @@ impl ShapedText {
         glyph.metadata.checked_sub(1).and_then(|i| self.links.get(i)).map(String::as_str)
     }
 
-    pub fn caret_positions(&self, text: &str) -> Vec<f32> {
-        let glyphs = self.buffer.layout_runs().next().map(|run| run.glyphs.to_vec()).unwrap_or_default();
-        let x_of = |byte: usize| -> f32 {
-            for g in &glyphs {
-                if byte <= g.start {
-                    return g.x;
-                }
-                if byte < g.end {
-                    return g.x + g.w * (byte - g.start) as f32 / (g.end - g.start).max(1) as f32;
+    pub fn caret_map(&self, text: &str) -> CaretMap {
+        let runs: Vec<_> = self.buffer.layout_runs().collect();
+        let mut points = Vec::with_capacity(text.len() + 1);
+        let mut lines: Vec<CaretLine> = Vec::new();
+        let run_end = |run: &cosmic_text::LayoutRun| run.glyphs.iter().map(|g| g.end).max();
+        let mut place = |byte: usize, index: usize, line_i: usize, line_start: usize, run_i: &mut usize| {
+            let rel = byte - line_start;
+            while *run_i < runs.len() {
+                let run = &runs[*run_i];
+                let next_same = runs.get(*run_i + 1).is_some_and(|n| n.line_i == line_i);
+                if run.line_i < line_i || (run.line_i == line_i && next_same && run_end(run).is_some_and(|e| rel >= e))
+                {
+                    *run_i += 1;
+                } else {
+                    break;
                 }
             }
-            glyphs.last().map_or(0.0, |g| g.x + g.w)
+            let Some(run) = runs.get(*run_i) else {
+                points.push(Vec2::new(0.0, 0.0));
+                return;
+            };
+            let mut x = run.glyphs.last().map_or(0.0, |g| g.x + g.w);
+            for g in run.glyphs {
+                if rel <= g.start {
+                    x = g.x;
+                    break;
+                }
+                if rel < g.end {
+                    x = g.x + g.w * (rel - g.start) as f32 / (g.end - g.start).max(1) as f32;
+                    break;
+                }
+            }
+            points.push(Vec2::new(x, run.line_top));
+            match lines.last_mut() {
+                Some(l) if l.top == run.line_top => l.last = index,
+                _ => lines.push(CaretLine {
+                    top: run.line_top,
+                    height: run.line_height,
+                    right: run.glyphs.iter().map(|g| g.x + g.w).fold(0.0, f32::max),
+                    first: index,
+                    last: index,
+                }),
+            }
         };
-        text.char_indices().map(|(i, _)| i).chain(std::iter::once(text.len())).map(x_of).collect()
+        let (mut line_i, mut line_start, mut run_i, mut index) = (0usize, 0usize, 0usize, 0usize);
+        for (byte, c) in text.char_indices() {
+            place(byte, index, line_i, line_start, &mut run_i);
+            index += 1;
+            if c == '\n' {
+                line_i += 1;
+                line_start = byte + 1;
+            }
+        }
+        place(text.len(), index, line_i, line_start, &mut run_i);
+        CaretMap { points, lines }
     }
 
     fn reshape(&mut self, fonts: &mut FontSystem) {

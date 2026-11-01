@@ -2,7 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use acanthus_anim::{Action, AnimHandle, Loop, Pause, Sequential};
-use acanthus_core::{Color, Effect, Signal};
+use acanthus_core::{Color, Effect, Signal, Vec2};
 
 use crate::dynamic::Host;
 use crate::keyboard::{Clipboard, CursorShape, Key, KeyEvent, PointerEvent, PointerPhase};
@@ -14,6 +14,20 @@ const PASSWORD_CHARACTER: char = '\u{25CF}';
 const DOUBLE_CLICK_SECONDS: f32 = 0.4;
 const BLINK_HALF_PERIOD_MS: u32 = 500;
 const CARET_WIDTH: f32 = 1.0;
+
+#[derive(Clone, Copy)]
+struct Line {
+    top: f32,
+    first: usize,
+    last: usize,
+}
+
+#[derive(Default)]
+struct History {
+    undo: Vec<(String, usize)>,
+    redo: Vec<(String, usize)>,
+    merge: bool,
+}
 
 type Validator = Box<dyn Fn(&str) -> bool>;
 
@@ -30,7 +44,12 @@ struct Inner {
     max_length: Signal<usize>,
     blink: Signal<bool>,
     scroll: Signal<f32>,
-    positions: RefCell<Vec<f32>>,
+    points: RefCell<Vec<Vec2>>,
+    lines: RefCell<Vec<Line>>,
+    multiline: Cell<bool>,
+    scroll_y: Signal<f32>,
+    goal_x: Cell<Option<f32>>,
+    history: RefCell<History>,
     on_accepted: TextCallback,
     on_edited: TextCallback,
     before_key: KeyFilter,
@@ -65,7 +84,12 @@ impl TextInput {
                 max_length: Signal::new(0),
                 blink: Signal::new(false),
                 scroll: Signal::new(0.0),
-                positions: RefCell::new(Vec::new()),
+                points: RefCell::new(Vec::new()),
+                lines: RefCell::new(Vec::new()),
+                multiline: Cell::new(false),
+                scroll_y: Signal::new(0.0),
+                goal_x: Cell::new(None),
+                history: RefCell::new(History::default()),
                 on_accepted: RefCell::new(None),
                 on_edited: RefCell::new(None),
                 before_key: RefCell::new(None),
@@ -78,6 +102,12 @@ impl TextInput {
     /// Sets whether the text is shown masked.
     pub fn password(self, v: bool) -> Self {
         self.inner.password.set(v);
+        self
+    }
+
+    /// Sets whether the field holds several lines (QML `TextEdit`): Enter inserts a line break, the text wraps at the field width and Up and Down move between lines.
+    pub fn multiline(self, v: bool) -> Self {
+        self.inner.multiline.set(v);
         self
     }
 
@@ -177,6 +207,7 @@ impl TextInput {
         self.inner.text.set(text);
         self.inner.cursor.set(end);
         self.inner.anchor.set(end);
+        *self.inner.history.borrow_mut() = History::default();
     }
 
     /// Clears the text.
@@ -200,6 +231,8 @@ impl TextInput {
     /// Moves the cursor to `index`, keeping the anchor when `extend` is true so the selection grows.
     pub fn set_cursor(&self, index: usize, extend: bool) {
         let index = index.min(self.len());
+        self.inner.goal_x.set(None);
+        self.inner.history.borrow_mut().merge = false;
         self.inner.cursor.set(index);
         if !extend {
             self.inner.anchor.set(index);
@@ -210,13 +243,23 @@ impl TextInput {
         self.inner.text.with(|t| t.chars().collect())
     }
 
-    fn commit(&self, chars: &[char], cursor: usize) -> bool {
+    fn commit(&self, chars: &[char], cursor: usize, merge: bool) -> bool {
         let text: String = chars.iter().collect();
         if let Some(validator) = self.inner.validator.borrow().as_ref()
             && !validator(&text)
         {
             return false;
         }
+        {
+            let old = (self.inner.text.get_untracked(), self.inner.cursor.get_untracked());
+            let mut history = self.inner.history.borrow_mut();
+            if !(merge && history.merge) {
+                history.undo.push(old);
+            }
+            history.merge = merge;
+            history.redo.clear();
+        }
+        self.inner.goal_x.set(None);
         self.inner.text.set(text.clone());
         self.inner.cursor.set(cursor);
         self.inner.anchor.set(cursor);
@@ -228,10 +271,15 @@ impl TextInput {
 
     /// Inserts `text` over the selection, dropping control characters and respecting the maximum length and validator. Returns true when the text changed.
     pub fn insert(&self, text: &str) -> bool {
+        self.insert_with(text, false)
+    }
+
+    fn insert_with(&self, text: &str, merge: bool) -> bool {
         if self.inner.read_only.get_untracked() {
             return false;
         }
-        let filtered: Vec<char> = text.chars().filter(|c| !c.is_control()).collect();
+        let multiline = self.inner.multiline.get();
+        let filtered: Vec<char> = text.chars().filter(|c| !c.is_control() || (multiline && *c == '\n')).collect();
         if filtered.is_empty() {
             return false;
         }
@@ -245,7 +293,7 @@ impl TextInput {
         }
         let caret = start + filtered.len();
         chars.splice(start..end, filtered);
-        self.commit(&chars, caret)
+        self.commit(&chars, caret, merge)
     }
 
     /// Deletes the selection. Returns true when the text changed.
@@ -256,7 +304,7 @@ impl TextInput {
         let (start, end) = self.selection();
         let mut chars = self.chars();
         chars.drain(start..end);
-        self.commit(&chars, start)
+        self.commit(&chars, start, false)
     }
 
     fn backspace(&self, word: bool) -> bool {
@@ -274,7 +322,7 @@ impl TextInput {
         let from = if word { word_start(&chars, cursor) } else { cursor - 1 };
         let mut chars = chars;
         chars.drain(from..cursor);
-        self.commit(&chars, from)
+        self.commit(&chars, from, false)
     }
 
     fn delete_forward(&self, word: bool) -> bool {
@@ -291,7 +339,77 @@ impl TextInput {
         }
         let to = if word { word_end(&chars, cursor) } else { cursor + 1 };
         chars.drain(cursor..to);
-        self.commit(&chars, cursor)
+        self.commit(&chars, cursor, false)
+    }
+
+    fn travel(&self, from_undo: bool) -> bool {
+        if self.inner.read_only.get_untracked() {
+            return false;
+        }
+        let current = (self.inner.text.get_untracked(), self.inner.cursor.get_untracked());
+        let target = {
+            let mut guard = self.inner.history.borrow_mut();
+            let history = &mut *guard;
+            history.merge = false;
+            let (take, keep) =
+                if from_undo { (&mut history.undo, &mut history.redo) } else { (&mut history.redo, &mut history.undo) };
+            let Some(target) = take.pop() else { return false };
+            keep.push(current);
+            target
+        };
+        let cursor = target.1.min(target.0.chars().count());
+        self.inner.goal_x.set(None);
+        self.inner.text.set(target.0.clone());
+        self.inner.cursor.set(cursor);
+        self.inner.anchor.set(cursor);
+        if let Some(f) = self.inner.on_edited.borrow_mut().as_mut() {
+            f(&target.0);
+        }
+        true
+    }
+
+    /// Reverts the last edit (consecutive typed characters count as one). Returns true when something changed.
+    pub fn undo(&self) -> bool {
+        self.travel(true)
+    }
+
+    /// Re-applies the last undone edit. Returns true when something changed.
+    pub fn redo(&self) -> bool {
+        self.travel(false)
+    }
+
+    fn line_of(&self, index: usize) -> Option<usize> {
+        self.inner.lines.borrow().iter().position(|l| index >= l.first && index <= l.last)
+    }
+
+    fn vertical(&self, down: bool, extend: bool) {
+        let cursor = self.inner.cursor.get_untracked();
+        let target = {
+            let lines = self.inner.lines.borrow();
+            let points = self.inner.points.borrow();
+            let Some(current) = self.line_of(cursor) else { return };
+            let goal = self.inner.goal_x.get().or_else(|| points.get(cursor).map(|p| p.x)).unwrap_or(0.0);
+            let next = if down { current + 1 } else { current.wrapping_sub(1) };
+            let index = match lines.get(next) {
+                Some(line) => (line.first..=line.last)
+                    .min_by(|a, b| (points[*a].x - goal).abs().total_cmp(&(points[*b].x - goal).abs()))
+                    .unwrap_or(line.first),
+                None if down => self.len(),
+                None => 0,
+            };
+            (index, goal)
+        };
+        self.set_cursor(target.0, extend);
+        self.inner.goal_x.set(Some(target.1));
+    }
+
+    fn line_edge(&self, end: bool, extend: bool) {
+        let cursor = self.inner.cursor.get_untracked();
+        let target = self.line_of(cursor).map(|i| {
+            let line = self.inner.lines.borrow()[i];
+            if end { line.last } else { line.first }
+        });
+        self.set_cursor(target.unwrap_or(if end { self.len() } else { 0 }), extend);
     }
 
     fn copy(&self, clipboard: &Clipboard) -> bool {
@@ -340,11 +458,19 @@ impl TextInput {
                 'c' => self.copy(clipboard),
                 'x' => self.cut(clipboard),
                 'v' => self.paste(clipboard),
+                'z' if event.modifiers.shift => self.redo(),
+                'z' => self.undo(),
+                'y' => self.redo(),
                 _ => false,
             },
             Key::Char(_) if event.modifiers.alt => false,
-            Key::Char(_) => {
-                self.insert(&event.text);
+            Key::Char(c) => {
+                let merge = !c.is_whitespace() && !self.has_selection();
+                self.insert_with(&event.text, merge);
+                true
+            }
+            Key::Enter if self.inner.multiline.get() && !event.modifiers.ctrl => {
+                self.insert("\n");
                 true
             }
             Key::Enter => {
@@ -377,6 +503,18 @@ impl TextInput {
                 }
                 true
             }
+            Key::Up | Key::Down if self.inner.multiline.get() => {
+                self.vertical(event.key == Key::Down, shift);
+                true
+            }
+            Key::Home if self.inner.multiline.get() && !word => {
+                self.line_edge(false, shift);
+                true
+            }
+            Key::End if self.inner.multiline.get() && !word => {
+                self.line_edge(true, shift);
+                true
+            }
             Key::Home => {
                 self.set_cursor(0, shift);
                 true
@@ -389,19 +527,24 @@ impl TextInput {
         }
     }
 
-    /// The character index closest to the horizontal position `x` within the field.
+    /// The character index closest to the horizontal position `x` on the first line of the field.
     pub fn index_at(&self, x: f32) -> usize {
-        let positions = self.inner.positions.borrow();
-        let x = x + self.inner.scroll.get_untracked();
-        positions
-            .iter()
-            .enumerate()
-            .min_by(|a, b| (a.1 - x).abs().total_cmp(&(b.1 - x).abs()))
-            .map_or(self.len(), |(i, _)| i)
+        self.index_at_point(Vec2::new(x, 0.0))
+    }
+
+    fn index_at_point(&self, point: Vec2) -> usize {
+        let points = self.inner.points.borrow();
+        let lines = self.inner.lines.borrow();
+        let x = point.x + self.inner.scroll.get_untracked();
+        let y = point.y + self.inner.scroll_y.get_untracked();
+        let Some(line) = lines.iter().rev().find(|l| l.top <= y).or(lines.first()) else { return self.len() };
+        (line.first..=line.last)
+            .min_by(|a, b| (points[*a].x - x).abs().total_cmp(&(points[*b].x - x).abs()))
+            .unwrap_or(line.first)
     }
 
     fn pointer(&self, event: PointerEvent) {
-        let index = self.index_at(event.position.x);
+        let index = self.index_at_point(event.position);
         match event.phase {
             PointerPhase::Press => {
                 let clicks = match self.inner.last_click.get() {
@@ -572,7 +715,8 @@ struct TextInputHost {
     field: NodeId,
     text: NodeId,
     caret: NodeId,
-    selection: NodeId,
+    selections: Vec<NodeId>,
+    selection_color: Signal<Color>,
     placeholder: NodeId,
     shaped: Option<ShapedText>,
 }
@@ -582,13 +726,17 @@ impl Host for TextInputHost {
         if !scene.contains(self.field) {
             return false;
         }
+        let inner = &self.input.inner;
+        let multiline = inner.multiline.get();
+        let geometry = scene.geometry(self.field);
+        let (width, height) = geometry.map_or((0.0, 0.0), |g| (g.w, g.h));
         let params = TextParams {
             size: self.style_size.get(),
             weight: self.style_weight.get(),
             axes: 0,
             styled: false,
-            max_width: None,
-            wrap: WrapMode::NoWrap,
+            max_width: (multiline && width > 0.0).then_some(width),
+            wrap: if multiline { WrapMode::WordOrAnywhere } else { WrapMode::NoWrap },
             elide: crate::text::Elide::None,
             max_lines: 0,
             line_height: None,
@@ -607,21 +755,33 @@ impl Host for TextInputHost {
         }
         drop(system);
         let shaped = self.shaped.as_ref().expect("shaped above");
-        let positions = shaped.caret_positions(&display);
-        let line_height = shaped.size.y;
+        let map = shaped.caret_map(&display);
+        let line_height = map.lines.first().map_or(shaped.size.y, |l| l.height);
+        let positions: Vec<f32> = map.points.iter().map(|p| p.x).collect();
+        let content_height = map.lines.last().map_or(0.0, |l| l.top + l.height);
 
-        let inner = &self.input.inner;
         let cursor = inner.cursor.get().min(positions.len().saturating_sub(1));
         let anchor = inner.anchor.get().min(positions.len().saturating_sub(1));
         let focused = self.focus.get();
         let blink = inner.blink.get();
         let caret_x = positions.get(cursor).copied().unwrap_or(0.0);
+        let caret_y = map.points.get(cursor).map_or(0.0, |p| p.y);
         let total = positions.last().copied().unwrap_or(0.0);
 
-        let geometry = scene.geometry(self.field);
-        let (width, height) = geometry.map_or((0.0, 0.0), |g| (g.w, g.h));
         let mut scroll = inner.scroll.get_untracked();
-        if width > 0.0 {
+        let mut scroll_y = inner.scroll_y.get_untracked();
+        if multiline {
+            scroll = 0.0;
+            if height > 0.0 {
+                if caret_y + line_height - scroll_y > height {
+                    scroll_y = caret_y + line_height - height;
+                }
+                if caret_y - scroll_y < 0.0 {
+                    scroll_y = caret_y;
+                }
+                scroll_y = scroll_y.clamp(0.0, (content_height - height).max(0.0));
+            }
+        } else if width > 0.0 {
             if caret_x - scroll > width - CARET_WIDTH {
                 scroll = caret_x - width + CARET_WIDTH;
             }
@@ -631,12 +791,13 @@ impl Host for TextInputHost {
             scroll = scroll.clamp(0.0, (total - width + CARET_WIDTH).max(0.0));
         }
         inner.scroll.set(scroll);
-        *inner.positions.borrow_mut() = positions.clone();
+        inner.scroll_y.set(scroll_y);
+        *inner.points.borrow_mut() = map.points.clone();
+        *inner.lines.borrow_mut() =
+            map.lines.iter().map(|l| Line { top: l.top, first: l.first, last: l.last }).collect();
 
-        let top = ((height - line_height) / 2.0).max(0.0);
+        let top = if multiline { 0.0 } else { ((height - line_height) / 2.0).max(0.0) };
         let (start, end) = (cursor.min(anchor), cursor.max(anchor));
-        let (sel_x, sel_end) =
-            (positions.get(start).copied().unwrap_or(0.0), positions.get(end).copied().unwrap_or(0.0));
 
         let set = |scene: &mut Scene, id: NodeId, x: f32, y: f32, w: Option<f32>, h: Option<f32>| {
             let Some(node) = scene.nodes.get(id) else { return };
@@ -649,15 +810,35 @@ impl Host for TextInputHost {
                 signal.set(h);
             }
         };
-        set(scene, self.text, -scroll, top, None, None);
+        set(scene, self.text, -scroll, top - scroll_y, multiline.then_some(width), None);
         set(scene, self.placeholder, 0.0, top, None, None);
-        set(scene, self.caret, caret_x - scroll, top, Some(CARET_WIDTH), Some(line_height));
-        set(scene, self.selection, sel_x - scroll, top, Some(sel_end - sel_x), Some(line_height));
+        set(scene, self.caret, caret_x - scroll, top + caret_y - scroll_y, Some(CARET_WIDTH), Some(line_height));
+
+        let mut rects: Vec<(f32, f32, f32, f32)> = Vec::new();
+        if start != end {
+            for line in &map.lines {
+                if start > line.last || end <= line.first {
+                    continue;
+                }
+                let left = map.points[start.max(line.first)].x;
+                let right = if end > line.last { line.right } else { map.points[end].x };
+                rects.push((left - scroll, top + line.top - scroll_y, (right - left).max(0.0), line.height));
+            }
+        }
+        while self.selections.len() < rects.len() {
+            let id = scene.add(self.field, Node::rect().color(self.selection_color.clone()).size(0.0, 0.0));
+            self.selections.push(id);
+        }
+        for (i, id) in self.selections.iter().enumerate() {
+            let rect = rects.get(i).copied();
+            let (x, y, w, h) = rect.unwrap_or((0.0, 0.0, 0.0, 0.0));
+            set(scene, *id, x, y, Some(w), Some(h));
+            if let Some(node) = scene.nodes.get(*id) {
+                node.visible.set(rect.is_some());
+            }
+        }
         if let Some(node) = scene.nodes.get(self.caret) {
             node.visible.set(focused && blink && start == end);
-        }
-        if let Some(node) = scene.nodes.get(self.selection) {
-            node.visible.set(start != end);
         }
         true
     }
@@ -698,6 +879,17 @@ impl Scene {
     /// Focuses `node` whenever `trigger` turns true.
     pub fn focus_when(&mut self, node: NodeId, trigger: Signal<bool>) {
         self.push_host(Box::new(FocusWhen { node, trigger, last: false }));
+    }
+
+    /// Builds a multi-line text area (QML `TextEdit`): [`Scene::text_input`] with `input` set to multiline.
+    pub fn text_edit(
+        &mut self,
+        parent: NodeId,
+        field: Node,
+        input: &TextInput,
+        style: TextInputStyle,
+    ) -> TextInputNodes {
+        self.text_input(parent, field, &input.clone().multiline(true), style)
     }
 
     /// Builds a text field under `parent`: the `field` node is made focusable and wired to `input`, with text, selection, caret and placeholder nodes inside styled by `style`.
@@ -748,14 +940,15 @@ impl Scene {
                 .own(placeholder_effect),
         );
         let selection = self.add(field, Node::rect().color(style.selection_color.clone()).size(0.0, 0.0));
-        let text_node = self.add(
-            field,
-            Node::text(display.clone())
-                .color(style.color.clone())
-                .font_size(style.font_size.clone())
-                .font_weight(style.font_weight.clone())
-                .font_family(style.font_family.clone()),
-        );
+        let mut text_builder = Node::text(display.clone())
+            .color(style.color.clone())
+            .font_size(style.font_size.clone())
+            .font_weight(style.font_weight.clone())
+            .font_family(style.font_family.clone());
+        if input.inner.multiline.get() {
+            text_builder = text_builder.wrap_mode(WrapMode::WordOrAnywhere).width(0.0);
+        }
+        let text_node = self.add(field, text_builder);
         let caret =
             self.add(field, Node::rect().color(style.caret_color.clone()).size(CARET_WIDTH, 0.0).visible(false));
 
@@ -771,7 +964,8 @@ impl Scene {
             field,
             text: text_node,
             caret,
-            selection,
+            selections: vec![selection],
+            selection_color: style.selection_color,
             placeholder,
             shaped: None,
         }));
@@ -1064,7 +1258,7 @@ mod tests {
         let (mut s, input, _nodes) = field_scene();
         input.set_text("hello world");
         s.frame();
-        let positions = input.inner.positions.borrow().clone();
+        let positions: Vec<f32> = input.inner.points.borrow().iter().map(|p| p.x).collect();
         let target = positions[3] + 0.5;
         s.pointer_motion_at(Vec2::new(target, 15.0), 0.0);
         s.pointer_button_at(MouseButton::Left, true, 0.0);
@@ -1083,7 +1277,7 @@ mod tests {
         let (mut s, input, _nodes) = field_scene();
         input.set_text("hello world");
         s.frame();
-        let positions = input.inner.positions.borrow().clone();
+        let positions: Vec<f32> = input.inner.points.borrow().iter().map(|p| p.x).collect();
         s.pointer_motion_at(Vec2::new(positions[1], 15.0), 1.0);
         s.pointer_button_at(MouseButton::Left, true, 1.0);
         s.pointer_motion_at(Vec2::new(positions[4], 15.0), 1.1);
@@ -1108,5 +1302,88 @@ mod tests {
         let Kind::Text(style) = &s.get(nodes.text).unwrap().kind else { panic!("text node") };
         assert_eq!(style.text.get_untracked(), "\u{25CF}\u{25CF}\u{25CF}");
         assert_eq!(input.text().get_untracked(), "abc");
+    }
+
+    fn area_scene(width: f32) -> (Scene, TextInput, TextInputNodes) {
+        let mut s = Scene::new(Fonts::new());
+        s.set_viewport(Vec2::new(300.0, 200.0), 1.0);
+        let input = TextInput::new("");
+        let root = s.root();
+        let nodes = s.text_edit(root, Node::item().size(width, 80.0), &input, TextInputStyle::default());
+        s.frame();
+        (s, input, nodes)
+    }
+
+    #[test]
+    fn enter_breaks_lines_and_arrows_move_between_them() {
+        let (mut s, input, _) = area_scene(200.0);
+        let clipboard = Clipboard::default();
+        typed(&input, &clipboard, "ab");
+        assert!(input.handle_key(&press(Key::Enter, NONE), &clipboard));
+        typed(&input, &clipboard, "cdef");
+        assert_eq!(input.text().get_untracked(), "ab\ncdef");
+        s.frame();
+        assert_eq!(input.inner.lines.borrow().len(), 2);
+        input.handle_key(&press(Key::Up, NONE), &clipboard);
+        s.frame();
+        assert!(input.cursor().get_untracked() <= 2);
+        input.handle_key(&press(Key::Down, NONE), &clipboard);
+        assert!(input.cursor().get_untracked() >= 3);
+        input.handle_key(&press(Key::Home, NONE), &clipboard);
+        assert_eq!(input.cursor().get_untracked(), 3);
+        input.handle_key(&press(Key::End, SHIFT), &clipboard);
+        assert_eq!(input.selected_text(), "cdef");
+        input.handle_key(&press(Key::Enter, CTRL), &clipboard);
+        assert_eq!(input.text().get_untracked(), "ab\ncdef");
+    }
+
+    #[test]
+    fn long_text_wraps_and_clicks_land_on_the_clicked_line() {
+        let (mut s, input, _) = area_scene(60.0);
+        input.set_text("alpha beta gamma delta");
+        s.frame();
+        s.frame();
+        let lines = input.inner.lines.borrow().clone();
+        assert!(lines.len() >= 3);
+        let second = lines[1];
+        s.pointer_motion_at(Vec2::new(1.0, second.top + 2.0), 0.0);
+        s.pointer_button_at(MouseButton::Left, true, 0.0);
+        s.pointer_button_at(MouseButton::Left, false, 0.05);
+        assert_eq!(input.cursor().get_untracked(), second.first);
+    }
+
+    #[test]
+    fn selection_spans_several_lines() {
+        let (mut s, input, nodes) = area_scene(200.0);
+        input.set_text("one\ntwo\nthree");
+        input.select(1, 10);
+        s.frame();
+        let visible = |s: &Scene, id: NodeId| s.get(id).is_some_and(|n| n.visible.get_untracked());
+        assert!(visible(&s, nodes.selection));
+        let rects = s.get(nodes.field).map_or(0, |n| n.children().len());
+        assert!(rects >= 4 + 2);
+    }
+
+    #[test]
+    fn typing_is_one_undo_step_and_redo_restores() {
+        let (_s, input, _) = field_scene();
+        let clipboard = Clipboard::default();
+        typed(&input, &clipboard, "hello");
+        input.handle_key(&press(Key::Left, NONE), &clipboard);
+        typed(&input, &clipboard, "X");
+        assert_eq!(input.text().get_untracked(), "hellXo");
+        assert!(input.handle_key(&press(Key::Char('z'), CTRL), &clipboard));
+        assert_eq!(input.text().get_untracked(), "hello");
+        assert!(input.undo());
+        assert_eq!(input.text().get_untracked(), "");
+        assert!(!input.undo());
+        assert!(input.handle_key(&press(Key::Char('y'), CTRL), &clipboard));
+        assert_eq!(input.text().get_untracked(), "hello");
+        assert!(input.redo());
+        assert_eq!(input.text().get_untracked(), "hellXo");
+        assert!(!input.redo());
+        input.undo();
+        input.clear();
+        assert!(!input.undo());
     }
 }

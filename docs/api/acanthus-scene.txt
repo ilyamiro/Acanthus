@@ -612,6 +612,7 @@ acanthus_scene::Scene::stats: fn stats (& self) -> Signal < FrameStats >
 acanthus_scene::Scene::surface_input_region: fn surface_input_region (& self) -> Option < Vec < Rect > >
 acanthus_scene::Scene::surface_layer_geometry: fn surface_layer_geometry (& self) -> Option < LayerGeometry >
 acanthus_scene::Scene::surface_output: fn surface_output (& self) -> Signal < Option < SurfaceOutput > >
+acanthus_scene::Scene::text_edit: fn text_edit (& mut self , parent : NodeId , field : Node , input : & TextInput , style : TextInputStyle ,) -> TextInputNodes
 acanthus_scene::Scene::text_input: fn text_input (& mut self , parent : NodeId , field : Node , input : & TextInput , style : TextInputStyle ,) -> TextInputNodes
 acanthus_scene::Scene::ui_scale: fn ui_scale (& self) -> f32
 acanthus_scene::Scene::viewport: fn viewport (& self) -> Signal < Vec2 >
@@ -705,12 +706,14 @@ acanthus_scene::TextInput::insert: fn insert (& self , text : & str) -> bool
 acanthus_scene::TextInput::is_empty: fn is_empty (& self) -> bool
 acanthus_scene::TextInput::len: fn len (& self) -> usize
 acanthus_scene::TextInput::max_length: fn max_length (self , v : usize) -> Self
+acanthus_scene::TextInput::multiline: fn multiline (self , v : bool) -> Self
 acanthus_scene::TextInput::new: fn new (text : impl Into < String >) -> Self
 acanthus_scene::TextInput::on_accepted: fn on_accepted (self , f : impl FnMut (& str) + 'static) -> Self
 acanthus_scene::TextInput::on_edited: fn on_edited (self , f : impl FnMut (& str) + 'static) -> Self
 acanthus_scene::TextInput::password: fn password (self , v : bool) -> Self
 acanthus_scene::TextInput::password_signal: fn password_signal (& self) -> Signal < bool >
 acanthus_scene::TextInput::read_only: fn read_only (self , v : bool) -> Self
+acanthus_scene::TextInput::redo: fn redo (& self) -> bool
 acanthus_scene::TextInput::scroll: fn scroll (& self) -> Signal < f32 >
 acanthus_scene::TextInput::select: fn select (& self , anchor : usize , cursor : usize)
 acanthus_scene::TextInput::select_all: fn select_all (& self)
@@ -719,6 +722,7 @@ acanthus_scene::TextInput::selection: fn selection (& self) -> (usize , usize)
 acanthus_scene::TextInput::set_cursor: fn set_cursor (& self , index : usize , extend : bool)
 acanthus_scene::TextInput::set_text: fn set_text (& self , text : impl Into < String >)
 acanthus_scene::TextInput::text: fn text (& self) -> Signal < String >
+acanthus_scene::TextInput::undo: fn undo (& self) -> bool
 acanthus_scene::TextInput::validator: fn validator (self , f : impl Fn (& str) -> bool + 'static) -> Self
 acanthus_scene::TextInputNodes.caret: NodeId
 acanthus_scene::TextInputNodes.field: NodeId

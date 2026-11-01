@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `TextInput::multiline`, `Scene::text_edit`, `TextInput::undo` and `redo`: QML `TextEdit` semantics on the text field (Enter breaks lines, text wraps at the field width, Up, Down, Home and End move by visual line with a remembered column, selection and caret span lines, pointer placement and drag across lines) and Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y history where typed characters merge into one step.
 - `acanthus_anim::Smoothed`: QML `SmoothedAnimation` (velocity or duration, quadratic ease in and out, retargets splice onto the current velocity).
 - `ListView::current_index` and `ListView::set_highlight`: QML `currentIndex` and `highlight` with `highlightFollowsCurrentItem`; the highlight moves and resizes with `Smoothed` (`ListViewConfig::highlight_move_velocity`, `highlight_move_ms`, `highlight_resize_velocity`, `highlight_resize_ms`, Qt defaults 400 px/s), and the view scrolls to keep it in sight until the user drags or flicks.
 - Styled text as QML `Text.StyledText`: `<a href>` links (underlined, `Node::link_color`, `Node::on_link` for QML `linkActivated`, `Scene::link_at`), `<h1>` to `<h6>` headings, `<ul>`/`<ol>`/`<li>` lists with Qt's markers and indent, `<p>` and `<u>`, and whitespace collapsed as Qt does; `<em>` is no longer italic (Qt does not know it).
