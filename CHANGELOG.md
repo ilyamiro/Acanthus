@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_widgets::chart` with the `Chart` and `Sparkline` components: a list of numbers (new `Kind::NumberList` prop) plotted as a stroked line over an optional area fill and horizontal grid lines, on a canvas that repaints when the data changes.
 - `acanthus_widgets::popup_frame` with the `PopupFrame` component: the card of a popup with a rounded fill, outline and drop shadow that scales in from its top edge while sliding down and fading (250 ms OutQuint) and out again (150 ms InQuint); the body and an optional wallpaper backdrop are its children.
 - `acanthus_widgets::dialog` with the `Dialog` component: a modal card (title, message, buttons, Enter picks the primary one) over a scrim that fades in, blocks the pointer behind it and dismisses on a click outside the card or Escape, taking the focus while open.
 - `acanthus_widgets::selector` with the `NumberSelector` and `TimeSelector` components: a value between minus and plus buttons changed by click, wheel and Up, Down, PageUp, PageDown, Home and End, clamped or wrapping, with decimals and zero padding; the time selector pairs hour and minute fields over minutes since midnight.

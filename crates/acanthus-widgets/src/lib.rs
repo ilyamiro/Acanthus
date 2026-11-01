@@ -1,4 +1,5 @@
 pub mod button;
+pub mod chart;
 pub mod choice;
 pub mod component;
 pub mod dialog;
@@ -26,6 +27,8 @@ pub mod wheel;
 pub fn standard_registry() -> component::Registry {
     let mut registry = component::Registry::new();
     registry.register(slider::SliderComponent);
+    registry.register(chart::ChartComponent { sparkline: false });
+    registry.register(chart::ChartComponent { sparkline: true });
     registry.register(choice::CheckboxComponent);
     registry.register(dialog::DialogComponent);
     registry.register(choice::RadioGroupComponent);
@@ -55,6 +58,7 @@ mod tests {
         assert_eq!(
             super::standard_registry().names(),
             vec![
+                "Chart",
                 "Checkbox",
                 "Dialog",
                 "Dropdown",
@@ -67,6 +71,7 @@ mod tests {
                 "ScrollBar",
                 "SearchField",
                 "Slider",
+                "Sparkline",
                 "Spinner",
                 "Switch",
                 "Tabs",

@@ -32,6 +32,22 @@ acanthus_widgets::button::dress: fn dress (scene : & mut Scene , body : NodeId ,
 acanthus_widgets::button::flash: fn flash (scene : & mut Scene , body : NodeId , radius : & Signal < f32 > , press : & Press)
 acanthus_widgets::button::focusable: fn focusable (node : Node , activate : Rc < dyn Fn () >) -> Node
 acanthus_widgets::button::icon_button: fn icon_button (scene : & mut Scene , parent : NodeId , spec : IconSpec) -> NodeId
+acanthus_widgets::chart::ChartComponent.sparkline: bool
+acanthus_widgets::chart::ChartComponent: struct
+acanthus_widgets::chart::LineChart.color: Signal < Color >
+acanthus_widgets::chart::LineChart.fill: f32
+acanthus_widgets::chart::LineChart.grid: u32
+acanthus_widgets::chart::LineChart.grid_color: Signal < Color >
+acanthus_widgets::chart::LineChart.height: f32
+acanthus_widgets::chart::LineChart.max: Signal < f32 >
+acanthus_widgets::chart::LineChart.min: Signal < f32 >
+acanthus_widgets::chart::LineChart.thickness: f32
+acanthus_widgets::chart::LineChart.values: Signal < Vec < f32 > >
+acanthus_widgets::chart::LineChart.width: f32
+acanthus_widgets::chart::LineChart: struct
+acanthus_widgets::chart::bounds: fn bounds (values : & [f32] , min : f32 , max : f32) -> (f32 , f32)
+acanthus_widgets::chart::line_chart: fn line_chart (scene : & mut Scene , parent : NodeId , chart : LineChart) -> NodeId
+acanthus_widgets::chart::plot: fn plot (values : & [f32] , size : Vec2 , inset : f32 , min : f32 , max : f32) -> Vec < Vec2 >
 acanthus_widgets::choice::Checkbox.checked: Signal < bool >
 acanthus_widgets::choice::Checkbox.enabled: Signal < bool >
 acanthus_widgets::choice::Checkbox.label: Signal < String >
@@ -81,6 +97,7 @@ acanthus_widgets::component::Kind::IndexEvent: variant
 acanthus_widgets::component::Kind::Node: variant 
 acanthus_widgets::component::Kind::Number: variant 
 acanthus_widgets::component::Kind::NumberEvent: variant 
+acanthus_widgets::component::Kind::NumberList: variant 
 acanthus_widgets::component::Kind::Point: variant 
 acanthus_widgets::component::Kind::Text: variant 
 acanthus_widgets::component::Kind::TextList: variant 
@@ -97,6 +114,7 @@ acanthus_widgets::component::Prop::IndexEvent: variant (Rc < dyn Fn (usize) >)
 acanthus_widgets::component::Prop::Node: variant (NodeId)
 acanthus_widgets::component::Prop::Number: variant (Signal < f32 >)
 acanthus_widgets::component::Prop::NumberEvent: variant (Rc < dyn Fn (f32) >)
+acanthus_widgets::component::Prop::NumberList: variant (Signal < Vec < f32 > >)
 acanthus_widgets::component::Prop::Point: variant (Signal < Vec2 >)
 acanthus_widgets::component::Prop::Text: variant (Signal < String >)
 acanthus_widgets::component::Prop::TextList: variant (Signal < Vec < String > >)
@@ -120,6 +138,7 @@ acanthus_widgets::component::PropSpec::index: const fn index (name : & 'static s
 acanthus_widgets::component::PropSpec::index_event: const fn index_event (name : & 'static str) -> PropSpec
 acanthus_widgets::component::PropSpec::number: const fn number (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::number_event: const fn number_event (name : & 'static str) -> PropSpec
+acanthus_widgets::component::PropSpec::number_list: const fn number_list (name : & 'static str) -> PropSpec
 acanthus_widgets::component::PropSpec::point: const fn point (name : & 'static str , default : fn () -> Prop) -> PropSpec
 acanthus_widgets::component::PropSpec::required: const fn required (name : & 'static str , kind : Kind) -> PropSpec
 acanthus_widgets::component::PropSpec::scaled: const fn scaled (name : & 'static str , scale : & 'static str , fallback : fn () -> Prop) -> PropSpec
@@ -138,6 +157,7 @@ acanthus_widgets::component::Props::index_event: fn index_event (& self , name :
 acanthus_widgets::component::Props::node: fn node (& self , name : & str) -> NodeId
 acanthus_widgets::component::Props::number: fn number (& self , name : & str) -> Signal < f32 >
 acanthus_widgets::component::Props::number_event: fn number_event (& self , name : & str) -> Rc < dyn Fn (f32) >
+acanthus_widgets::component::Props::number_list: fn number_list (& self , name : & str) -> Signal < Vec < f32 > >
 acanthus_widgets::component::Props::point: fn point (& self , name : & str) -> Signal < Vec2 >
 acanthus_widgets::component::Props::text: fn text (& self , name : & str) -> Signal < String >
 acanthus_widgets::component::Props::text_list: fn text_list (& self , name : & str) -> Signal < Vec < String > >
@@ -547,6 +567,7 @@ acanthus_widgets::wheel::Wheel::feed: fn feed (& mut self , delta : f32) -> i32
 acanthus_widgets::wheel::Wheel::reset: fn reset (& mut self)
 acanthus_widgets::wheel::wheel_units: fn wheel_units (delta_y : f32) -> f32
 impl Component for acanthus_widgets::button::IconButtonComponent
+impl Component for acanthus_widgets::chart::ChartComponent
 impl Component for acanthus_widgets::choice::CheckboxComponent
 impl Component for acanthus_widgets::choice::RadioGroupComponent
 impl Component for acanthus_widgets::dialog::DialogComponent

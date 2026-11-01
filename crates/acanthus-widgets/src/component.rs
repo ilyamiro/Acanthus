@@ -34,6 +34,8 @@ pub enum Kind {
     Index,
     /// A list of text values behind one signal.
     TextList,
+    /// A list of numbers behind one signal.
+    NumberList,
     /// A fixed row of text signals.
     TextSlots,
     /// A node of the scene.
@@ -58,6 +60,7 @@ impl Kind {
             Kind::IndexEvent => "index event",
             Kind::Index => "index",
             Kind::TextList => "text list",
+            Kind::NumberList => "number list",
             Kind::TextSlots => "text slots",
             Kind::Node => "node",
             Kind::Point => "point",
@@ -89,6 +92,8 @@ pub enum Prop {
     Index(Signal<usize>),
     /// A list of text values behind one signal.
     TextList(Signal<Vec<String>>),
+    /// A list of numbers behind one signal.
+    NumberList(Signal<Vec<f32>>),
     /// A fixed row of text signals.
     TextSlots(Vec<Signal<String>>),
     /// A node of the scene.
@@ -113,6 +118,7 @@ impl Prop {
             Prop::IndexEvent(_) => Kind::IndexEvent,
             Prop::Index(_) => Kind::Index,
             Prop::TextList(_) => Kind::TextList,
+            Prop::NumberList(_) => Kind::NumberList,
             Prop::TextSlots(_) => Kind::TextSlots,
             Prop::Node(_) => Kind::Node,
             Prop::Point(_) => Kind::Point,
@@ -200,6 +206,17 @@ impl PropSpec {
     /// An optional index prop.
     pub const fn index(name: &'static str, default: fn() -> Prop) -> PropSpec {
         PropSpec { name, kind: Kind::Index, default: Some(default), role: None, scale: None }
+    }
+
+    /// An optional list of numbers; empty by default.
+    pub const fn number_list(name: &'static str) -> PropSpec {
+        PropSpec {
+            name,
+            kind: Kind::NumberList,
+            default: Some(|| Prop::NumberList(Signal::new(Vec::new()))),
+            role: None,
+            scale: None,
+        }
     }
 
     /// An optional list of texts; empty by default.
@@ -351,6 +368,17 @@ impl Props {
         match self.get(name) {
             Prop::TextList(signal) => signal.clone(),
             other => panic!("prop `{name}` is a {}, not a text list", other.kind().word()),
+        }
+    }
+
+    /// The number list prop `name`.
+    ///
+    /// # Panics
+    /// When the component did not declare `name` as a number list.
+    pub fn number_list(&self, name: &str) -> Signal<Vec<f32>> {
+        match self.get(name) {
+            Prop::NumberList(signal) => signal.clone(),
+            other => panic!("prop `{name}` is a {}, not a number list", other.kind().word()),
         }
     }
 
