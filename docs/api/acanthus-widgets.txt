@@ -240,6 +240,27 @@ acanthus_widgets::menu::row_span: fn row_span (entries : & [MenuEntry] , index :
 acanthus_widgets::menu::step: fn step (entries : & [MenuEntry] , from : Option < usize > , step : i32) -> Option < usize >
 acanthus_widgets::menu::typeahead: fn typeahead (entries : & [MenuEntry] , from : Option < usize > , typed : char) -> Option < usize >
 acanthus_widgets::profiler::overlay: fn overlay (scene : & mut Scene , parent : NodeId , label : impl Fn (& FrameStats) -> String + 'static) -> NodeId
+acanthus_widgets::progress::INDETERMINATE_MS: const INDETERMINATE_MS: u32
+acanthus_widgets::progress::ProgressBar.fill: Signal < Color >
+acanthus_widgets::progress::ProgressBar.height: f32
+acanthus_widgets::progress::ProgressBar.indeterminate: Signal < bool >
+acanthus_widgets::progress::ProgressBar.track: Signal < Color >
+acanthus_widgets::progress::ProgressBar.value: Signal < f32 >
+acanthus_widgets::progress::ProgressBar.width: Signal < f32 >
+acanthus_widgets::progress::ProgressBar: struct
+acanthus_widgets::progress::ProgressBarComponent: struct
+acanthus_widgets::progress::SEGMENT_SHARE: const SEGMENT_SHARE: f32
+acanthus_widgets::progress::SPINNER_TURN_MS: const SPINNER_TURN_MS: u32
+acanthus_widgets::progress::Spinner.color: Signal < Color >
+acanthus_widgets::progress::Spinner.running: Signal < bool >
+acanthus_widgets::progress::Spinner.size: f32
+acanthus_widgets::progress::Spinner.thickness: f32
+acanthus_widgets::progress::Spinner: struct
+acanthus_widgets::progress::SpinnerComponent: struct
+acanthus_widgets::progress::fill_width: fn fill_width (value : f32 , width : f32) -> f32
+acanthus_widgets::progress::progress_bar: fn progress_bar (scene : & mut Scene , parent : NodeId , keep : & mut Keep , bar : ProgressBar) -> NodeId
+acanthus_widgets::progress::segment_x: fn segment_x (phase : f32 , width : f32) -> f32
+acanthus_widgets::progress::spinner: fn spinner (scene : & mut Scene , parent : NodeId , keep : & mut Keep , spinner : Spinner) -> NodeId
 acanthus_widgets::screencopy::screencopy_view: fn screencopy_view (frame : Signal < Option < Arc < Decoded > > > , fill : FillMode) -> Node
 acanthus_widgets::scrollbar::ScrollBar.color: C
 acanthus_widgets::scrollbar::ScrollBar.flickable: Flickable
@@ -397,6 +418,8 @@ acanthus_widgets::wheel::wheel_units: fn wheel_units (delta_y : f32) -> f32
 impl Component for acanthus_widgets::button::IconButtonComponent
 impl Component for acanthus_widgets::dropdown::DropdownComponent
 impl Component for acanthus_widgets::marquee::MarqueeComponent
+impl Component for acanthus_widgets::progress::ProgressBarComponent
+impl Component for acanthus_widgets::progress::SpinnerComponent
 impl Component for acanthus_widgets::scrollbar::ScrollBarComponent
 impl Component for acanthus_widgets::search_field::SearchFieldComponent
 impl Component for acanthus_widgets::slider::SliderComponent

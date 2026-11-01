@@ -4,6 +4,7 @@ pub mod dropdown;
 pub mod marquee;
 pub mod menu;
 pub mod profiler;
+pub mod progress;
 pub mod screencopy;
 pub mod scrollbar;
 pub mod search_field;
@@ -24,6 +25,8 @@ pub fn standard_registry() -> component::Registry {
     registry.register(marquee::MarqueeComponent);
     registry.register(switch::SwitchComponent);
     registry.register(dropdown::DropdownComponent);
+    registry.register(progress::ProgressBarComponent);
+    registry.register(progress::SpinnerComponent);
     registry.register(scrollbar::ScrollBarComponent);
     registry.register(search_field::SearchFieldComponent);
     registry.register(text_area::TextAreaComponent);
@@ -41,9 +44,11 @@ mod tests {
                 "Dropdown",
                 "IconButton",
                 "Marquee",
+                "ProgressBar",
                 "ScrollBar",
                 "SearchField",
                 "Slider",
+                "Spinner",
                 "Switch",
                 "TextArea",
                 "Toggle",
