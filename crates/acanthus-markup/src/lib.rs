@@ -5,7 +5,9 @@
 mod diag;
 mod expr;
 mod lex;
+mod parse;
 
 pub use diag::{Diagnostic, Span};
 pub use expr::{Expr, ExprKind, Functions, Op, Scope, Value};
 pub use lex::{Token, TokenKind, lex};
+pub use parse::{Component, Document, Member, VERSION, parse};

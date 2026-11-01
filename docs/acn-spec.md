@@ -7,11 +7,11 @@ The version of a file is its first statement, `acn 0`. A file without it is read
 ## Lexical rules
 
 - UTF-8 text. Line comments `// ...` and block comments `/* ... */` (not nested) are whitespace.
-- Identifiers: `[A-Za-z_][A-Za-z0-9_]*`. A component name starts with an upper-case letter; properties, ids and functions start with a lower-case letter or `_`.
+- Identifiers: `[A-Za-z_][A-Za-z0-9_]*`. A component name starts with an upper-case letter; properties, ids and functions are `snake_case` and start with a lower-case letter or `_`.
 - Numbers: `12`, `0.5`, `.5`, `1e3`. All numbers are `f64` in the language.
 - Strings: `"..."` with the escapes `\" \\ \n \t \u{hex}`. A string may not contain a raw newline.
 - Colours: `#rgb`, `#rrggbb`, `#rrggbbaa`.
-- Keywords: `acn`, `property`, `on`, `Behavior`, `true`, `false`, `null`.
+- Keywords: `acn`, `id`, `property`, `Behavior`, `on`, `true`, `false`, `null`.
 - Punctuation: `{ } ( ) [ ] : ; , . ? ! + - * / % < > <= >= == != && ||`.
 - Members of a component are separated by a newline or `;`. A line that starts with a binary operator, `(`, `[` or `.` continues the previous expression only inside parentheses or brackets.
 
@@ -22,7 +22,7 @@ file      = [ "acn" number ] component
 component = Name "{" { member } "}"
 member    = "id" ":" ident
           | "property" ident ":" expr
-          | "on" Event ":" expr
+          | "on_" ident ":" expr
           | "Behavior" "on" ident "{" component "}"
           | ident ":" expr
           | component
@@ -30,7 +30,7 @@ member    = "id" ":" ident
 
 - `id: name` gives the component a name that expressions can use as a path root.
 - `property name: expr` declares a property of the enclosing component that other expressions can read.
-- `onEvent: expr` binds an event; the expression is evaluated when the event fires and is normally a call (`onClicked: action("popup.toggle")`). The event name is `on` followed by the capitalised event name, `onClicked`, `onChanged`.
+- `on_event: expr` binds an event, named like the component's event prop (`on_click`, `on_moved`); the expression is evaluated when the event fires and is normally a call (`on_click: action("popup.toggle")`).
 - `Behavior on prop { Tween { duration: 200 } }` animates changes of `prop` (maps to `Node::animate`).
 - Any other `name: expr` sets a property of the component. The expression re-evaluates when a signal it reads changes.
 
