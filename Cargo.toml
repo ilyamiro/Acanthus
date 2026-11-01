@@ -13,6 +13,7 @@ members = [
     "crates/acanthus-services",
     "crates/acanthus-widgets",
     "crates/acanthus-app",
+    "crates/acanthus-markup",
     "examples/hello-bar",
     "examples/hello-popup",
     "examples/hello-widget",
@@ -39,6 +40,7 @@ acanthus-runtime = { path = "crates/acanthus-runtime" }
 acanthus-services = { path = "crates/acanthus-services" }
 acanthus-widgets = { path = "crates/acanthus-widgets" }
 acanthus-app = { path = "crates/acanthus-app" }
+acanthus-markup = { path = "crates/acanthus-markup" }
 
 wgpu = { version = "30.0.1", default-features = false, features = ["vulkan", "wgsl", "std"] }
 smithay-client-toolkit = { version = "0.21.1", default-features = false, features = ["calloop", "xkbcommon"] }

@@ -1,0 +1,26 @@
+acanthus_markup::Diagnostic.hint: Option < String >
+acanthus_markup::Diagnostic.message: String
+acanthus_markup::Diagnostic.span: Span
+acanthus_markup::Diagnostic: struct [Clone, Debug, PartialEq]
+acanthus_markup::Diagnostic::new: fn new (span : Span , message : impl Into < String >) -> Diagnostic
+acanthus_markup::Diagnostic::position: fn position (& self , src : & str) -> (usize , usize)
+acanthus_markup::Diagnostic::render: fn render (& self , file : & str , src : & str) -> String
+acanthus_markup::Diagnostic::unknown: fn unknown < 'a > (span : Span , what : & str , word : & str , known : impl IntoIterator < Item = & 'a str >) -> Diagnostic
+acanthus_markup::Span.end: usize
+acanthus_markup::Span.start: usize
+acanthus_markup::Span: struct [Clone, Copy, Debug, Default, Eq, PartialEq]
+acanthus_markup::Span::to: fn to (self , other : Span) -> Span
+acanthus_markup::Token.kind: TokenKind
+acanthus_markup::Token.newline: bool
+acanthus_markup::Token.span: Span
+acanthus_markup::Token: struct [Clone, Debug, PartialEq]
+acanthus_markup::TokenKind: enum [Clone, Debug, PartialEq]
+acanthus_markup::TokenKind::Color: variant (Color)
+acanthus_markup::TokenKind::Eof: variant 
+acanthus_markup::TokenKind::Ident: variant (String)
+acanthus_markup::TokenKind::Number: variant (f64)
+acanthus_markup::TokenKind::Punct: variant (& 'static str)
+acanthus_markup::TokenKind::Text: variant (String)
+acanthus_markup::lex: fn lex (src : & str) -> Result < Vec < Token > , Diagnostic >
+impl std :: error :: Error for acanthus_markup::Diagnostic
+impl std :: fmt :: Display for acanthus_markup::Diagnostic

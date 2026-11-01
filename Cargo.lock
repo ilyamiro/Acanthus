@@ -73,6 +73,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "acanthus-markup"
+version = "0.1.0"
+dependencies = [
+ "acanthus-core",
+ "acanthus-widgets",
+]
+
+[[package]]
 name = "acanthus-render"
 version = "0.1.0"
 dependencies = [
