@@ -5,6 +5,7 @@ pub mod dialog;
 pub mod dropdown;
 pub mod marquee;
 pub mod menu;
+pub mod popup_frame;
 pub mod profiler;
 pub mod progress;
 pub mod screencopy;
@@ -35,6 +36,7 @@ pub fn standard_registry() -> component::Registry {
     registry.register(switch::SwitchComponent);
     registry.register(tabs::TabsComponent);
     registry.register(dropdown::DropdownComponent);
+    registry.register(popup_frame::PopupFrameComponent);
     registry.register(progress::ProgressBarComponent);
     registry.register(progress::SpinnerComponent);
     registry.register(scrollbar::ScrollBarComponent);
@@ -59,6 +61,7 @@ mod tests {
                 "IconButton",
                 "Marquee",
                 "NumberSelector",
+                "PopupFrame",
                 "ProgressBar",
                 "RadioGroup",
                 "ScrollBar",

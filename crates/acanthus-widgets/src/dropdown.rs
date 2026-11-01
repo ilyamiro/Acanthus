@@ -188,16 +188,16 @@ pub struct Spec {
 }
 
 #[derive(Default)]
-struct Run(RefCell<Option<AnimHandle>>);
+pub(crate) struct Run(RefCell<Option<AnimHandle>>);
 
 impl Run {
-    fn set(&self, handle: AnimHandle) {
+    pub(crate) fn set(&self, handle: AnimHandle) {
         if let Some(old) = self.0.borrow_mut().replace(handle) {
             old.stop();
         }
     }
 
-    fn stop(&self) {
+    pub(crate) fn stop(&self) {
         if let Some(handle) = self.0.borrow_mut().take() {
             handle.stop();
         }

@@ -290,6 +290,19 @@ acanthus_widgets::menu::menu: fn menu (scene : & mut Scene , parent : NodeId , s
 acanthus_widgets::menu::row_span: fn row_span (entries : & [MenuEntry] , index : usize) -> (f32 , f32)
 acanthus_widgets::menu::step: fn step (entries : & [MenuEntry] , from : Option < usize > , step : i32) -> Option < usize >
 acanthus_widgets::menu::typeahead: fn typeahead (entries : & [MenuEntry] , from : Option < usize > , typed : char) -> Option < usize >
+acanthus_widgets::popup_frame::PopupFrameComponent: struct
+acanthus_widgets::popup_frame::PopupFrameSpec.border: Signal < Color >
+acanthus_widgets::popup_frame::PopupFrameSpec.fill: Signal < Color >
+acanthus_widgets::popup_frame::PopupFrameSpec.height: Signal < f32 >
+acanthus_widgets::popup_frame::PopupFrameSpec.open: Signal < bool >
+acanthus_widgets::popup_frame::PopupFrameSpec.origin: TransformOrigin
+acanthus_widgets::popup_frame::PopupFrameSpec.radius: Signal < f32 >
+acanthus_widgets::popup_frame::PopupFrameSpec.shadow: Color
+acanthus_widgets::popup_frame::PopupFrameSpec.shadow_blur: f32
+acanthus_widgets::popup_frame::PopupFrameSpec.slide: f32
+acanthus_widgets::popup_frame::PopupFrameSpec.width: Signal < f32 >
+acanthus_widgets::popup_frame::PopupFrameSpec: struct
+acanthus_widgets::popup_frame::popup_frame: fn popup_frame (scene : & mut Scene , parent : NodeId , spec : PopupFrameSpec) -> NodeId
 acanthus_widgets::profiler::overlay: fn overlay (scene : & mut Scene , parent : NodeId , label : impl Fn (& FrameStats) -> String + 'static) -> NodeId
 acanthus_widgets::progress::INDETERMINATE_MS: const INDETERMINATE_MS: u32
 acanthus_widgets::progress::ProgressBar.fill: Signal < Color >
@@ -539,6 +552,7 @@ impl Component for acanthus_widgets::choice::RadioGroupComponent
 impl Component for acanthus_widgets::dialog::DialogComponent
 impl Component for acanthus_widgets::dropdown::DropdownComponent
 impl Component for acanthus_widgets::marquee::MarqueeComponent
+impl Component for acanthus_widgets::popup_frame::PopupFrameComponent
 impl Component for acanthus_widgets::progress::ProgressBarComponent
 impl Component for acanthus_widgets::progress::SpinnerComponent
 impl Component for acanthus_widgets::scrollbar::ScrollBarComponent
