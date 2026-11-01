@@ -15,6 +15,7 @@ pub mod tabs;
 pub mod text_area;
 pub mod timing;
 pub mod toggle;
+pub mod tooltip;
 pub mod wallpaper_blur;
 pub mod wheel;
 
@@ -25,6 +26,7 @@ pub fn standard_registry() -> component::Registry {
     registry.register(choice::CheckboxComponent);
     registry.register(choice::RadioGroupComponent);
     registry.register(toggle::ToggleComponent);
+    registry.register(tooltip::TooltipComponent);
     registry.register(button::IconButtonComponent);
     registry.register(marquee::MarqueeComponent);
     registry.register(switch::SwitchComponent);
@@ -60,6 +62,7 @@ mod tests {
                 "Tabs",
                 "TextArea",
                 "Toggle",
+                "Tooltip",
                 "WallpaperBlur"
             ]
         );

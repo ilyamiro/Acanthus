@@ -438,6 +438,22 @@ acanthus_widgets::toggle::ToggleSpec.y: Signal < f32 >
 acanthus_widgets::toggle::ToggleSpec: struct
 acanthus_widgets::toggle::WIDTH: const WIDTH: f32
 acanthus_widgets::toggle::toggle: fn toggle (scene : & mut Scene , parent : NodeId , spec : ToggleSpec) -> NodeId
+acanthus_widgets::tooltip::TooltipComponent: struct
+acanthus_widgets::tooltip::TooltipSpec.border: Signal < Color >
+acanthus_widgets::tooltip::TooltipSpec.color: Signal < Color >
+acanthus_widgets::tooltip::TooltipSpec.delay_ms: u32
+acanthus_widgets::tooltip::TooltipSpec.fill: Signal < Color >
+acanthus_widgets::tooltip::TooltipSpec.font_family: Signal < String >
+acanthus_widgets::tooltip::TooltipSpec.font_size: f32
+acanthus_widgets::tooltip::TooltipSpec.gap: f32
+acanthus_widgets::tooltip::TooltipSpec.hovered: Signal < bool >
+acanthus_widgets::tooltip::TooltipSpec.pad: f32
+acanthus_widgets::tooltip::TooltipSpec.radius: f32
+acanthus_widgets::tooltip::TooltipSpec.target_height: Signal < f32 >
+acanthus_widgets::tooltip::TooltipSpec.target_width: Signal < f32 >
+acanthus_widgets::tooltip::TooltipSpec.text: Signal < String >
+acanthus_widgets::tooltip::TooltipSpec: struct
+acanthus_widgets::tooltip::tooltip: fn tooltip (scene : & mut Scene , parent : NodeId , spec : TooltipSpec) -> NodeId
 acanthus_widgets::wallpaper_blur::BLUR_MAX: const BLUR_MAX: f32
 acanthus_widgets::wallpaper_blur::MAX_FILL_ALPHA: const MAX_FILL_ALPHA: f32
 acanthus_widgets::wallpaper_blur::Spec.active: Signal < bool >
@@ -475,6 +491,7 @@ impl Component for acanthus_widgets::switch::SwitchComponent
 impl Component for acanthus_widgets::tabs::TabsComponent
 impl Component for acanthus_widgets::text_area::TextAreaComponent
 impl Component for acanthus_widgets::toggle::ToggleComponent
+impl Component for acanthus_widgets::tooltip::TooltipComponent
 impl Component for acanthus_widgets::wallpaper_blur::WallpaperBlurComponent
 impl Drop for acanthus_widgets::button::Press
 impl fmt :: Display for acanthus_widgets::component::BuildError
