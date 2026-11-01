@@ -9,6 +9,7 @@ pub mod progress;
 pub mod screencopy;
 pub mod scrollbar;
 pub mod search_field;
+pub mod selector;
 pub mod slider;
 pub mod switch;
 pub mod tabs;
@@ -36,6 +37,8 @@ pub fn standard_registry() -> component::Registry {
     registry.register(progress::SpinnerComponent);
     registry.register(scrollbar::ScrollBarComponent);
     registry.register(search_field::SearchFieldComponent);
+    registry.register(selector::NumberSelectorComponent);
+    registry.register(selector::TimeSelectorComponent);
     registry.register(text_area::TextAreaComponent);
     registry.register(wallpaper_blur::WallpaperBlurComponent);
     registry
@@ -52,6 +55,7 @@ mod tests {
                 "Dropdown",
                 "IconButton",
                 "Marquee",
+                "NumberSelector",
                 "ProgressBar",
                 "RadioGroup",
                 "ScrollBar",
@@ -61,6 +65,7 @@ mod tests {
                 "Switch",
                 "Tabs",
                 "TextArea",
+                "TimeSelector",
                 "Toggle",
                 "Tooltip",
                 "WallpaperBlur"

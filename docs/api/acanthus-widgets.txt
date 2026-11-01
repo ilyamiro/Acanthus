@@ -327,6 +327,38 @@ acanthus_widgets::search_field::SearchTokens.muted: Signal < Color >
 acanthus_widgets::search_field::SearchTokens.text: Signal < Color >
 acanthus_widgets::search_field::SearchTokens: struct [Clone]
 acanthus_widgets::search_field::search_field: fn search_field (scene : & mut Scene , parent : NodeId , keep : & mut Keep , field : SearchField < '_ >)
+acanthus_widgets::selector::NumberSelector.decimals: usize
+acanthus_widgets::selector::NumberSelector.digits: usize
+acanthus_widgets::selector::NumberSelector.max: f32
+acanthus_widgets::selector::NumberSelector.min: f32
+acanthus_widgets::selector::NumberSelector.on_change: Rc < dyn Fn (f32) >
+acanthus_widgets::selector::NumberSelector.step: f32
+acanthus_widgets::selector::NumberSelector.style: SelectorStyle
+acanthus_widgets::selector::NumberSelector.value: Signal < f32 >
+acanthus_widgets::selector::NumberSelector.wrap: bool
+acanthus_widgets::selector::NumberSelector: struct
+acanthus_widgets::selector::NumberSelectorComponent: struct
+acanthus_widgets::selector::SelectorStyle.border: Signal < Color >
+acanthus_widgets::selector::SelectorStyle.fill: Signal < Color >
+acanthus_widgets::selector::SelectorStyle.font_family: Signal < String >
+acanthus_widgets::selector::SelectorStyle.font_size: f32
+acanthus_widgets::selector::SelectorStyle.height: f32
+acanthus_widgets::selector::SelectorStyle.hover: Signal < Color >
+acanthus_widgets::selector::SelectorStyle.radius: f32
+acanthus_widgets::selector::SelectorStyle.text: Signal < Color >
+acanthus_widgets::selector::SelectorStyle.value_width: f32
+acanthus_widgets::selector::SelectorStyle: struct [Clone]
+acanthus_widgets::selector::TimeSelector.gap: f32
+acanthus_widgets::selector::TimeSelector.minute_step: f32
+acanthus_widgets::selector::TimeSelector.minutes: Signal < f32 >
+acanthus_widgets::selector::TimeSelector.on_change: Rc < dyn Fn (f32) >
+acanthus_widgets::selector::TimeSelector.style: SelectorStyle
+acanthus_widgets::selector::TimeSelector: struct
+acanthus_widgets::selector::TimeSelectorComponent: struct
+acanthus_widgets::selector::format_value: fn format_value (value : f32 , decimals : usize , digits : usize) -> String
+acanthus_widgets::selector::number_selector: fn number_selector (scene : & mut Scene , parent : NodeId , spec : NumberSelector) -> NodeId
+acanthus_widgets::selector::step_value: fn step_value (value : f32 , steps : i32 , min : f32 , max : f32 , step : f32 , wrap : bool) -> f32
+acanthus_widgets::selector::time_selector: fn time_selector (scene : & mut Scene , parent : NodeId , spec : TimeSelector) -> NodeId
 acanthus_widgets::slider::Slider.effective: Signal < f32 >
 acanthus_widgets::slider::Slider.node: NodeId
 acanthus_widgets::slider::Slider: struct
@@ -486,6 +518,8 @@ impl Component for acanthus_widgets::progress::ProgressBarComponent
 impl Component for acanthus_widgets::progress::SpinnerComponent
 impl Component for acanthus_widgets::scrollbar::ScrollBarComponent
 impl Component for acanthus_widgets::search_field::SearchFieldComponent
+impl Component for acanthus_widgets::selector::NumberSelectorComponent
+impl Component for acanthus_widgets::selector::TimeSelectorComponent
 impl Component for acanthus_widgets::slider::SliderComponent
 impl Component for acanthus_widgets::switch::SwitchComponent
 impl Component for acanthus_widgets::tabs::TabsComponent

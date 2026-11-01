@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_widgets::selector` with the `NumberSelector` and `TimeSelector` components: a value between minus and plus buttons changed by click, wheel and Up, Down, PageUp, PageDown, Home and End, clamped or wrapping, with decimals and zero padding; the time selector pairs hour and minute fields over minutes since midnight.
 - `acanthus_widgets::tooltip` with the `Tooltip` component: a bubble centred under its target that fades in after a hover delay (700 ms by default) and hides at once when the pointer leaves.
 - `acanthus_widgets::tabs` with the `Tabs` component: a tab row with an underline that eases to the selected label (click, Left, Right, Space, Enter) over one panel per tab, of which only the selected one shows.
 - `acanthus_widgets::choice` with the `Checkbox` and `RadioGroup` components: labelled indicators that ease their fill, tick or dot, toggled or picked by click, Space, Enter and (radio) arrow keys, dimmed and inert when disabled.
