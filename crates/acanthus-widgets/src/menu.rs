@@ -7,8 +7,11 @@ use std::rc::Rc;
 
 use acanthus_anim::{Easing, Keep};
 use acanthus_core::{Color, Effect, Signal, Vec2, untrack};
-use acanthus_scene::{Anchors, CursorShape, Key, MouseArea, MouseButton, Node, NodeId, Scene};
+use acanthus_scene::{
+    Anchors, CursorShape, Key, LayerEffect, MouseArea, MouseButton, Node, NodeId, Scene, TransformOrigin,
+};
 
+use crate::popup_frame::morph;
 use crate::timing::FAST;
 
 /// Height of an action row, in logical pixels.
@@ -20,6 +23,7 @@ pub const PADDING: f32 = 4.0;
 const CHECK_COLUMN: f32 = 22.0;
 const SIDE_MARGIN: f32 = 10.0;
 const GAP: f32 = 24.0;
+const MORPH_SLIDE: f32 = 6.0;
 const ARROW_COLUMN: f32 = 18.0;
 
 /// One action row of a menu.
@@ -185,6 +189,10 @@ pub struct MenuStyle {
     pub radius: f32,
     /// Narrowest width of the menu.
     pub min_width: f32,
+    /// Shadow colour; fully transparent turns the shadow off. The host leaves room for it around the menu.
+    pub shadow: Color,
+    /// Blur radius of the shadow.
+    pub shadow_blur: f32,
 }
 
 /// Description of a menu.
@@ -193,6 +201,8 @@ pub struct MenuSpec {
     pub entries: Vec<MenuEntry>,
     /// Colours and type.
     pub style: MenuStyle,
+    /// Whether the menu is showing; it morphs in and out like a popup frame as this changes.
+    pub open: Signal<bool>,
     /// Called with the outcome of every activation, key and close request that asks the host for something.
     pub on_outcome: Rc<dyn Fn(Outcome)>,
 }
@@ -211,7 +221,7 @@ pub struct Menu {
 
 /// Builds the menu under `parent`.
 pub fn menu(scene: &mut Scene, parent: NodeId, spec: MenuSpec) -> Menu {
-    let MenuSpec { entries, style, on_outcome } = spec;
+    let MenuSpec { entries, style, open, on_outcome } = spec;
     let entries = Rc::new(entries);
     let mut keep = Keep::default();
     let highlighted: Signal<Option<usize>> = Signal::new(None);
@@ -276,9 +286,17 @@ pub fn menu(scene: &mut Scene, parent: NodeId, spec: MenuSpec) -> Menu {
     let outer_entries = entries.clone();
     let key_highlight = highlighted.clone();
     let key_outcome = on_outcome.clone();
+    let morph = morph(&mut keep, &open, MORPH_SLIDE);
+    let shadow = LayerEffect::shadow(style.shadow, 1.0, style.shadow_blur, Vec2::new(0.0, style.shadow_blur / 3.0));
     let outer = Node::item()
         .width(&width)
         .height(height)
+        .opacity(&morph.presence)
+        .visible(&morph.visible)
+        .scale(&morph.scale)
+        .y(&morph.y)
+        .transform_origin(TransformOrigin::TopLeft)
+        .layer_effect(shadow)
         .focusable(true)
         .on_key(move |event| {
             let current = key_highlight.get_untracked();
@@ -455,10 +473,18 @@ mod tests {
             font_size: 13.0,
             radius: 8.0,
             min_width: 120.0,
+            shadow: Color::hex(0x000000),
+            shadow_blur: 16.0,
         }
     }
 
     fn built() -> (Scene, Menu, Rc<RefCell<Vec<Outcome>>>) {
+        let (scene, menu, seen, _) = built_with(true);
+        (scene, menu, seen)
+    }
+
+    fn built_with(shown: bool) -> (Scene, Menu, Rc<RefCell<Vec<Outcome>>>, Signal<bool>) {
+        let open = Signal::new(shown);
         let mut scene = Scene::new(Fonts::new());
         let root = scene.root();
         let seen = Rc::new(RefCell::new(Vec::new()));
@@ -466,11 +492,36 @@ mod tests {
         let menu = menu(
             &mut scene,
             root,
-            MenuSpec { entries: entries(), style: style(), on_outcome: Rc::new(move |o| sink.borrow_mut().push(o)) },
+            MenuSpec {
+                entries: entries(),
+                style: style(),
+                open: open.clone(),
+                on_outcome: Rc::new(move |o| sink.borrow_mut().push(o)),
+            },
         );
         scene.set_viewport(Vec2::new(300.0, 300.0), 1.0);
+        acanthus_anim::tick(0.5);
         scene.frame();
-        (scene, menu, seen)
+        (scene, menu, seen, open)
+    }
+
+    #[test]
+    fn the_menu_morphs_in_on_open_and_out_on_close() {
+        let (mut scene, menu, _, open) = built_with(false);
+        let shown = |scene: &Scene| scene.get(menu.node).unwrap().visible.get_untracked();
+        assert!(!shown(&scene));
+        open.set(true);
+        acanthus_anim::tick(0.1);
+        scene.frame();
+        let opacity = scene.get(menu.node).unwrap().opacity.get_untracked();
+        assert!(shown(&scene) && opacity > 0.0 && opacity < 1.0);
+        acanthus_anim::tick(0.3);
+        scene.frame();
+        assert_eq!(scene.get(menu.node).unwrap().opacity.get_untracked(), 1.0);
+        open.set(false);
+        acanthus_anim::tick(0.3);
+        scene.frame();
+        assert!(!shown(&scene));
     }
 
     #[test]

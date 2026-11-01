@@ -33,13 +33,19 @@ pub struct PopupFrameSpec {
     pub slide: f32,
 }
 
-/// Builds the card under `parent` and returns it; the caller adds the popup body (and, first, a wallpaper backdrop) as its children.
-pub fn popup_frame(scene: &mut Scene, parent: NodeId, spec: PopupFrameSpec) -> NodeId {
-    let mut keep = Keep::default();
+/// The signals of an open and close morph: the card fades, scales from 0.92 and slides while `presence` runs from 0 to 1.
+pub(crate) struct Morph {
+    pub(crate) presence: Signal<f32>,
+    pub(crate) visible: Signal<bool>,
+    pub(crate) scale: Signal<f32>,
+    pub(crate) y: Signal<f32>,
+}
+
+pub(crate) fn morph(keep: &mut Keep, open: &Signal<bool>, slide: f32) -> Morph {
     let presence = Signal::new(0.0_f32);
     let run = Rc::new(Run::default());
     {
-        let (open, presence, run) = (spec.open.clone(), presence.clone(), run.clone());
+        let (open, presence, run) = (open.clone(), presence.clone(), run.clone());
         keep.add(Effect::new(move || {
             let on = open.get();
             untrack(|| {
@@ -59,9 +65,16 @@ pub fn popup_frame(scene: &mut Scene, parent: NodeId, spec: PopupFrameSpec) -> N
         keep.derive(move || 0.92 + 0.08 * presence.get())
     };
     let y = {
-        let (presence, slide) = (presence.clone(), spec.slide);
+        let presence = presence.clone();
         keep.derive(move || (presence.get() - 1.0) * slide)
     };
+    Morph { presence, visible, scale, y }
+}
+
+/// Builds the card under `parent` and returns it; the caller adds the popup body (and, first, a wallpaper backdrop) as its children.
+pub fn popup_frame(scene: &mut Scene, parent: NodeId, spec: PopupFrameSpec) -> NodeId {
+    let mut keep = Keep::default();
+    let Morph { presence, visible, scale, y } = morph(&mut keep, &spec.open, spec.slide);
     let shadow = LayerEffect::shadow(spec.shadow, 1.0, spec.shadow_blur, Vec2::new(0.0, spec.shadow_blur / 3.0));
     let card = scene.add(
         parent,

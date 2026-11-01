@@ -283,6 +283,7 @@ acanthus_widgets::menu::MenuItem::shortcut: fn shortcut (self , shortcut : impl 
 acanthus_widgets::menu::MenuItem::submenu: fn submenu (id : impl Into < String > , label : impl Into < String >) -> MenuItem
 acanthus_widgets::menu::MenuSpec.entries: Vec < MenuEntry >
 acanthus_widgets::menu::MenuSpec.on_outcome: Rc < dyn Fn (Outcome) >
+acanthus_widgets::menu::MenuSpec.open: Signal < bool >
 acanthus_widgets::menu::MenuSpec.style: MenuStyle
 acanthus_widgets::menu::MenuSpec: struct
 acanthus_widgets::menu::MenuStyle.background: Signal < Color >
@@ -294,6 +295,8 @@ acanthus_widgets::menu::MenuStyle.highlight_text: Signal < Color >
 acanthus_widgets::menu::MenuStyle.min_width: f32
 acanthus_widgets::menu::MenuStyle.muted: Signal < Color >
 acanthus_widgets::menu::MenuStyle.radius: f32
+acanthus_widgets::menu::MenuStyle.shadow: Color
+acanthus_widgets::menu::MenuStyle.shadow_blur: f32
 acanthus_widgets::menu::MenuStyle.text: Signal < Color >
 acanthus_widgets::menu::MenuStyle: struct
 acanthus_widgets::menu::Outcome: enum [Clone, Debug, Eq, PartialEq]

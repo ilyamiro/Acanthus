@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus_widgets::menu`: `MenuSpec::open` and `MenuStyle::shadow`/`shadow_blur` give a menu the popup frame's open and close morph and a drop shadow (breaking for code building the spec by hand: the two fields are new).
 - `acanthus_widgets::wave` with the `WaveSeek` and `FluidWave` components: a seek bar whose played part is a travelling sine (flattening when paused) that seeks on press and drag, and a filled swell of two sines.
 - `acanthus_widgets::chart` with the `Chart` and `Sparkline` components: a list of numbers (new `Kind::NumberList` prop) plotted as a stroked line over an optional area fill and horizontal grid lines, on a canvas that repaints when the data changes.
 - `acanthus_widgets::popup_frame` with the `PopupFrame` component: the card of a popup with a rounded fill, outline and drop shadow that scales in from its top edge while sliding down and fading (250 ms OutQuint) and out again (150 ms InQuint); the body and an optional wallpaper backdrop are its children.
