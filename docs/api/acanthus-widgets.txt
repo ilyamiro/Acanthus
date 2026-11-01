@@ -335,6 +335,24 @@ acanthus_widgets::switch::fitted_size: fn fitted_size (font : f32 , minimum : f3
 acanthus_widgets::switch::placements: fn placements (widths : & [f32] , total : f32 , rtl : bool) -> Vec < (f32 , f32) >
 acanthus_widgets::switch::step: fn step (current : usize , count : usize , forward : bool) -> usize
 acanthus_widgets::switch::switch: fn switch (scene : & mut Scene , parent : NodeId , spec : SwitchSpec) -> NodeId
+acanthus_widgets::text_area::TextArea.focus: Signal < bool >
+acanthus_widgets::text_area::TextArea.font_size: f32
+acanthus_widgets::text_area::TextArea.height: Signal < f32 >
+acanthus_widgets::text_area::TextArea.input: & 'a TextInput
+acanthus_widgets::text_area::TextArea.pad: f32
+acanthus_widgets::text_area::TextArea.placeholder: Signal < String >
+acanthus_widgets::text_area::TextArea.radius: Signal < f32 >
+acanthus_widgets::text_area::TextArea.tokens: & 'a TextAreaTokens
+acanthus_widgets::text_area::TextArea.width: Signal < f32 >
+acanthus_widgets::text_area::TextArea: struct< 'a >
+acanthus_widgets::text_area::TextAreaComponent: struct
+acanthus_widgets::text_area::TextAreaTokens.accent: Signal < Color >
+acanthus_widgets::text_area::TextAreaTokens.fill: Signal < Color >
+acanthus_widgets::text_area::TextAreaTokens.font_family: Signal < String >
+acanthus_widgets::text_area::TextAreaTokens.muted: Signal < Color >
+acanthus_widgets::text_area::TextAreaTokens.text: Signal < Color >
+acanthus_widgets::text_area::TextAreaTokens: struct [Clone]
+acanthus_widgets::text_area::text_area: fn text_area (scene : & mut Scene , parent : NodeId , keep : & mut Keep , area : TextArea < '_ >) -> NodeId
 acanthus_widgets::toggle::HEIGHT: const HEIGHT: f32
 acanthus_widgets::toggle::TOGGLE: const TOGGLE: Feel
 acanthus_widgets::toggle::ToggleComponent: struct
@@ -383,6 +401,7 @@ impl Component for acanthus_widgets::scrollbar::ScrollBarComponent
 impl Component for acanthus_widgets::search_field::SearchFieldComponent
 impl Component for acanthus_widgets::slider::SliderComponent
 impl Component for acanthus_widgets::switch::SwitchComponent
+impl Component for acanthus_widgets::text_area::TextAreaComponent
 impl Component for acanthus_widgets::toggle::ToggleComponent
 impl Component for acanthus_widgets::wallpaper_blur::WallpaperBlurComponent
 impl Drop for acanthus_widgets::button::Press
