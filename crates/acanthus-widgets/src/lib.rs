@@ -1,6 +1,7 @@
 pub mod button;
 pub mod choice;
 pub mod component;
+pub mod dialog;
 pub mod dropdown;
 pub mod marquee;
 pub mod menu;
@@ -25,6 +26,7 @@ pub fn standard_registry() -> component::Registry {
     let mut registry = component::Registry::new();
     registry.register(slider::SliderComponent);
     registry.register(choice::CheckboxComponent);
+    registry.register(dialog::DialogComponent);
     registry.register(choice::RadioGroupComponent);
     registry.register(toggle::ToggleComponent);
     registry.register(tooltip::TooltipComponent);
@@ -52,6 +54,7 @@ mod tests {
             super::standard_registry().names(),
             vec![
                 "Checkbox",
+                "Dialog",
                 "Dropdown",
                 "IconButton",
                 "Marquee",

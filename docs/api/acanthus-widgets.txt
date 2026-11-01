@@ -153,6 +153,30 @@ acanthus_widgets::component::Registry::with_colors: fn with_colors (mut self , c
 acanthus_widgets::component::Registry::with_scales: fn with_scales (mut self , scales : impl Fn (& str) -> Option < f32 > + 'static) -> Registry
 acanthus_widgets::component::ScaleSource: type ScaleSource = Rc < dyn Fn (& str) -> Option < f32 > >
 acanthus_widgets::component::nearest: fn nearest < 'a > (word : & str , candidates : impl IntoIterator < Item = & 'a str >) -> Option < & 'a str >
+acanthus_widgets::dialog::DialogComponent: struct
+acanthus_widgets::dialog::DialogSpec.accent: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.accent_text: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.body: Signal < String >
+acanthus_widgets::dialog::DialogSpec.border: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.button: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.buttons: Vec < Signal < String > >
+acanthus_widgets::dialog::DialogSpec.fill: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.font_family: Signal < String >
+acanthus_widgets::dialog::DialogSpec.font_size: f32
+acanthus_widgets::dialog::DialogSpec.gap: f32
+acanthus_widgets::dialog::DialogSpec.muted: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.on_choose: Rc < dyn Fn (usize) >
+acanthus_widgets::dialog::DialogSpec.on_dismiss: Rc < dyn Fn () >
+acanthus_widgets::dialog::DialogSpec.open: Signal < bool >
+acanthus_widgets::dialog::DialogSpec.pad: f32
+acanthus_widgets::dialog::DialogSpec.primary: usize
+acanthus_widgets::dialog::DialogSpec.radius: f32
+acanthus_widgets::dialog::DialogSpec.scrim: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.text: Signal < Color >
+acanthus_widgets::dialog::DialogSpec.title: Signal < String >
+acanthus_widgets::dialog::DialogSpec.width: f32
+acanthus_widgets::dialog::DialogSpec: struct
+acanthus_widgets::dialog::dialog: fn dialog (scene : & mut Scene , parent : NodeId , spec : DialogSpec) -> NodeId
 acanthus_widgets::dropdown::CLICK_SOUND: const CLICK_SOUND: & str
 acanthus_widgets::dropdown::DropdownComponent: struct
 acanthus_widgets::dropdown::ENTER_MS: const ENTER_MS: u32
@@ -512,6 +536,7 @@ acanthus_widgets::wheel::wheel_units: fn wheel_units (delta_y : f32) -> f32
 impl Component for acanthus_widgets::button::IconButtonComponent
 impl Component for acanthus_widgets::choice::CheckboxComponent
 impl Component for acanthus_widgets::choice::RadioGroupComponent
+impl Component for acanthus_widgets::dialog::DialogComponent
 impl Component for acanthus_widgets::dropdown::DropdownComponent
 impl Component for acanthus_widgets::marquee::MarqueeComponent
 impl Component for acanthus_widgets::progress::ProgressBarComponent
