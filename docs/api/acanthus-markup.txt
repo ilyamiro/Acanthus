@@ -37,6 +37,12 @@ acanthus_markup::Functions::check_literal: fn check_literal (& mut self , name :
 acanthus_markup::Functions::new: fn new () -> Functions
 acanthus_markup::Functions::register: fn register (& mut self , name : & str , arity : RangeInclusive < usize > , f : impl Fn (& [Value]) -> Result < Value , String > + 'static ,)
 acanthus_markup::Functions::standard: fn standard () -> Functions
+acanthus_markup::Hot: struct
+acanthus_markup::Hot::built: fn built (& self) -> Option < & Built >
+acanthus_markup::Hot::new: fn new (path : PathBuf , registry : Rc < Registry > , functions : Rc < Functions > , globals : Rc < dyn Scope >) -> Hot
+acanthus_markup::Hot::poll: fn poll (& mut self , scene : & mut Scene , parent : NodeId) -> Option < Result < () , Vec < Diagnostic > > >
+acanthus_markup::Hot::reload: fn reload (& mut self , scene : & mut Scene , parent : NodeId) -> Result < () , Vec < Diagnostic > >
+acanthus_markup::Hot::watch: fn watch < D : 'static > (& mut self , handle : & LoopHandle < 'static , D >) -> Result < () , IoError >
 acanthus_markup::Member: enum [Clone, Debug, PartialEq]
 acanthus_markup::Member::Behavior: variant (String , Span , Component)
 acanthus_markup::Member::Child: variant (Component)

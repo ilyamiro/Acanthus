@@ -78,8 +78,11 @@ version = "0.1.0"
 dependencies = [
  "acanthus-anim",
  "acanthus-core",
+ "acanthus-io",
  "acanthus-scene",
  "acanthus-widgets",
+ "calloop",
+ "tempfile",
  "tracing",
 ]
 

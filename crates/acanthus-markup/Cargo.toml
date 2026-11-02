@@ -10,4 +10,9 @@ acanthus-anim.workspace = true
 acanthus-core.workspace = true
 acanthus-widgets.workspace = true
 acanthus-scene.workspace = true
+acanthus-io.workspace = true
+calloop.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
