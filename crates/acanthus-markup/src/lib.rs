@@ -1,5 +1,5 @@
 //! The ACN markup language: lexer, expressions and parser with `file:line:col` diagnostics.
-//! The syntax is specified in `docs/acn-spec.md`.
+//! The syntax is specified in `crates/acanthus-cli/guides/acn-spec.md` (`acanthus docs acn-spec`).
 #![deny(missing_docs)]
 
 mod actions;
