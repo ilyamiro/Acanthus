@@ -90,6 +90,7 @@ name = "acanthus-markup"
 version = "0.1.0"
 dependencies = [
  "acanthus-anim",
+ "acanthus-app",
  "acanthus-core",
  "acanthus-io",
  "acanthus-scene",

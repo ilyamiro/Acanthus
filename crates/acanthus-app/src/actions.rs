@@ -185,6 +185,11 @@ impl Actions {
         }
     }
 
+    /// Whether some action answers to `name`.
+    pub fn knows(&self, name: &str) -> bool {
+        self.entries.borrow().iter().any(|entry| entry.names.contains(&name))
+    }
+
     /// A callback that dispatches `verb` to `name`.
     pub fn trigger(self: &Rc<Self>, verb: Verb, name: &'static str) -> Rc<dyn Fn()> {
         self.trigger_with(verb, name, "")

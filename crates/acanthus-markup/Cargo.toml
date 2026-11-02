@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+acanthus-app.workspace = true
 acanthus-anim.workspace = true
 acanthus-core.workspace = true
 acanthus-widgets.workspace = true

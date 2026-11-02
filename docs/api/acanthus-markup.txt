@@ -92,6 +92,7 @@ acanthus_markup::Value::List: variant (Vec < Value >)
 acanthus_markup::Value::Null: variant 
 acanthus_markup::Value::Number: variant (f64)
 acanthus_markup::Value::Text: variant (String)
+acanthus_markup::bind_actions: fn bind_actions (functions : & mut Functions , actions : & Rc < Actions >)
 acanthus_markup::build: fn build (doc : & Document , registry : & Registry , functions : Rc < Functions > , globals : Rc < dyn Scope > , scene : & mut Scene , parent : NodeId ,) -> Result < Built , Vec < Diagnostic > >
 acanthus_markup::lex: fn lex (src : & str) -> Result < Vec < Token > , Diagnostic >
 acanthus_markup::parse: fn parse (src : & str) -> Result < Document , Diagnostic >

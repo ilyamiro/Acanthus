@@ -6,6 +6,8 @@ All notable changes to the Acanthus engine crates. The policy is in `docs/engine
 
 ### Added
 
+- `acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] FILE OUT.png` renders an ACN file offscreen through the headless harness.
+- `acanthus_markup::bind_actions` registers the ACN function `action(command, target?, extra?)` on an `acanthus_app::Actions` registry (literal names checked at compile time); `Actions::knows(name)` is new.
 - `acanthus-cli` crate with the `acanthus` binary: `check [--global NAME]... FILE...` compiles ACN files against the standard widget registry and prints caret diagnostics, `fmt [--check]` re-indents them, `new` writes a starter file.
 - `acanthus_markup::Hot`: watches an ACN file, rebuilds it on change, keeps the last good tree when a save is broken and shows an error band with `file:line:col`.
 - ACN `Behavior on prop { Tween { duration, easing } }` and `{ Spring { spring, damping, mass } }` now compile to `Node::animate`; `fmt_time` joins the built-in functions and `Functions::check_literal` lets a host check literal arguments (translation keys, action names) at compile time. The compiler no longer reports `Behavior` as unsupported.

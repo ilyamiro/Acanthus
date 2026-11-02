@@ -2,6 +2,7 @@
 //! The syntax is specified in `docs/acn-spec.md`.
 #![deny(missing_docs)]
 
+mod actions;
 mod compile;
 mod diag;
 mod expr;
@@ -9,6 +10,7 @@ mod hot;
 mod lex;
 mod parse;
 
+pub use actions::bind_actions;
 pub use compile::{Built, build};
 pub use diag::{Diagnostic, Span};
 pub use expr::{Expr, ExprKind, Functions, Op, Scope, Value};

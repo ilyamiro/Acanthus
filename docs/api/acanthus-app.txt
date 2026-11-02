@@ -21,6 +21,7 @@ acanthus_app::actions::Actions::close_group: fn close_group (& self , group : & 
 acanthus_app::actions::Actions::dismiss: fn dismiss (& self)
 acanthus_app::actions::Actions::dispatch: fn dispatch (& self , command : & str , target : & str , extra : & str) -> bool
 acanthus_app::actions::Actions::escape: fn escape (& self) -> bool
+acanthus_app::actions::Actions::knows: fn knows (& self , name : & str) -> bool
 acanthus_app::actions::Actions::new: fn new (dismiss_group : & 'static str) -> Rc < Actions >
 acanthus_app::actions::Actions::on_dismiss: fn on_dismiss (& self , hide : impl Fn () + 'static)
 acanthus_app::actions::Actions::on_dispatch: fn on_dispatch (& self , observer : impl Fn (& str , & str , & str) + 'static)
