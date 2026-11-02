@@ -1,7 +1,8 @@
 //! The `acanthus` command line. [`run`] is the whole program; `main` only forwards the arguments.
 #![deny(missing_docs)]
 
-use acanthus_markup::{Functions, Scope, Value, build, parse};
+use acanthus_app::testing::{Headless, Script};
+use acanthus_markup::{Built, Diagnostic, Functions, Scope, Value, build, parse};
 use acanthus_runtime::Theme;
 use acanthus_scene::{Fonts, Scene};
 use acanthus_widgets::standard_registry;
@@ -13,6 +14,8 @@ const USAGE: &str = "usage:
   acanthus check [--global NAME]... FILE...   parse and compile files without showing them
   acanthus fmt [--check] FILE...              re-indent files in place
   acanthus new FILE                           write a starter file
+  acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] [--global NAME]... FILE OUT.png
+                                              render a file offscreen to a picture
 ";
 
 const TEMPLATE: &str = "acn 0\nSlider {\n    id: volume\n    width: 240\n    value: 0.5\n    on_moved: log(value)\n}\n";
@@ -36,6 +39,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Some("check") => check(rest, out, err),
         Some("fmt") => fmt(rest, out, err),
         Some("new") => new(rest, out, err),
+        Some("shot") => shot(rest, out, err),
         _ => Err(String::new()),
     };
     match code {
@@ -63,20 +67,11 @@ fn check(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i3
     if files.is_empty() {
         return Err("check needs a file".into());
     }
-    let theme = Theme::new();
-    let registry = standard_registry().with_colors(move |name| theme.role(name));
-    let mut functions = Functions::standard();
-    functions.register("log", 1..=1, |_| Ok(Value::Null));
-    let functions = Rc::new(functions);
     let mut failed = 0;
     for file in files {
         let src = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
         let mut scene = Scene::new(Fonts::new());
-        let root = scene.root();
-        let result = parse(&src).map_err(|d| vec![d]).and_then(|doc| {
-            build(&doc, &registry, functions.clone(), Rc::new(Declared(globals.clone())), &mut scene, root)
-        });
-        match result {
+        match compile(&src, &globals, &mut scene) {
             Ok(_) => {
                 let _ = writeln!(out, "ok    {file}");
             }
@@ -89,6 +84,54 @@ fn check(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i3
         }
     }
     Ok(i32::from(failed > 0))
+}
+
+fn compile(src: &str, globals: &[String], scene: &mut Scene) -> Result<Built, Vec<Diagnostic>> {
+    let theme = Theme::new();
+    let registry = standard_registry().with_colors(move |name| theme.role(name));
+    let mut functions = Functions::standard();
+    functions.register("log", 1..=1, |_| Ok(Value::Null));
+    let doc = parse(src).map_err(|d| vec![d])?;
+    let root = scene.root();
+    build(&doc, &registry, Rc::new(functions), Rc::new(Declared(globals.to_vec())), scene, root)
+}
+
+fn shot(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i32, String> {
+    let (mut globals, mut files) = (vec!["log".to_string()], Vec::new());
+    let (mut size, mut scale, mut script, mut time) = ((480u32, 320u32), 1.0f32, String::new(), 0u32);
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        let mut value = |what: &str| it.next().cloned().ok_or(format!("{a} needs {what}"));
+        match a.as_str() {
+            "--global" => globals.push(value("a name")?),
+            "--script" => script = value("steps")?,
+            "--scale" => scale = value("a number")?.parse().map_err(|_| "--scale needs a number")?,
+            "--time" => time = value("milliseconds")?.parse().map_err(|_| "--time needs milliseconds")?,
+            "--size" => {
+                let v = value("WxH")?;
+                size = v
+                    .split_once('x')
+                    .and_then(|(w, h)| Some((w.parse().ok()?, h.parse().ok()?)))
+                    .ok_or("--size needs WxH")?;
+            }
+            _ => files.push(a),
+        }
+    }
+    let [file, png] = files.as_slice() else { return Err("shot needs a file and a picture path".into()) };
+    let script = Script::parse(&script).map_err(|e| format!("--script: {e}"))?;
+    let src = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
+    let mut scene = Scene::new(Fonts::new());
+    if let Err(errors) = compile(&src, &globals, &mut scene) {
+        for d in errors {
+            let _ = writeln!(err, "{}", d.render(file, &src));
+        }
+        return Ok(1);
+    }
+    let headless = Headless::new(size.0, size.1, scale).map_err(|e| e.to_string())?;
+    let run = headless.run(&mut scene, &script, time);
+    run.image.save_png(png).map_err(|e| format!("{png}: {e}"))?;
+    let _ = writeln!(out, "wrote {png} ({}x{})", run.image.width, run.image.height);
+    Ok(0)
 }
 
 fn fmt(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i32, String> {
@@ -247,6 +290,23 @@ mod tests {
         let file = file.to_str().unwrap();
         assert_eq!(exec(&["check", file]).0, 1);
         assert_eq!(exec(&["check", "--global", "volume", file]).0, 0);
+    }
+
+    #[test]
+    fn shot_renders_a_file_and_reports_errors() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("a.acn");
+        let png = dir.path().join("a.png");
+        let (file, png) = (file.to_str().unwrap(), png.to_str().unwrap());
+        std::fs::write(file, "Slider { width: 200\nvalue: 0.5 }\n").unwrap();
+        let Ok(_) = Headless::new(8, 8, 1.0) else { return };
+        let (code, out, err) = exec(&["shot", "--size", "240x60", "--time", "100", file, png]);
+        assert_eq!((code, err.as_str()), (0, ""), "{out}");
+        let img = image::open(png).unwrap();
+        assert_eq!((img.width(), img.height()), (240, 60));
+        std::fs::write(file, "Slider { widht: 1 }\n").unwrap();
+        assert_eq!(exec(&["shot", file, png]).0, 1);
+        assert_eq!(exec(&["shot", file]).0, 2);
     }
 
     #[test]
