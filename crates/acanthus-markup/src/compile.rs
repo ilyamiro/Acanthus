@@ -598,6 +598,18 @@ mod tests {
     }
 
     #[test]
+    fn ids_in_repeater_copies_get_the_copy_number() {
+        let volume = Signal::new(0.0);
+        let src = "Probe {\n Probe { width: item_1.width + 5 }\n Repeater { count: 2\n Probe { id: item\n width: 10 + index\n Probe { width: item.width * 2 } } }\n}";
+        let run = compile(src, &volume);
+        let built = run.built.unwrap();
+        assert!(built.ids.contains_key("item_0") && built.ids.contains_key("item_1"));
+        assert!(!built.ids.contains_key("item"));
+        let widths: Vec<f32> = run.taken.borrow().iter().skip(1).map(|t| t.width.get_untracked()).collect();
+        assert_eq!(widths, vec![16.0, 10.0, 20.0, 11.0, 22.0]);
+    }
+
+    #[test]
     fn repeater_mistakes_are_located_errors() {
         let volume = Signal::new(0.0);
         for (src, expected) in [

@@ -63,8 +63,38 @@ fn repeat(r: &Component, index: Option<f64>, cx: &mut Ctx) -> Vec<Member> {
     let mut out = Vec::new();
     for i in 0..n {
         for body in &bodies {
-            out.push(Member::Child(component(body, Some(i as f64), cx)));
+            let copy = component(body, Some(i as f64), cx);
+            let mut ids = Vec::new();
+            collect_ids(&copy, &mut ids);
+            out.push(Member::Child(if ids.is_empty() { copy } else { suffix(&copy, &ids, i) }));
         }
     }
     out
+}
+
+fn collect_ids(c: &Component, out: &mut Vec<String>) {
+    for m in &c.members {
+        match m {
+            Member::Id(n, _) => out.push(n.clone()),
+            Member::Child(child) | Member::Behavior(_, _, child) => collect_ids(child, out),
+            _ => {}
+        }
+    }
+}
+
+fn suffix(c: &Component, ids: &[String], i: usize) -> Component {
+    let f = |n: &str| ids.iter().any(|x| x == n).then(|| format!("{n}_{i}"));
+    let members = c
+        .members
+        .iter()
+        .map(|m| match m {
+            Member::Id(n, s) => Member::Id(f(n).unwrap_or_else(|| n.clone()), *s),
+            Member::Property(n, s, e) => Member::Property(n.clone(), *s, e.rename(&f)),
+            Member::Set(n, s, e) => Member::Set(n.clone(), *s, e.rename(&f)),
+            Member::Handler(n, s, e) => Member::Handler(n.clone(), *s, e.rename(&f)),
+            Member::Behavior(n, s, b) => Member::Behavior(n.clone(), *s, suffix(b, ids, i)),
+            Member::Child(child) => Member::Child(suffix(child, ids, i)),
+        })
+        .collect();
+    Component { name: c.name.clone(), span: c.span, members }
 }

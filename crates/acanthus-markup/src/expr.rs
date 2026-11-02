@@ -113,6 +113,27 @@ impl Expr {
         };
         Expr { span: self.span, kind }
     }
+
+    pub(crate) fn rename(&self, f: &dyn Fn(&str) -> Option<String>) -> Expr {
+        let b = |e: &Expr| Box::new(e.rename(f));
+        let kind = match &self.kind {
+            ExprKind::Path(p) => {
+                let mut p = p.clone();
+                if let Some(n) = f(&p[0]) {
+                    p[0] = n;
+                }
+                ExprKind::Path(p)
+            }
+            ExprKind::List(l) => ExprKind::List(l.iter().map(|e| e.rename(f)).collect()),
+            ExprKind::Unary(op, e) => ExprKind::Unary(*op, b(e)),
+            ExprKind::Binary(op, l, r) => ExprKind::Binary(*op, b(l), b(r)),
+            ExprKind::Ternary(c, l, r) => ExprKind::Ternary(b(c), b(l), b(r)),
+            ExprKind::Call(n, s, a) => ExprKind::Call(n.clone(), *s, a.iter().map(|e| e.rename(f)).collect()),
+            ExprKind::Index(l, i) => ExprKind::Index(b(l), b(i)),
+            other => other.clone(),
+        };
+        Expr { span: self.span, kind }
+    }
 }
 
 /// The names an expression can read: ids, properties and host globals.

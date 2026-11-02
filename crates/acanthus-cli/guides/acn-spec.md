@@ -32,7 +32,7 @@ member    = "id" ":" ident
 - `property name: expr` declares a value that any expression in the file reads by its bare name; names are unique per file.
 - `on_event: expr` binds an event, named like the component's event prop (`on_click`, `on_moved`); the expression is evaluated when the event fires and is normally a call (`on_click: action("popup.toggle")`). A handler of an event with an argument (number, bool or index) reads it as `value`.
 - `Behavior on prop { Tween { duration: 200 } }` animates changes of `prop` (maps to `Node::animate`).
-- `Repeater { count: N  Child { ... } }` expands at compile time into `N` copies of its child components (`N` is a whole number from 0 to 1000 and may use an outer `index`); inside the copies `index` is the copy number from 0. Ids inside a Repeater must not be repeated, so use them only with a count of at most 1.
+- `Repeater { count: N  Child { ... } }` expands at compile time into `N` copies of its child components (`N` is a whole number from 0 to 1000 and may use an outer `index`); inside the copies `index` is the copy number from 0. An id declared inside a copy becomes `name_N` (`N` the copy number, `item_2` from outside); inside the copy the plain `name` still works.
 - Any other `name: expr` sets a property of the component. The expression re-evaluates when a signal it reads changes.
 
 ## Expressions
