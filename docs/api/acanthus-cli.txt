@@ -1,0 +1,2 @@
+acanthus_cli::format: fn format (src : & str) -> String
+acanthus_cli::run: fn run (args : & [String] , out : & mut dyn Write , err : & mut dyn Write) -> i32

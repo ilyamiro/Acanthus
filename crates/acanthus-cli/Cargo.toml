@@ -1,0 +1,19 @@
+[package]
+name = "acanthus-cli"
+description = "The acanthus command line: check, fmt and new for ACN files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "acanthus"
+path = "src/main.rs"
+
+[dependencies]
+acanthus-markup.workspace = true
+acanthus-runtime.workspace = true
+acanthus-scene.workspace = true
+acanthus-widgets.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

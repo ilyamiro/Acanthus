@@ -31,6 +31,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "acanthus-cli"
+version = "0.1.0"
+dependencies = [
+ "acanthus-markup",
+ "acanthus-runtime",
+ "acanthus-scene",
+ "acanthus-widgets",
+ "tempfile",
+]
+
+[[package]]
 name = "acanthus-color"
 version = "0.1.0"
 dependencies = [
