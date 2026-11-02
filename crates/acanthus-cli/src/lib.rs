@@ -1,6 +1,8 @@
 //! The `acanthus` command line. [`run`] is the whole program; `main` only forwards the arguments.
 #![deny(missing_docs)]
 
+mod grammar;
+
 use acanthus_app::testing::{Headless, Script};
 use acanthus_markup::{Built, Diagnostic, Functions, Scope, Value, build, parse_all};
 use acanthus_runtime::Theme;
@@ -16,6 +18,7 @@ const USAGE: &str = "usage:
   acanthus new FILE                           write a starter file
   acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] [--reduced-motion] [--global NAME]... FILE OUT.png
                                               render a file offscreen to a picture
+  acanthus grammar vim|textmate               print an editor highlighter generated from the component registry
   acanthus docs [TOPIC]                       print a guide of this version (no topic lists them)
 ";
 
@@ -45,6 +48,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Some("new") => new(rest, out, err),
         Some("shot") => shot(rest, out, err),
         Some("docs") => docs(rest, out),
+        Some("grammar") => grammar::run(rest, out),
         _ => Err(String::new()),
     };
     match code {

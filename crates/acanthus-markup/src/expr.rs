@@ -154,6 +154,11 @@ pub struct Functions {
 }
 
 impl Functions {
+    /// The registered function names, sorted.
+    pub fn names(&self) -> Vec<&str> {
+        self.table.keys().map(String::as_str).collect()
+    }
+
     /// An empty whitelist.
     pub fn new() -> Functions {
         Functions { table: BTreeMap::new(), literals: BTreeMap::new() }
