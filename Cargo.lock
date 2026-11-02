@@ -76,6 +76,7 @@ dependencies = [
 name = "acanthus-markup"
 version = "0.1.0"
 dependencies = [
+ "acanthus-anim",
  "acanthus-core",
  "acanthus-scene",
  "acanthus-widgets",

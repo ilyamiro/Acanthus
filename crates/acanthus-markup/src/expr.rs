@@ -107,19 +107,21 @@ pub trait Scope {
 }
 
 type Function = Box<dyn Fn(&[Value]) -> Result<Value, String>>;
+type LiteralCheck = Box<dyn Fn(&str) -> Option<String>>;
 
 /// The whitelist of functions expressions may call.
 pub struct Functions {
     table: BTreeMap<String, (RangeInclusive<usize>, Function)>,
+    literals: BTreeMap<String, LiteralCheck>,
 }
 
 impl Functions {
     /// An empty whitelist.
     pub fn new() -> Functions {
-        Functions { table: BTreeMap::new() }
+        Functions { table: BTreeMap::new(), literals: BTreeMap::new() }
     }
 
-    /// The built-ins `min max clamp abs round floor ceil mix len`.
+    /// The built-ins `min max clamp abs round floor ceil mix len fmt_time`.
     pub fn standard() -> Functions {
         let mut f = Functions::new();
         f.register("min", 1..=usize::MAX, |a| fold(a, f64::min));
@@ -145,12 +147,28 @@ impl Functions {
             }
             _ => Err("mix takes two numbers or two colours and a number".into()),
         });
+        f.register("fmt_time", 1..=1, |a| match &a[0] {
+            Value::Number(v) if *v >= 0.0 => {
+                let s = *v as u64;
+                Ok(Value::Text(if s >= 3600 {
+                    format!("{}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60)
+                } else {
+                    format!("{}:{:02}", s / 60, s % 60)
+                }))
+            }
+            other => Err(format!("fmt_time takes seconds, not {}", other.type_name())),
+        });
         f.register("len", 1..=1, |a| match &a[0] {
             Value::List(l) => Ok(Value::Number(l.len() as f64)),
             Value::Text(t) => Ok(Value::Number(t.chars().count() as f64)),
             other => Err(format!("len takes a list or text, not {}", other.type_name())),
         });
         f
+    }
+
+    /// Checks the first argument of `name` at compile time when it is a text literal: `check` returns the error message for an unacceptable one (a missing translation key, an unknown action).
+    pub fn check_literal(&mut self, name: &str, check: impl Fn(&str) -> Option<String> + 'static) {
+        self.literals.insert(name.to_string(), Box::new(check));
     }
 
     /// Adds a function accepting `arity` arguments; a later call with the same name replaces it.
@@ -210,7 +228,14 @@ impl Expr {
                         format!("`{name}` takes {} arguments, found {}", arity_text(arity), args.len()),
                     ));
                 }
-                Some(_) => {}
+                Some(_) => {
+                    if let (Some(check), Some(Expr { kind: ExprKind::Lit(Value::Text(t)), span: arg })) =
+                        (functions.literals.get(name), args.first())
+                        && let Some(message) = check(t)
+                    {
+                        out.push(Diagnostic::new(*arg, message));
+                    }
+                }
             },
             _ => {}
         });
@@ -590,5 +615,19 @@ mod tests {
         });
         assert_eq!(Expr::parse("t(\"ok\")").unwrap().eval(&Env, &f).unwrap(), Value::Text("<ok>".into()));
         assert!(Expr::parse("t(1)").unwrap().eval(&Env, &f).unwrap_err().message.contains("t takes a key"));
+    }
+
+    #[test]
+    fn fmt_time_and_literal_checks() {
+        let mut f = Functions::standard();
+        f.check_literal("t", |k| (k != "ok").then(|| format!("no translation `{k}`")));
+        f.register("t", 1..=1, |a| Ok(a[0].clone()));
+        let eval = |src: &str| Expr::parse(src).unwrap().eval(&Env, &f).unwrap();
+        assert_eq!(eval("fmt_time(75)"), Value::Text("1:15".into()));
+        assert_eq!(eval("fmt_time(3725)"), Value::Text("1:02:05".into()));
+        let bad = Expr::parse("t(\"nope\")").unwrap().check(&Env, &f);
+        assert_eq!(bad.len(), 1);
+        assert!(bad[0].message.contains("no translation `nope`"));
+        assert!(Expr::parse("t(\"ok\")").unwrap().check(&Env, &f).is_empty());
     }
 }

@@ -1,6 +1,7 @@
 use crate::{Component, Diagnostic, Document, Expr, Functions, Member, Scope, Span, Value};
+use acanthus_anim::{Easing, Motion, SpringParams};
 use acanthus_core::{Color, Effect, Signal};
-use acanthus_scene::{NodeId, Scene};
+use acanthus_scene::{Node, NodeId, Prop as NodeProp, Scene};
 use acanthus_widgets::component::{Component as Widget, Kind, Prop, Props, Registry};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -119,13 +120,111 @@ fn validate_component(
                 out.extend(e.check(&Names(roots), functions));
             }
             Member::Property(_, _, e) => out.extend(e.check(&Names(names.to_vec()), functions)),
-            Member::Behavior(_, s, _) => {
-                out.push(Diagnostic::new(*s, "`Behavior` is not supported by the compiler yet"))
+            Member::Behavior(n, s, body) => {
+                if node_prop(n).is_none() {
+                    out.push(Diagnostic::unknown(*s, "animatable property", n, NODE_PROPS.iter().map(|p| p.name())));
+                }
+                if let Err(d) = motion(body, functions) {
+                    out.push(d);
+                }
             }
             Member::Child(child) => validate_component(child, registry, names, functions, out),
             Member::Id(..) => {}
         }
     }
+}
+
+const NODE_PROPS: [NodeProp; 11] = [
+    NodeProp::X,
+    NodeProp::Y,
+    NodeProp::Width,
+    NodeProp::Height,
+    NodeProp::Opacity,
+    NodeProp::Scale,
+    NodeProp::Rotation,
+    NodeProp::Color,
+    NodeProp::Radius,
+    NodeProp::BorderWidth,
+    NodeProp::BorderColor,
+];
+
+fn node_prop(name: &str) -> Option<NodeProp> {
+    NODE_PROPS.into_iter().find(|p| p.name().replace('-', "_") == name)
+}
+
+const EASINGS: [(&str, Easing); 22] = [
+    ("Linear", Easing::Linear),
+    ("InQuad", Easing::InQuad),
+    ("OutQuad", Easing::OutQuad),
+    ("InOutQuad", Easing::InOutQuad),
+    ("InCubic", Easing::InCubic),
+    ("OutCubic", Easing::OutCubic),
+    ("InOutCubic", Easing::InOutCubic),
+    ("InQuart", Easing::InQuart),
+    ("OutQuart", Easing::OutQuart),
+    ("InOutQuart", Easing::InOutQuart),
+    ("InQuint", Easing::InQuint),
+    ("OutQuint", Easing::OutQuint),
+    ("InOutQuint", Easing::InOutQuint),
+    ("InSine", Easing::InSine),
+    ("OutSine", Easing::OutSine),
+    ("InOutSine", Easing::InOutSine),
+    ("InExpo", Easing::InExpo),
+    ("OutExpo", Easing::OutExpo),
+    ("InOutExpo", Easing::InOutExpo),
+    ("InCirc", Easing::InCirc),
+    ("OutCirc", Easing::OutCirc),
+    ("InOutCirc", Easing::InOutCirc),
+];
+
+fn easing(name: &str) -> Option<Easing> {
+    match name {
+        "InBack" => Some(Easing::IN_BACK),
+        "OutBack" => Some(Easing::OUT_BACK),
+        "InOutBack" => Some(Easing::IN_OUT_BACK),
+        _ => EASINGS.iter().find(|(n, _)| *n == name).map(|(_, e)| *e),
+    }
+}
+
+fn motion(body: &Component, functions: &Functions) -> Result<Motion, Diagnostic> {
+    let (mut duration, mut ease) = (250.0, Easing::default());
+    let mut spring = SpringParams::new(0.0, 0.0);
+    let known: &[&str] = match body.name.as_str() {
+        "Tween" => &["duration", "easing"],
+        "Spring" => &["spring", "damping", "mass", "epsilon", "max_velocity"],
+        other => {
+            return Err(Diagnostic::unknown(body.span, "motion", other, ["Tween", "Spring"]));
+        }
+    };
+    for m in &body.members {
+        let Member::Set(n, s, e) = m else {
+            return Err(Diagnostic::new(body.span, "a motion takes only plain properties"));
+        };
+        if !known.contains(&n.as_str()) {
+            return Err(Diagnostic::unknown(*s, "motion property", n, known.iter().copied()));
+        }
+        let value = e.eval(&Names(Vec::new()), functions)?;
+        match (n.as_str(), value) {
+            ("duration", Value::Number(v)) => duration = v,
+            ("easing", Value::Text(t)) => {
+                ease = easing(&t).ok_or_else(|| {
+                    Diagnostic::unknown(
+                        e.span,
+                        "easing",
+                        &t,
+                        EASINGS.iter().map(|(n, _)| *n).chain(["InBack", "OutBack", "InOutBack"]),
+                    )
+                })?
+            }
+            ("spring", Value::Number(v)) => spring.spring = v as f32,
+            ("damping", Value::Number(v)) => spring.damping = v as f32,
+            ("mass", Value::Number(v)) => spring.mass = v as f32,
+            ("epsilon", Value::Number(v)) => spring.epsilon = v as f32,
+            ("max_velocity", Value::Number(v)) => spring.max_velocity = v as f32,
+            (n, _) => return Err(Diagnostic::new(e.span, format!("`{n}` has the wrong type"))),
+        }
+    }
+    Ok(if body.name == "Tween" { Motion::tween(duration.max(0.0) as u32, ease) } else { Motion::Spring(spring) })
 }
 
 fn placeholder(kind: Kind) -> Prop {
@@ -229,6 +328,15 @@ impl Walk<'_> {
         let node = widget.build(self.scene, parent, &props);
         if let Some(id) = id {
             self.ids.insert(id, node);
+        }
+        for m in &c.members {
+            if let Member::Behavior(prop, _, body) = m
+                && let (Some(prop), Ok(motion), Some(slot)) =
+                    (node_prop(prop), motion(body, &self.functions), self.scene.get_mut(node))
+            {
+                let taken = std::mem::replace(slot, Node::item());
+                *slot = taken.animate(prop, motion);
+            }
         }
         for m in &c.members {
             if let Member::Child(child) = m
@@ -423,7 +531,7 @@ mod tests {
     #[test]
     fn errors_are_all_reported_and_nothing_is_built() {
         let volume = Signal::new(0.0);
-        let src = "Probe {\n widht: 1\n label: vol\n on_click: logg(1)\n body: 1\n on_click: value\n Behavior on width { Tween {} }\n}";
+        let src = "Probe {\n widht: 1\n label: vol\n on_click: logg(1)\n body: 1\n on_click: value\n Behavior on wdth { Tween {} }\n}";
         let run = compile(src, &volume);
         let errors = run.built.err().unwrap();
         let messages: Vec<_> = errors.iter().map(|d| d.message.as_str()).collect();
@@ -432,13 +540,37 @@ mod tests {
             "unknown name `vol`",
             "unknown function `logg`",
             "`body` cannot be set",
-            "Behavior",
+            "animatable property",
         ] {
             assert!(messages.iter().any(|m| m.contains(expected)), "{expected} in {messages:?}");
         }
         assert!(messages.iter().any(|m| m.contains("unknown name `value`")));
         assert!(run.scene.get(run.scene.root()).unwrap().children().is_empty());
         assert!(run.taken.borrow().is_empty());
+    }
+
+    #[test]
+    fn behavior_makes_the_node_glide() {
+        let volume = Signal::new(0.0);
+        let src = "Probe {\n width: volume\n Behavior on width { Tween { duration: 100; easing: \"Linear\" } }\n}";
+        let run = compile(src, &volume);
+        let built = run.built.unwrap();
+        volume.set(10.0);
+        let width = run.scene.get(built.root).unwrap().width.clone().unwrap();
+        assert_eq!(width.get_untracked(), 0.0);
+        acanthus_anim::tick(0.05);
+        assert!((width.get_untracked() - 5.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn bad_motions_are_located_errors() {
+        let volume = Signal::new(0.0);
+        let src = "Probe {\n Behavior on width { Tween { easing: \"OutCubc\" } }\n Behavior on opacity { Spring { stiff: 1 } }\n Behavior on x { Fade {} }\n}";
+        let errors = compile(src, &volume).built.err().unwrap();
+        let messages: Vec<_> = errors.iter().map(|d| d.message.as_str()).collect();
+        assert!(errors.iter().any(|d| d.hint.as_deref() == Some("did you mean `OutCubic`?")), "{errors:?}");
+        assert!(messages.iter().any(|m| m.contains("unknown motion property `stiff`")), "{messages:?}");
+        assert!(messages.iter().any(|m| m.contains("unknown motion `Fade`")), "{messages:?}");
     }
 
     #[test]

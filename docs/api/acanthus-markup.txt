@@ -33,6 +33,7 @@ acanthus_markup::ExprKind::Path: variant (Vec < String >)
 acanthus_markup::ExprKind::Ternary: variant (Box < Expr > , Box < Expr > , Box < Expr >)
 acanthus_markup::ExprKind::Unary: variant (Op , Box < Expr >)
 acanthus_markup::Functions: struct
+acanthus_markup::Functions::check_literal: fn check_literal (& mut self , name : & str , check : impl Fn (& str) -> Option < String > + 'static)
 acanthus_markup::Functions::new: fn new () -> Functions
 acanthus_markup::Functions::register: fn register (& mut self , name : & str , arity : RangeInclusive < usize > , f : impl Fn (& [Value]) -> Result < Value , String > + 'static ,)
 acanthus_markup::Functions::standard: fn standard () -> Functions
