@@ -96,6 +96,7 @@ acanthus_markup::bind_actions: fn bind_actions (functions : & mut Functions , ac
 acanthus_markup::build: fn build (doc : & Document , registry : & Registry , functions : Rc < Functions > , globals : Rc < dyn Scope > , scene : & mut Scene , parent : NodeId ,) -> Result < Built , Vec < Diagnostic > >
 acanthus_markup::lex: fn lex (src : & str) -> Result < Vec < Token > , Diagnostic >
 acanthus_markup::parse: fn parse (src : & str) -> Result < Document , Diagnostic >
+acanthus_markup::parse_all: fn parse_all (src : & str) -> Result < Document , Vec < Diagnostic > >
 impl Default for acanthus_markup::Functions
 impl std :: error :: Error for acanthus_markup::Diagnostic
 impl std :: fmt :: Display for acanthus_markup::Diagnostic

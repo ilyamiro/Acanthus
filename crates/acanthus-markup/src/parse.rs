@@ -44,34 +44,52 @@ pub enum Member {
 
 const KEYWORDS: [&str; 3] = ["id", "property", "Behavior"];
 
-/// Parses an ACN file.
+/// Parses an ACN file and returns its first syntax error.
 pub fn parse(src: &str) -> Result<Document, Diagnostic> {
-    let tokens = lex(src)?;
-    let mut p = Parser { tokens: &tokens, pos: 0 };
-    let mut version = VERSION;
-    if p.word("acn") {
-        let t = p.next();
-        let TokenKind::Number(n) = t.kind else {
-            return Err(Diagnostic::new(t.span, "expected the version number after `acn`"));
-        };
-        if n.fract() != 0.0 || n < 0.0 || n as u32 > VERSION {
-            return Err(Diagnostic::new(
-                t.span,
-                format!("this reader supports acn {VERSION}, the file declares acn {n}"),
-            ));
+    parse_all(src).map_err(|mut errors| errors.remove(0))
+}
+
+/// Parses an ACN file. A bad member is skipped up to the next line or `;`, so one run reports every
+/// syntax error that can be told apart, in source order.
+pub fn parse_all(src: &str) -> Result<Document, Vec<Diagnostic>> {
+    let tokens = lex(src).map_err(|d| vec![d])?;
+    let mut p = Parser { tokens: &tokens, pos: 0, errors: Vec::new() };
+    let document = p.document().map_err(|d| {
+        p.errors.push(d);
+        std::mem::take(&mut p.errors)
+    })?;
+    if p.errors.is_empty() { Ok(document) } else { Err(p.errors) }
+}
+
+impl Parser<'_> {
+    fn document(&mut self) -> Result<Document, Diagnostic> {
+        let p = self;
+        let mut version = VERSION;
+        if p.word("acn") {
+            let t = p.next();
+            let TokenKind::Number(n) = t.kind else {
+                return Err(Diagnostic::new(t.span, "expected the version number after `acn`"));
+            };
+            if n.fract() != 0.0 || n < 0.0 || n as u32 > VERSION {
+                return Err(Diagnostic::new(
+                    t.span,
+                    format!("this reader supports acn {VERSION}, the file declares acn {n}"),
+                ));
+            }
+            version = n as u32;
         }
-        version = n as u32;
-    }
-    let root = p.component()?;
-    match p.peek() {
-        Token { kind: TokenKind::Eof, .. } => Ok(Document { version, root }),
-        t => Err(Diagnostic::new(t.span, "a file holds one root component")),
+        let root = p.component()?;
+        match p.peek() {
+            Token { kind: TokenKind::Eof, .. } => Ok(Document { version, root }),
+            t => Err(Diagnostic::new(t.span, "a file holds one root component")),
+        }
     }
 }
 
 struct Parser<'a> {
     tokens: &'a [Token],
     pos: usize,
+    errors: Vec<Diagnostic>,
 }
 
 impl Parser<'_> {
@@ -141,7 +159,35 @@ impl Parser<'_> {
             if self.peek().kind == TokenKind::Eof {
                 return Err(Diagnostic::new(span, format!("`{name}` is never closed")));
             }
-            members.push(self.member()?);
+            let start = self.pos;
+            match self.member() {
+                Ok(m) => members.push(m),
+                Err(d) if self.peek().kind == TokenKind::Eof => return Err(d),
+                Err(d) => {
+                    self.errors.push(d);
+                    self.skip_member(start);
+                }
+            }
+        }
+    }
+
+    fn skip_member(&mut self, start: usize) {
+        let mut depth = 0usize;
+        loop {
+            let t = self.peek();
+            match &t.kind {
+                TokenKind::Eof => break,
+                TokenKind::Punct("}") if depth == 0 => break,
+                _ if depth == 0 && self.pos > start && t.newline => break,
+                TokenKind::Punct(";") if depth == 0 => {
+                    self.pos += 1;
+                    break;
+                }
+                TokenKind::Punct("{" | "(" | "[") => depth += 1,
+                TokenKind::Punct("}" | ")" | "]") => depth = depth.saturating_sub(1),
+                _ => {}
+            }
+            self.pos += 1;
         }
     }
 
@@ -278,6 +324,18 @@ Dropdown {
         assert!(parse("Rect {} Rect {}").unwrap_err().message.contains("one root"));
         assert!(parse("Rect { a: 1 +\n }").is_err());
         assert!(parse("Rect { 5 }").is_err());
+    }
+
+    #[test]
+    fn several_syntax_errors_are_reported_in_order() {
+        let src = "Slider {\n width 1\n value: 2 +\n Child { x: }\n Child2 {\n  y: (1,\n }\n label: \"ok\"\n}";
+        let errors = parse_all(src).unwrap_err();
+        let starts: Vec<_> = errors.iter().map(|d| d.span.start).collect();
+        assert!(errors.len() >= 3, "{errors:?}");
+        assert!(starts.windows(2).all(|w| w[0] <= w[1]), "{errors:?}");
+        assert_eq!(parse(src).unwrap_err(), errors[0]);
+        assert!(parse_all("Slider { width: 1 }").is_ok());
+        assert_eq!(parse_all("Slider {").unwrap_err().len(), 1);
     }
 
     #[test]

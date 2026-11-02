@@ -17,4 +17,4 @@ pub use diag::{Diagnostic, Span};
 pub use expr::{Expr, ExprKind, Functions, Op, Scope, Value};
 pub use hot::Hot;
 pub use lex::{Token, TokenKind, lex};
-pub use parse::{Component, Document, Member, VERSION, parse};
+pub use parse::{Component, Document, Member, VERSION, parse, parse_all};

@@ -1,4 +1,4 @@
-use crate::{Built, Diagnostic, Functions, Scope, build, parse};
+use crate::{Built, Diagnostic, Functions, Scope, build, parse_all};
 use acanthus_core::Color;
 use acanthus_io::{IoError, Watch};
 use acanthus_scene::{Anchors, Node, NodeId, Scene};
@@ -72,8 +72,7 @@ impl Hot {
                 ));
             }
         };
-        let result = parse(&src)
-            .map_err(|d| vec![d])
+        let result = parse_all(&src)
             .and_then(|doc| build(&doc, &self.registry, self.functions.clone(), self.globals.clone(), scene, parent));
         match result {
             Ok(built) => {

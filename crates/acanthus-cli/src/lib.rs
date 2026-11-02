@@ -2,7 +2,7 @@
 #![deny(missing_docs)]
 
 use acanthus_app::testing::{Headless, Script};
-use acanthus_markup::{Built, Diagnostic, Functions, Scope, Value, build, parse};
+use acanthus_markup::{Built, Diagnostic, Functions, Scope, Value, build, parse_all};
 use acanthus_runtime::Theme;
 use acanthus_scene::{Fonts, Scene};
 use acanthus_widgets::standard_registry;
@@ -96,7 +96,7 @@ fn compile(src: &str, globals: &[String], scene: &mut Scene) -> Result<Built, Ve
     let registry = standard_registry().with_colors(move |name| theme.role(name));
     let mut functions = Functions::standard();
     functions.register("log", 1..=1, |_| Ok(Value::Null));
-    let doc = parse(src).map_err(|d| vec![d])?;
+    let doc = parse_all(src)?;
     let root = scene.root();
     build(&doc, &registry, Rc::new(functions), Rc::new(Declared(globals.to_vec())), scene, root)
 }

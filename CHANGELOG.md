@@ -6,6 +6,7 @@ All notable changes to the Acanthus engine crates. The policy is in `acanthus do
 
 ### Added
 
+- `acanthus_markup::parse_all` recovers from a bad member (skips to the next line or `;`) and returns every syntax error in source order; `Hot` and `acanthus check` use it. `parse` still returns the first error.
 - ACN `Repeater { count: N  Child {} }` expands into N copies of its children with `index` (0 to N-1) readable inside; counts are constant expressions checked at compile time.
 - `acanthus docs [TOPIC]` prints the ACN spec or the versioning policy of the installed version, offline.
 - `acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] FILE OUT.png` renders an ACN file offscreen through the headless harness.
