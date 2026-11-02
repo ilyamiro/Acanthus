@@ -16,7 +16,11 @@ const USAGE: &str = "usage:
   acanthus new FILE                           write a starter file
   acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] [--reduced-motion] [--global NAME]... FILE OUT.png
                                               render a file offscreen to a picture
+  acanthus docs [TOPIC]                       print a guide of this version (no topic lists them)
 ";
+
+const GUIDES: [(&str, &str); 2] =
+    [("acn-spec", include_str!("../guides/acn-spec.md")), ("versioning", include_str!("../guides/versioning.md"))];
 
 const TEMPLATE: &str = "acn 0\nSlider {\n    id: volume\n    width: 240\n    value: 0.5\n    on_moved: log(value)\n}\n";
 
@@ -40,6 +44,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Some("fmt") => fmt(rest, out, err),
         Some("new") => new(rest, out, err),
         Some("shot") => shot(rest, out, err),
+        Some("docs") => docs(rest, out),
         _ => Err(String::new()),
     };
     match code {
@@ -161,6 +166,26 @@ fn fmt(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i32,
         }
     }
     Ok(i32::from(dry && dirty > 0))
+}
+
+fn docs(args: &[String], out: &mut dyn Write) -> Result<i32, String> {
+    match args {
+        [] => {
+            for (name, _) in GUIDES {
+                let _ = writeln!(out, "{name}");
+            }
+            Ok(0)
+        }
+        [topic] => {
+            let (_, text) = GUIDES.iter().find(|(n, _)| n == topic).ok_or_else(|| {
+                let names: Vec<_> = GUIDES.iter().map(|(n, _)| *n).collect();
+                format!("no guide `{topic}`, the guides are: {}", names.join(", "))
+            })?;
+            let _ = write!(out, "{text}");
+            Ok(0)
+        }
+        _ => Err("docs takes at most one topic".into()),
+    }
 }
 
 fn new(args: &[String], out: &mut dyn Write, _: &mut dyn Write) -> Result<i32, String> {
@@ -313,6 +338,18 @@ mod tests {
         std::fs::write(file, "Slider { widht: 1 }\n").unwrap();
         assert_eq!(exec(&["shot", file, png]).0, 1);
         assert_eq!(exec(&["shot", file]).0, 2);
+    }
+
+    #[test]
+    fn docs_lists_and_prints_guides() {
+        let (code, out, _) = exec(&["docs"]);
+        assert_eq!((code, out.as_str()), (0, "acn-spec\nversioning\n"));
+        let (code, out, _) = exec(&["docs", "acn-spec"]);
+        assert_eq!(code, 0);
+        assert!(out.starts_with("# "));
+        let (code, _, err) = exec(&["docs", "acn-spc"]);
+        assert_eq!(code, 2);
+        assert!(err.contains("acn-spec"));
     }
 
     #[test]

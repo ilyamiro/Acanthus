@@ -1,11 +1,12 @@
 # Changelog
 
-All notable changes to the Acanthus engine crates. The policy is in `docs/engine/versioning.md`.
+All notable changes to the Acanthus engine crates. The policy is in `acanthus docs versioning`.
 
 ## Unreleased
 
 ### Added
 
+- `acanthus docs [TOPIC]` prints the ACN spec or the versioning policy of the installed version, offline.
 - `acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] FILE OUT.png` renders an ACN file offscreen through the headless harness.
 - `acanthus_markup::bind_actions` registers the ACN function `action(command, target?, extra?)` on an `acanthus_app::Actions` registry (literal names checked at compile time); `Actions::knows(name)` is new.
 - `acanthus-cli` crate with the `acanthus` binary: `check [--global NAME]... FILE...` compiles ACN files against the standard widget registry and prints caret diagnostics, `fmt [--check]` re-indents them, `new` writes a starter file.
