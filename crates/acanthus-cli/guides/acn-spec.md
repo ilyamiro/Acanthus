@@ -33,6 +33,7 @@ member    = "id" ":" ident
 - `on_event: expr` binds an event, named like the component's event prop (`on_click`, `on_moved`); the expression is evaluated when the event fires and is normally a call (`on_click: action("popup.toggle")`). A handler of an event with an argument (number, bool or index) reads it as `value`.
 - `Behavior on prop { Tween { duration: 200 } }` animates changes of `prop` (maps to `Node::animate`).
 - `Repeater { count: N  Child { ... } }` expands at compile time into `N` copies of its child components (`N` is a whole number from 0 to 1000 and may use an outer `index`); inside the copies `index` is the copy number from 0. An id declared inside a copy becomes `name_N` (`N` the copy number, `item_2` from outside); inside the copy the plain `name` still works.
+- A component with several child slots (`Tabs` has one panel per tab) takes child `i` in slot `i`; a text-list prop such as `labels: ["A", "B"]` keeps its item count after the first evaluation.
 - Any other `name: expr` sets a property of the component. The expression re-evaluates when a signal it reads changes.
 
 ## Expressions

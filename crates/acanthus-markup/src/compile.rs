@@ -105,7 +105,7 @@ fn validate_component(
                     Some(k) if is_event(k) => {
                         out.push(Diagnostic::new(*s, format!("`{n}` is an event; write `on_{n}`")))
                     }
-                    Some(Kind::TextSlots | Kind::Node | Kind::Point | Kind::Flickable) => {
+                    Some(Kind::Node | Kind::Point | Kind::Flickable) => {
                         out.push(Diagnostic::new(*s, format!("`{n}` cannot be set from markup yet")))
                     }
                     _ => {}
@@ -235,6 +235,7 @@ fn placeholder(kind: Kind) -> Prop {
         Kind::Color => Prop::color(Color::TRANSPARENT),
         Kind::Index => Prop::Index(Signal::new(0)),
         Kind::TextList => Prop::TextList(Signal::new(Vec::new())),
+        Kind::TextSlots => Prop::TextSlots(Vec::new()),
         _ => Prop::NumberList(Signal::new(Vec::new())),
     }
 }
@@ -256,6 +257,17 @@ fn assign(target: &Prop, v: Value) -> Result<(), String> {
             let items: Option<Vec<f32>> =
                 l.iter().map(|i| if let Value::Number(n) = i { Some(*n as f32) } else { None }).collect();
             s.set(items.ok_or_else(|| wrong(&v))?)
+        }
+        (Prop::TextSlots(slots), Value::List(l)) if slots.len() == l.len() => {
+            for (slot, item) in slots.iter().zip(l) {
+                match item {
+                    Value::Text(t) => slot.set(t.clone()),
+                    _ => return Err(wrong(&v)),
+                }
+            }
+        }
+        (Prop::TextSlots(slots), Value::List(_)) => {
+            return Err(format!("a text list prop keeps its {} items", slots.len()));
         }
         _ => return Err(wrong(&v)),
     }
@@ -306,8 +318,14 @@ impl Walk<'_> {
                 Member::Id(n, _) => id = Some(n.clone()),
                 Member::Set(n, _, e) => {
                     let kind = widget.props().iter().find(|s| s.name == n).expect("validated").kind;
-                    let target = placeholder(kind);
-                    if let Ok(v) = e.eval(&*self.locals, &self.functions) {
+                    let value = e.eval(&*self.locals, &self.functions);
+                    let target = match (kind, &value) {
+                        (Kind::TextSlots, Ok(Value::List(l))) => {
+                            Prop::TextSlots(l.iter().map(|_| Signal::new(String::new())).collect())
+                        }
+                        _ => placeholder(kind),
+                    };
+                    if let Ok(v) = value {
                         let _ = assign(&target, v);
                     }
                     self.bindings.push((e.clone(), target.clone()));
@@ -338,12 +356,23 @@ impl Walk<'_> {
                 *slot = taken.animate(prop, motion);
             }
         }
+        let slots = widget.slots(self.scene, node);
+        let mut index = 0;
         for m in &c.members {
-            if let Member::Child(child) = m
-                && let Err(d) = self.component(child, node)
-            {
-                self.scene.remove(node);
-                return Err(d);
+            if let Member::Child(child) = m {
+                let slot = if slots.len() == 1 { slots.first() } else { slots.get(index) };
+                index += 1;
+                let result = match slot {
+                    Some(slot) => self.component(child, *slot),
+                    None => Err(Diagnostic::new(
+                        child.span,
+                        format!("{} has {} slots for children, this is child {index}", c.name, slots.len()),
+                    )),
+                };
+                if let Err(d) = result {
+                    self.scene.remove(node);
+                    return Err(d);
+                }
             }
         }
         Ok(node)
@@ -482,6 +511,7 @@ mod tests {
         let taken = Rc::new(RefCell::new(Vec::new()));
         let mut registry = Registry::new();
         registry.register(Probe(taken.clone()));
+        registry.register(acanthus_widgets::tabs::TabsComponent);
         let log = Rc::new(RefCell::new(Vec::new()));
         let mut functions = Functions::standard();
         let sink = log.clone();
@@ -607,6 +637,20 @@ mod tests {
         assert!(!built.ids.contains_key("item"));
         let widths: Vec<f32> = run.taken.borrow().iter().skip(1).map(|t| t.width.get_untracked()).collect();
         assert_eq!(widths, vec![16.0, 10.0, 20.0, 11.0, 22.0]);
+    }
+
+    #[test]
+    fn tabs_take_one_child_per_panel_and_text_lists() {
+        let volume = Signal::new(0.0);
+        let head = "Tabs {\n labels: [\"A\", \"B\"]\n accent: #446688\n muted: #446688\n rule: #446688\n";
+        let run = compile(&format!("{head} Probe {{}}\n Probe {{ width: 7 }}\n}}"), &volume);
+        let built = run.built.unwrap();
+        let second = run.scene.get(built.root).unwrap().children()[1];
+        let panels = run.scene.get(second).unwrap().children().to_vec();
+        assert_eq!(panels.len(), 2);
+        assert!(panels.iter().all(|p| run.scene.get(*p).unwrap().children().len() == 1));
+        let errors = compile(&format!("{head} Probe {{}}\n Probe {{}}\n Probe {{}}\n}}"), &volume).built.err().unwrap();
+        assert!(errors[0].message.contains("2 slots"), "{errors:?}");
     }
 
     #[test]

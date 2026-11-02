@@ -6,6 +6,9 @@ All notable changes to the Acanthus engine crates. The policy is in `acanthus do
 
 ### Added
 
+- ACN: a component with several child slots (`Tabs`: one panel per tab) takes child `i` in slot `i`; text-list props (`labels: ["A", "B"]`) can be set from markup. `Component::slots` (default: the root takes every child) is new.
+- `acanthus grammar vim|textmate` prints an editor highlighter generated from the widget registry; `Functions::names` lists the registered functions.
+- ACN ids declared inside a `Repeater` copy become `name_N`; inside the copy the plain name still resolves.
 - `acanthus_markup::parse_all` recovers from a bad member (skips to the next line or `;`) and returns every syntax error in source order; `Hot` and `acanthus check` use it. `parse` still returns the first error.
 - ACN `Repeater { count: N  Child {} }` expands into N copies of its children with `index` (0 to N-1) readable inside; counts are constant expressions checked at compile time.
 - `acanthus docs [TOPIC]` prints the ACN spec or the versioning policy of the installed version, offline.

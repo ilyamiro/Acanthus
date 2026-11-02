@@ -459,6 +459,12 @@ pub trait Component {
 
     /// Builds the component under `parent` from validated `props` and returns its root node.
     fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId;
+
+    /// The nodes that take the child components written inside this one, given the root `build`
+    /// returned. One slot receives every child; several slots receive child `i` in slot `i`.
+    fn slots(&self, _scene: &Scene, root: NodeId) -> Vec<NodeId> {
+        vec![root]
+    }
 }
 
 /// Why a component could not be built.

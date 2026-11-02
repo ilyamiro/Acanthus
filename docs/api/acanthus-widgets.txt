@@ -86,6 +86,7 @@ acanthus_widgets::component::Component: trait
 acanthus_widgets::component::Component::build: required fn build (& self , scene : & mut Scene , parent : NodeId , props : & Props) -> NodeId
 acanthus_widgets::component::Component::name: required fn name (& self) -> & 'static str
 acanthus_widgets::component::Component::props: required fn props (& self) -> & 'static [PropSpec]
+acanthus_widgets::component::Component::slots: provided fn slots (& self , _scene : & Scene , root : NodeId) -> Vec < NodeId >
 acanthus_widgets::component::Kind: enum [Clone, Copy, Debug, Eq, PartialEq]
 acanthus_widgets::component::Kind::Bool: variant 
 acanthus_widgets::component::Kind::BoolEvent: variant 

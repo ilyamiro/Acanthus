@@ -184,6 +184,11 @@ impl Component for TabsComponent {
         PROPS
     }
 
+    fn slots(&self, scene: &Scene, root: NodeId) -> Vec<NodeId> {
+        let second = scene.get(root).map(|n| n.children()[1]);
+        second.and_then(|s| scene.get(s)).map(|n| n.children().to_vec()).unwrap_or_default()
+    }
+
     fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
         tabs(
             scene,
