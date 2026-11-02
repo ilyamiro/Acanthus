@@ -2,6 +2,7 @@
 #![deny(missing_docs)]
 
 mod grammar;
+mod host;
 
 use acanthus_app::testing::{Headless, Script};
 use acanthus_markup::{Built, Diagnostic, Functions, Scope, Value, build, parse_all};
@@ -18,6 +19,9 @@ const USAGE: &str = "usage:
   acanthus new FILE                           write a starter file
   acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] [--reduced-motion] [--global NAME]... FILE OUT.png
                                               render a file offscreen to a picture
+  acanthus where [NAME|DIR|FILE]              print the configuration file a name resolves to
+  acanthus list                               show running instances
+  acanthus kill --pid PID | -n NAME           stop running instances
   acanthus grammar vim|textmate               print an editor highlighter generated from the component registry
   acanthus docs [TOPIC]                       print a guide of this version (no topic lists them)
 ";
@@ -49,6 +53,17 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Some("shot") => shot(rest, out, err),
         Some("docs") => docs(rest, out),
         Some("grammar") => grammar::run(rest, out),
+        Some("where") => {
+            config_home().and_then(|home| host::resolve_config(&home, rest.first().map(String::as_str))).map(|path| {
+                let _ = writeln!(out, "{}", path.display());
+                0
+            })
+        }
+        Some("list") => runtime_dir().map(|dir| {
+            host::list_command(&dir, out);
+            0
+        }),
+        Some("kill") => runtime_dir().and_then(|dir| host::kill_command(&dir, rest, out)),
         _ => Err(String::new()),
     };
     match code {
@@ -61,6 +76,19 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             2
         }
     }
+}
+
+fn config_home() -> Result<std::path::PathBuf, String> {
+    let var = |name| std::env::var_os(name).filter(|v| !v.is_empty()).map(std::path::PathBuf::from);
+    var("XDG_CONFIG_HOME")
+        .or_else(|| var("HOME").map(|home| home.join(".config")))
+        .ok_or_else(|| "neither XDG_CONFIG_HOME nor HOME is set".to_owned())
+}
+
+fn runtime_dir() -> Result<std::path::PathBuf, String> {
+    std::env::var_os("XDG_RUNTIME_DIR")
+        .map(|dir| Path::new(&dir).join("acanthus"))
+        .ok_or_else(|| "XDG_RUNTIME_DIR is not set".to_owned())
 }
 
 fn check(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i32, String> {

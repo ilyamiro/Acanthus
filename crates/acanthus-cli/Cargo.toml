@@ -16,6 +16,7 @@ acanthus-markup.workspace = true
 acanthus-runtime.workspace = true
 acanthus-scene.workspace = true
 acanthus-widgets.workspace = true
+rustix.workspace = true
 
 [dev-dependencies]
 image.workspace = true
