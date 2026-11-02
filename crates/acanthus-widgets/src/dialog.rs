@@ -180,6 +180,7 @@ pub fn dialog(scene: &mut Scene, parent: NodeId, spec: DialogSpec) -> NodeId {
             .width(inner)
             .align(Align::Start),
     );
+    scene.add(card, Node::column(spec.gap).width(inner));
     let row = scene.add(card, Node::row(spec.gap).align(Align::End));
     for (index, label) in spec.buttons.iter().enumerate() {
         let choose = spec.on_choose.clone();
@@ -224,6 +225,11 @@ impl Component for DialogComponent {
             PropSpec::index_event("on_choose"),
         ];
         PROPS
+    }
+
+    fn slots(&self, scene: &Scene, root: NodeId) -> Vec<NodeId> {
+        let card = scene.get(root).and_then(|n| n.children().first().copied());
+        card.and_then(|c| scene.get(c)).and_then(|n| n.children().get(2).copied()).into_iter().collect()
     }
 
     fn build(&self, scene: &mut Scene, parent: NodeId, props: &Props) -> NodeId {
@@ -334,5 +340,24 @@ mod tests {
             scene.frame();
         }
         assert!(!shown(&scene));
+    }
+
+    #[test]
+    fn the_content_slot_sits_between_the_message_and_the_buttons() {
+        let mut registry = Registry::new();
+        registry.register(DialogComponent);
+        let mut given: Vec<(String, Prop)> =
+            ["scrim", "fill", "border", "accent", "accent_text", "button", "text", "muted"]
+                .map(|name| (name.to_owned(), Prop::color(Color::hex(0x445566))))
+                .to_vec();
+        given.push(("buttons".to_owned(), Prop::TextSlots(vec![Signal::new("Ok".to_owned())])));
+        let mut scene = Scene::new(Fonts::new());
+        let root = scene.root();
+        let scrim = registry.build("Dialog", &mut scene, root, given).unwrap();
+        let slots = DialogComponent.slots(&scene, scrim);
+        let card = scene.get(scrim).unwrap().children()[0];
+        let kids = scene.get(card).unwrap().children().to_vec();
+        assert_eq!(slots, vec![kids[2]]);
+        assert_eq!(kids.len(), 4);
     }
 }
