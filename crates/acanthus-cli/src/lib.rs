@@ -1,6 +1,7 @@
 //! The `acanthus` command line. [`run`] is the whole program; `main` only forwards the arguments.
 #![deny(missing_docs)]
 
+mod complete;
 mod grammar;
 mod host;
 
@@ -23,6 +24,7 @@ const USAGE: &str = "usage:
   acanthus list                               show running instances
   acanthus kill --pid PID | -n NAME           stop running instances
   acanthus grammar vim|textmate               print an editor highlighter generated from the component registry
+  acanthus complete FILE LINE COLUMN          list components or props that fit at a position
   acanthus docs [TOPIC]                       print a guide of this version (no topic lists them)
 ";
 
@@ -52,6 +54,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Some("new") => new(rest, out, err),
         Some("shot") => shot(rest, out, err),
         Some("docs") => docs(rest, out),
+        Some("complete") => complete::run(rest, out),
         Some("grammar") => grammar::run(rest, out),
         Some("where") => {
             config_home().and_then(|home| host::resolve_config(&home, rest.first().map(String::as_str))).map(|path| {
