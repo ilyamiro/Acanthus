@@ -54,7 +54,7 @@ impl Scope for Locals {
     }
 }
 
-struct Names(Vec<String>);
+pub(crate) struct Names(pub(crate) Vec<String>);
 
 impl Scope for Names {
     fn roots(&self) -> Vec<String> {
@@ -366,6 +366,8 @@ pub fn build(
     scene: &mut Scene,
     parent: NodeId,
 ) -> Result<Built, Vec<Diagnostic>> {
+    let expanded = Document { version: doc.version, root: crate::repeat::expand(&doc.root, &functions)? };
+    let doc = &expanded;
     let mut errors = doc.check_names(registry);
     let (mut ids, mut declared) = (HashSet::new(), HashSet::new());
     collect(&doc.root, &mut ids, &mut declared, &mut errors);
@@ -374,6 +376,7 @@ pub fn build(
     validate_component(&doc.root, registry, &names, &functions, &mut errors);
     if !errors.is_empty() {
         errors.sort_by_key(|d| d.span.start);
+        errors.dedup_by(|a, b| a.span == b.span && a.message == b.message);
         return Err(errors);
     }
     let locals =
@@ -571,6 +574,43 @@ mod tests {
         assert!(errors.iter().any(|d| d.hint.as_deref() == Some("did you mean `OutCubic`?")), "{errors:?}");
         assert!(messages.iter().any(|m| m.contains("unknown motion property `stiff`")), "{messages:?}");
         assert!(messages.iter().any(|m| m.contains("unknown motion `Fade`")), "{messages:?}");
+    }
+
+    #[test]
+    fn repeater_makes_copies_with_their_index() {
+        let volume = Signal::new(0.0);
+        let src = "Probe {\n Repeater {\n count: 3\n Probe { width: index * 10 + 1 }\n }\n}";
+        let run = compile(src, &volume);
+        let built = run.built.unwrap();
+        let widths: Vec<f32> = run.taken.borrow().iter().skip(1).map(|t| t.width.get_untracked()).collect();
+        assert_eq!(widths, vec![1.0, 11.0, 21.0]);
+        assert_eq!(run.scene.get(built.root).unwrap().children().len(), 3);
+    }
+
+    #[test]
+    fn nested_repeaters_keep_their_own_index() {
+        let volume = Signal::new(0.0);
+        let src = "Probe {\n Repeater { count: 2\n Probe { width: index\n Repeater { count: index + 1\n Probe { width: 100 + index } } } }\n}";
+        let run = compile(src, &volume);
+        run.built.unwrap();
+        let widths: Vec<f32> = run.taken.borrow().iter().skip(1).map(|t| t.width.get_untracked()).collect();
+        assert_eq!(widths, vec![0.0, 100.0, 1.0, 100.0, 101.0]);
+    }
+
+    #[test]
+    fn repeater_mistakes_are_located_errors() {
+        let volume = Signal::new(0.0);
+        for (src, expected) in [
+            ("Probe { Repeater { Probe {} } }", "needs `count`"),
+            ("Probe { Repeater { count: 2.5\n Probe {} } }", "whole number"),
+            ("Probe { Repeater { count: volume\n Probe {} } }", "`volume` has no value"),
+            ("Probe { Repeater { count: 1\n width: 2 } }", "takes `count`"),
+            ("Repeater { count: 1 }", "root"),
+            ("Probe { width: index }", "unknown name `index`"),
+        ] {
+            let errors = compile(src, &volume).built.err().unwrap();
+            assert!(errors.iter().any(|d| d.message.contains(expected)), "{expected} in {errors:?}");
+        }
     }
 
     #[test]

@@ -9,6 +9,7 @@ mod expr;
 mod hot;
 mod lex;
 mod parse;
+mod repeat;
 
 pub use actions::bind_actions;
 pub use compile::{Built, build};

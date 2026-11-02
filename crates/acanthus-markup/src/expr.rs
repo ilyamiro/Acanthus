@@ -98,6 +98,23 @@ pub enum ExprKind {
     Index(Box<Expr>, Box<Expr>),
 }
 
+impl Expr {
+    pub(crate) fn bind(&self, name: &str, value: f64) -> Expr {
+        let b = |e: &Expr| Box::new(e.bind(name, value));
+        let kind = match &self.kind {
+            ExprKind::Path(p) if p.len() == 1 && p[0] == name => ExprKind::Lit(Value::Number(value)),
+            ExprKind::List(l) => ExprKind::List(l.iter().map(|e| e.bind(name, value)).collect()),
+            ExprKind::Unary(op, e) => ExprKind::Unary(*op, b(e)),
+            ExprKind::Binary(op, l, r) => ExprKind::Binary(*op, b(l), b(r)),
+            ExprKind::Ternary(c, l, r) => ExprKind::Ternary(b(c), b(l), b(r)),
+            ExprKind::Call(f, s, a) => ExprKind::Call(f.clone(), *s, a.iter().map(|e| e.bind(name, value)).collect()),
+            ExprKind::Index(l, i) => ExprKind::Index(b(l), b(i)),
+            other => other.clone(),
+        };
+        Expr { span: self.span, kind }
+    }
+}
+
 /// The names an expression can read: ids, properties and host globals.
 pub trait Scope {
     /// The first segments of every path that can resolve.
