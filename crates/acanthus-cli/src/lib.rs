@@ -14,7 +14,7 @@ const USAGE: &str = "usage:
   acanthus check [--global NAME]... FILE...   parse and compile files without showing them
   acanthus fmt [--check] FILE...              re-indent files in place
   acanthus new FILE                           write a starter file
-  acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] [--global NAME]... FILE OUT.png
+  acanthus shot [--size WxH] [--scale S] [--script STEPS] [--time MS] [--reduced-motion] [--global NAME]... FILE OUT.png
                                               render a file offscreen to a picture
 ";
 
@@ -104,6 +104,7 @@ fn shot(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> Result<i32
         let mut value = |what: &str| it.next().cloned().ok_or(format!("{a} needs {what}"));
         match a.as_str() {
             "--global" => globals.push(value("a name")?),
+            "--reduced-motion" => acanthus_anim::set_reduced_motion(true),
             "--script" => script = value("steps")?,
             "--scale" => scale = value("a number")?.parse().map_err(|_| "--scale needs a number")?,
             "--time" => time = value("milliseconds")?.parse().map_err(|_| "--time needs milliseconds")?,
@@ -304,6 +305,11 @@ mod tests {
         assert_eq!((code, err.as_str()), (0, ""), "{out}");
         let img = image::open(png).unwrap();
         assert_eq!((img.width(), img.height()), (240, 60));
+        std::fs::write(file, "Slider { widht: 1 }\n").unwrap();
+        std::fs::write(file, "Slider {\nwidth: 200\nBehavior on opacity { Tween { duration: 500 } }\n}\n").unwrap();
+        let (code, _, err) = exec(&["shot", "--reduced-motion", file, png]);
+        assert_eq!((code, err.as_str()), (0, ""));
+        acanthus_anim::set_reduced_motion(false);
         std::fs::write(file, "Slider { widht: 1 }\n").unwrap();
         assert_eq!(exec(&["shot", file, png]).0, 1);
         assert_eq!(exec(&["shot", file]).0, 2);
